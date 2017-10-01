@@ -9,12 +9,14 @@ Make sure to read the usage section before using  It reads an monomer ITP file, 
 ### Initial System generation
 
 ## MARTINI Polymers 
-
-When using MARTINI Polymers make sure to use the correct force-filed itp file, which is different from the standard martini forece-field releases (i.e all 2.x). The table below gives some links to the correct FF file. Some popular examples are:
-
+In the Monomer-Itps directory monomer ITP files can be found. For the MARTINI itps make sure to use the correct force-field version. For most cases the force-field deviates slightly from the standard MARTINI version 2.x. The correct versions for some MARTINI polymers are listed below: 
 * [PS](http://www.cgmartini.nl/images/applications/polymers/martini_v2.1_PS.itp)
 * [PEO_Monticelli_et_al](http://perso.ibcp.fr/luca.monticelli/MARTINI/index.html)
 * [PEO_Lee_et_al](http://www.cgmartini.nl/images/parameters/ITP/martini_v2.2.itp) make sure to change the S0-S0 interactions and the S0-P4 interactions as detailed [here](http://www.cgmartini.nl/index.php/force-field-parameters/polymers)
 * [P3HT_Alessandri_et_al](http://www.cgmartini.nl/images/parameters/ITP/martini_v2.2.itp)
 
 ## Authors
+
+## License
+
+This project is licensed under the GNU License - see the [LICENSE.md](LICENSE.md) file for details
