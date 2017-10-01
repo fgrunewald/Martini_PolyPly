@@ -1,0 +1,426 @@
+#+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+#                             METROPOLIS-MONTE-CARLO TOOL FOR GENERATING POLYMER CHAINS, MELTS & SOLVATED POLYMER SYSTEMS
+#+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+
+#=======================================================================================================================================================================
+#   I                                                           Autor, Lincesne and such
+#=======================================================================================================================================================================
+#
+# This program was written by F. Grunewald at the University of Groningen the Netherlands. All rights are reserved. The source code can be used freely for academic 
+# purposes and may in these situations be modified, adabted and integrated following the rules established in the the GNU lesser license for software. The full license # agreement is available under:
+# Commerical uses are requested to contact the author in order to negotiate the terms of usage.  
+# Feel free to report bugs and porblems via the established git-hub channels. 
+#
+#======================================================================================================================================================================
+#    II                                                        Libraries and functions used          
+#======================================================================================================================================================================
+#
+import numpy as np
+import argparse
+import random
+import itertools
+import matplotlib.pyplot as plt
+import scipy.optimize as opt
+from matplotlib import cm, colors
+from mpl_toolkits.mplot3d import Axes3D
+from numpy import sqrt, pi, cos, sin, dot, cross, arccos, degrees
+from numpy import float as nfl
+from numpy.linalg import norm
+
+#======================================================================================================================================================================
+#    III                                          Some garbage from previous functions which might be useful          
+#======================================================================================================================================================================
+
+#ff = {'bonds':[{'pair':[1,2], 'k0':5000, 'ref':0.4},{'pair':[2,3], 'k0':5000, 'ref':0.4},{'pair':[1,3], 'k0':5000, 'ref':0.4},{'pair':[3,4], 'k0':5000, 'ref':0.4}],'angles':[{'pair':[2,3,4], 'k0':300, 'ref':90},{'pair':[1,2,3], 'k0':300, 'ref':90}], 'dih':[{'pair':[1,2,3,4], 'k0':30, 'ref':180}]}
+
+#core = np.array([np.array(2.100, 2.343, 2.245), np.array(2.088, 2.204, 2.019), np.array(1.915, 2.019, 1.924), np.array(2.176, 1.957, 1.952), np.array(2.067, 2.352, 2.483), np.array(2.068, 2.110, 2.372), np.array(1.919, 1.885, 2.362), np.array(2.185, 1.869, 2.402), np.array(2.033, 2.477, 2.688), np.array(2.055, 2.210, 2.710), np.array(1.928, 1.992, 2.806), np.array(2.195, 2.016, 2.836)])
+
+#start = np.array([np.array([2.100, 2.343, 2.245]), np.array([2.088, 2.204, 2.019]), np.array([1.915, 2.019, 1.924]), np.array([2.176, 1.957, 1.952])])
+
+
+#print start
+#bounds = np.c_[start[:1,:].ravel(), start[:1,:].ravel()].tolist() + [[None, None]] * (3*(len(start)-1))   
+#opt_coord = energy_min(start, bounds).x.reshape((-1,3))
+#print norm(opt_coord[0] - opt_coord[1])
+#print norm(opt_coord[1] - opt_coord[2])
+#print norm(opt_coord[2] - opt_coord[3])
+#print angle(opt_coord[0], opt_coord[1], opt_coord[2])
+#print angle(opt_coord[1], opt_coord[2], opt_coord[3])
+#fig = plt.figure()
+#ax = fig.add_subplot(111, projection='3d')
+#ax.plot(opt_coord[:,0], opt_coord[:,1], opt_coord[:,2], marker='o')
+#ax.plot(start[:,0], start[:,1], start[:,2], marker='o')
+#plt.show()
+
+#======================================================================================================================================================================
+#    IV                                                         DEFINITIONS & CONSTANTS
+#======================================================================================================================================================================
+
+# The force-field is globally available for efficency
+global ff
+
+# All physical constants are globally available 
+global kb
+kb = 1.38964852 * 10**(-23.0) # J/K
+
+#======================================================================================================================================================================
+#    V                                                       GENERAL PURPOSE FUNCTIONS
+#======================================================================================================================================================================
+
+def read_input(name):
+    ff = {}
+    atoms, bonds, angles, dih, constraints, virtual_sitsn = [], [], [], [], [], []
+    section = 'moleculetype'
+    empty=0
+    with open(name) as f:
+         lines=f.readlines()
+         for line in lines:
+           if len(line.replace('\n', '').split()) == 0:           
+              empty = empty +  1   
+           elif not any([ word in ';' for word in line.split()]):
+              #print line.replace('\n', '')
+              if any([ word in '[ [ ]' for word in line.split()]):
+                 section = line.replace('\n', '').split()[1]  
+                 #print section
+              elif section in '[ atoms ]':
+                  # print line
+                  n, typ, resnr, res, atom, cgnr, charge, mass = line.replace('\n', '').split()
+                  atoms.append({'n': int(n), 'atom':atom, 'charge':nfl(charge)})
+              elif section in '[ bonds ]':
+                  # print line
+                  A, B, f, ref, k0 = line.replace('\n', '').split()
+                  bonds.append({'pairs':[int(A),int(B)], 'k0':nfl(k0), 'ref':nfl(ref)})
+              elif section in '[ angles ]':
+                  #print line
+                  A, B, C, f, ref, k0 = line.replace('\n', '').split()
+                  angles.append({'pairs': [int(A), int(B), int(C)], 'k0':nfl(k0), 'ref':nfl(ref)})
+                  #angles.append({'pairs': [int(A), int(B), int(C)], 'k0':1000.0, 'ref':nfl(ref)})
+              elif section in '[ dihedrals ]':
+                  # print line
+                  A, B, C, D, f, ref, k0, n = line.replace('\n', '').split()
+                  dih.append({'pairs':[int(A),int(B),int(C), int(D)], 'k0':nfl(k0), 'f':nfl(f), 'n':nfl(n), 'ref':nfl(ref)})
+              elif section in '[ constraints ]':
+                  #print line.replace('\n', '')
+                  A, B, f, ref = line.replace('\n', '').split()
+                  constraints.append({'pairs':[A, B], 'f':nfl(f), 'ref':nfl(ref)}) 
+    ff.update({'atoms':atoms, 'bonds':bonds, 'angles':angles, 'constraints':constraints, 'dih':dih})  
+    return(ff)              
+
+def convert_constraints(STATUS):
+    # This is not really fast but mehh it works
+    # For very many molecules we should make this more efficent
+    if STATUS:
+       new_bonds=[]
+       new_bonds = [ {'pairs':[int(term['pairs'][0]), int(term['pairs'][1])], 'ref':term['ref'], 'k0': nfl(8000.0)} for term in ff['constraints'] ]
+       new_bonds =  ff['bonds'] + new_bonds
+       ff.update({'bonds':new_bonds})
+    else:
+       print "!!!!!!!!!!! WARNING !!!!!!!!!"
+       print "Constraints don't minimize that well!"
+       print "Your structure might be quite distorted!"
+       print "If you want to keep them constraints, use a different program."
+       exit()
+    return(None)
+
+def write_gro_file(data, name, n):
+    out_file = open(name, 'w')
+    out_file.write('Monte Carlo generated PS in THF'+'\n')
+    out_file.write('{:>3s}{:<8d}{}'.format('',n,'\n'))
+    count = 1
+    atoms = ['B','R','R','R']
+    res_num = 1
+    index = 0
+    for coord in data:
+        #print(count)
+        out_file.write('{:>5d}{:<5s}{:>5s}{:5d}{:8.3F}{:8.3F}{:8.3F}{}'.format(res_num, 'STYR', atoms[index], count, coord[0], coord[1], coord[2],'\n'))
+        index = index + 1
+        if count % 4 is 0:
+            #print('--------------')
+            res_num = res_num + 1
+            index = 0
+        count = count + 1
+    out_file.write('{:>2s}{:<.5F} {:<.5F} {:<.5F}'.format('',2.000000, 2.00000, 2.00000))
+    out_file.close()
+    return(None)
+
+def write_log_file(infos, fomat_info):
+    log_file = open('logfile.log', 'w')
+    for line in infos:
+        log_file.write(format_info.format(info))
+    log_file.close() 
+    return(None)
+
+def read_conf_file(filename, file_type):
+    with open(filename) as f:
+        lines=f.readlines()
+        coordinates=np.zeros(((len(lines)-3),3))
+        count=0
+        if file_type in '[ .gro, gro]':
+           for line in lines:
+               if count == 0:
+                  title = line.replace('\n', '')
+                  print title
+                  count = count + 1
+               elif 1 < count < len(lines) - 1:
+                  print line.replace('\n', '').split()
+                  #res_num, res_name, atom, a_index, x, y, z, v1, v2, v3 = line.replace('\n', '').split()
+                  # In principle one can also put velocities in the gro file so we should account for that at some point
+                  res_num_name, atom, a_index, x, y, z = line.replace('\n', '').split()
+                  point = np.array([x,y,z])
+                  coordinates[count - 3] = point
+                  count = count + 1
+               else:
+                  count = count +1 
+    return(coordinates)
+
+#======================================================================================================================================================================
+#   VI                                                       GEOMETRICAL FUNCTIONS
+#======================================================================================================================================================================
+
+def u_vect(vect):
+    return(vect/norm(vect))
+
+def angle(A, B, C):
+    v1 = B - A
+    v2 = B - C
+    return(degrees(arccos(np.clip(dot(u_vect(v1), u_vect(v2)), -1.0, 1.0))))
+
+def dih(A, B, C, D):
+    r1 = A - B
+    r2 = B - C
+    r3 = C - D
+    n1 = cross(r1, r2)
+    n2 = cross(r2, r3)
+    return(degrees(arccos(np.clip(dot(u_vect(n1), u_vect(n2)), -1.0, 1.0))))
+
+def geometrical_center(coord):
+    #coord = np.array([structure[atom]['xyz'] for atom in structure])
+    return(sum(coord)/float(len(coord)))
+
+def norm_sphere():
+    v_sphere = np.random.normal(0.0, 1, (5000,3))
+    return(np.array([ u_vect(vect) for vect in v_sphere]))
+
+#def dist_mat(traj, nexcl):
+#    indexs = np.arange(0, len(traj))
+#    while i < len(traj):
+#          diag = 
+           
+
+#======================================================================================================================================================================
+#   VII                                                   GROMACS POTENTIAL DEFINITIONS 
+#======================================================================================================================================================================
+
+
+def pot_I( val ,k0, ref):
+    return(0.5 * k0 * (val-ref)**2.0)
+
+def LJ(sig, eps, r):
+    return(4.0 * eps * ( (sig/r)**12.0 - (sig/r)**6.0))
+
+def proper_dih(dih, ref, k0,n):
+    return( k0 * (1 + cos(n * phi - ref)))
+
+def legal(term, traj):
+    status_A = all( [index - 1 <= len(traj) for index in term['pairs']])
+    if status_A:
+       coords = [traj[i - 1] for i in term['pairs']]
+       status_B = all([any(coord != np.array([0,0,0])) for coord in coords])
+       return(status_B)
+    else:
+       return(status_A)
+
+def bonded_pot(traj):
+    bond_pairs = [ norm(traj[(term['pairs'][0] - 1)] - traj[(term['pairs'][1] - 1)]) for term in ff['bonds'] if legal(term, traj)]
+ #   print  [[term['pairs'][0] , term['pairs'][1]] for term in ff['bonds'] if legal(term, traj)]
+    return(sum([pot_I(dist, term['k0'], term['ref']) for term, dist in zip(ff['bonds'], bond_pairs)])) 
+
+def angle_pot(traj):
+    angles =  [ angle(traj[(term['pairs'][0] - 1)], traj[(term['pairs'][1] - 1)], traj[(term['pairs'][2] - 1)]) for term in ff['angles'] if legal(term, traj) ]
+    return(sum([pot_I(ang, term['k0'], term['ref']) for term, ang in zip(ff['angles'], angles)])) 
+
+def dihedral_pot(traj):
+    dih_ang = [dih(traj[(t['pairs'][0] - 1)], traj[(t['pairs'][1] - 1)], traj[(t['pairs'][2] - 1)], traj[(t['pair'][3] -1)]) for t in ff['dih'] if legal(t, traj)]
+    return(sum([pot_I(ang, term['k0'], term['ref']) for term, ang in zip(ff['dih'], dih_ang)]))
+
+# Needs for VdW
+# ---------------------------------------------------------------------
+# - exlcusions
+# - pair list?
+# - pair shif or so ?
+# - read in structure
+# - concurrent processing of dihedral?????
+
+def Vdw_pot(traj):
+    pair_matrix = dist_mat(traj)
+    pair_dist = [ norm(traj[i] - traj[j]) for i, j in zip(np.arange(0,len(traj)), np.arange(0,len(traj)))]
+    return(sum([LJ(term['sig'], term['eps'], r) for term, r in zip(ff['atoms'], pair_dist)]))
+    
+#======================================================================================================================================================================
+#      VIII                                                 POTENTIAL ENERGY & MINIMIZATION
+#======================================================================================================================================================================
+
+def Hamiltonion(traj):
+    traj = traj.reshape(-1,3)
+    bonded = bonded_pot(traj)
+    angle = angle_pot(traj)
+    #dihedral = dihedral_pot(traj)
+    #print 'dih:', dihedral
+    #Vdw = Vdw_pot(traj)
+    return(bonded + angle)# + dihedral)
+
+def energy_min(initial, bounds):
+    #print '---------bounds and initial---------------'
+    #print len(bounds) 
+    #print len(initial)
+    opt_coord = opt.minimize(Hamiltonion, initial, method='L-BFGS-B', bounds=bounds)
+    #opt_coord = opt.minimize(Hamiltonion, initial, method='CG')
+  # print Hamiltonion(opt_coord.x)
+    #print '------------------------'
+    return(opt_coord)
+
+#======================================================================================================================================================================
+#      IX                                                      METROPOLIS-MOTE-CARLO FUNCTIONS
+#======================================================================================================================================================================
+
+def is_overlap(new_point, traj, tol):
+    distances = [ point - new_point for point in traj]
+    return( any(norm(distances, axis=1) < tol))
+
+def take_step(vectors, step_size, item):
+    index = random.randint(0, len(vectors) - 1)
+    new_item = item + vectors[index] * step_size
+    #print step_size
+    return(new_item, index)
+
+def selv_av_random_step(traj, rad_sphere):
+        print '-> take random step '
+        subcount =0
+        while True:
+              vector_bundel = norm_sphere()
+              new_coord, index = take_step(vector_bundel, rad_sphere, traj[len(traj) - 1])
+              #print (traj)
+              if not(is_overlap(new_coord, traj, rad_sphere)):
+                 break
+              elif subcount < 5000:
+                 vector_bundel = np.delete(vector_bundel, index, axis=0)
+                 subcount = subcount + 1
+              else:
+                 print 'WARNING in SELF-AV-RANDOM'
+                 break
+        return(new_coord)
+
+def determine_step_legnth(monomer):
+    g0 = geometrical_center(monomer)
+    distances = [ norm(g0 - point) for point in monomer]
+    return(max(distances), distances)
+
+def add_particels(traj, new_point ,n_atoms, distances):
+    print '-> adding particles '
+    bounds = np.c_[traj.ravel(), traj.ravel()].tolist() + [[None, None]] * (3 * n_atoms)
+    directions = np.random.normal(0.0, 1.0, (n_atoms,3))
+    for i, direct in enumerate(directions):
+	   atom = new_point + u_vect(direct) * distances[i]
+           traj = np.append(traj, atom)  
+    traj = energy_min(traj, bounds).x.reshape(-1,3)
+    return(traj)   
+  
+def accaptable(E, temp, prev_E):
+    if E < prev_E:
+       return(True)
+    else:
+       N = np.random.normal(0,1,(1,1))
+      # F = np.exp(-10**3 * (E-prev_E)/(kb*temp))
+       F = np.exp( -(E-prev_E)/(kb*temp))
+       if N < F:
+          return(True)
+       else:
+          return(False)
+
+def metropolis_monte_carlo(n_chains, n_repeat, n_steps, conf, l_box, temp):
+    print '\n++++++++++ Starting Monte-Carlo Program +++++++++\n'
+    n_atoms = len(conf) 
+    step_length, distances = determine_step_legnth(conf)
+    traj = np.empty(0)
+    cg_traj = np.empty(0)
+    cg_traj = np.append(cg_traj,np.random.normal(0,1))
+    count = 0
+    prev_E = 0.0
+    while count < n_repeat:
+       print '---', count
+       while True:
+          new_cg   = selv_av_random_step(cg_traj, step_length)
+          new_traj = add_particels(traj.reshape(-1,3), new_cg, n_atoms, distances)
+          new_points = new_traj[-1::-(n_atoms+1)]
+          new_cg  = geometrical_center(new_points)
+          total_E  = Hamiltonion(new_traj)/len(new_traj)
+          if accaptable(total_E, temp, prev_E):
+            print 'accapted'
+            print total_E * len(new_traj)
+            prev_E = total_E
+            traj = new_traj
+            cg_traj = np.append(cg_traj, new_traj)
+            count = count + 1
+            print traj
+            write_gro_file(traj.reshape(-1,3), str(count), len(traj))
+            break
+          else:
+            print 'rejected'
+    print 'E-min results:', Hamiltonion(new_traj)
+    return(traj)
+
+#======================================================================================================================================================================
+#   X                                                              SOME USEFUL ANALYSIS FUNCTIONS
+#======================================================================================================================================================================
+
+def radius_of_gyr(traj):
+    N = len(traj)
+    diff=np.zeros((N**2))
+    count=0
+    for i in traj:
+        for j in traj:
+            diff[count]=dot((i - j),(i-j))
+            count = count + 1
+    Rg= 1/np.float(N)**2 * sum(diff)
+    return(np.float(sqrt(Rg)))
+
+def average_end_end_dist(traj):
+    return(0)
+
+def PDI():
+    return(0)
+
+#======================================================================================================================================================================
+#   XI                                                                 MAIN & INPUT ARGUMENTS
+#======================================================================================================================================================================
+    
+def main():
+    global ff
+    ff = read_input(args.topfile)
+    convert_constraints(args.conv)
+    print ff['bonds']
+    conf = read_conf_file(args.structure_file, 'gro')
+    print "Read in conf:",conf
+    traj = metropolis_monte_carlo(args.n_chains, args.n_mon, args.frames, conf, args.box_vect, args.temp)
+    #analyse_traj(traj, infos)
+    write_gro_file(traj,'out.gro',len(traj))
+    return(None)
+
+parser = argparse.ArgumentParser(description='Generate polymer melt, single-chain in vaccum, single-chain in solvent, multiple-chains in solvent. ')
+parser.add_argument('-p', dest='topfile', type=str)
+parser.add_argument('-c', dest='structure_file',type=str)
+parser.add_argument('-n_chains', dest='n_chains', type=int)
+parser.add_argument('-n_repl', dest='frames',type=int, default=1) 
+parser.add_argument('-l',dest='box_vect', type=float, default=1)
+parser.add_argument('-n_mon', dest='n_mon', type=int)
+parser.add_argument('-T', dest='temp', type=float, default=298.0)
+parser.add_argument('-pdi', dest='pdi', type=float, default=1.0)
+parser.add_argument('-conv_const', dest='conv', type=bool,default=True)
+parser.add_argument('-env',dest='environment',type=str,default='vac')
+parser.add_argument('-v', dest='v', type=bool, default=False)
+args = parser.parse_args()
+
+#============================================================================= END =====================================================================================
+
+main()
