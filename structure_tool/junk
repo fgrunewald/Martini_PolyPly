@@ -1,0 +1,25 @@
+
+#======================================================================================================================================================================
+#    III                                          Some garbage from previous functions which might be useful          
+#======================================================================================================================================================================
+
+#ff = {'bonds':[{'pair':[1,2], 'k0':5000, 'ref':0.4},{'pair':[2,3], 'k0':5000, 'ref':0.4},{'pair':[1,3], 'k0':5000, 'ref':0.4},{'pair':[3,4], 'k0':5000, 'ref':0.4}],'angles':[{'pair':[2,3,4], 'k0':300, 'ref':90},{'pair':[1,2,3], 'k0':300, 'ref':90}], 'dih':[{'pair':[1,2,3,4], 'k0':30, 'ref':180}]}
+
+#core = np.array([np.array(2.100, 2.343, 2.245), np.array(2.088, 2.204, 2.019), np.array(1.915, 2.019, 1.924), np.array(2.176, 1.957, 1.952), np.array(2.067, 2.352, 2.483), np.array(2.068, 2.110, 2.372), np.array(1.919, 1.885, 2.362), np.array(2.185, 1.869, 2.402), np.array(2.033, 2.477, 2.688), np.array(2.055, 2.210, 2.710), np.array(1.928, 1.992, 2.806), np.array(2.195, 2.016, 2.836)])
+
+#start = np.array([np.array([2.100, 2.343, 2.245]), np.array([2.088, 2.204, 2.019]), np.array([1.915, 2.019, 1.924]), np.array([2.176, 1.957, 1.952])])
+
+
+#print start
+#bounds = np.c_[start[:1,:].ravel(), start[:1,:].ravel()].tolist() + [[None, None]] * (3*(len(start)-1))   
+#opt_coord = energy_min(start, bounds).x.reshape((-1,3))
+#print norm(opt_coord[0] - opt_coord[1])
+#print norm(opt_coord[1] - opt_coord[2])
+#print norm(opt_coord[2] - opt_coord[3])
+#print angle(opt_coord[0], opt_coord[1], opt_coord[2])
+#print angle(opt_coord[1], opt_coord[2], opt_coord[3])
+#fig = plt.figure()
+#ax = fig.add_subplot(111, projection='3d')
+#ax.plot(opt_coord[:,0], opt_coord[:,1], opt_coord[:,2], marker='o')
+#ax.plot(start[:,0], start[:,1], start[:,2], marker='o')
+#plt.show()

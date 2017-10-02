@@ -2,57 +2,6 @@
 #                             METROPOLIS-MONTE-CARLO TOOL FOR GENERATING POLYMER CHAINS, MELTS & SOLVATED POLYMER SYSTEMS
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-
-#=======================================================================================================================================================================
-#   I                                                           Autor, Lincesne and such
-#=======================================================================================================================================================================
-#
-# This program was written by F. Grunewald at the University of Groningen the Netherlands. All rights are reserved. The source code can be used freely for academic 
-# purposes and may in these situations be modified, adabted and integrated following the rules established in the the GNU lesser license for software. The full license # agreement is available under:
-# Commerical uses are requested to contact the author in order to negotiate the terms of usage.  
-# Feel free to report bugs and porblems via the established git-hub channels. 
-#
-#======================================================================================================================================================================
-#    II                                                        Libraries and functions used          
-#======================================================================================================================================================================
-#
-import numpy as np
-import argparse
-import random
-import itertools
-import matplotlib.pyplot as plt
-import scipy.optimize as opt
-from matplotlib import cm, colors
-from mpl_toolkits.mplot3d import Axes3D
-from numpy import sqrt, pi, cos, sin, dot, cross, arccos, degrees
-from numpy import float as nfl
-from numpy.linalg import norm
-
-#======================================================================================================================================================================
-#    III                                          Some garbage from previous functions which might be useful          
-#======================================================================================================================================================================
-
-#ff = {'bonds':[{'pair':[1,2], 'k0':5000, 'ref':0.4},{'pair':[2,3], 'k0':5000, 'ref':0.4},{'pair':[1,3], 'k0':5000, 'ref':0.4},{'pair':[3,4], 'k0':5000, 'ref':0.4}],'angles':[{'pair':[2,3,4], 'k0':300, 'ref':90},{'pair':[1,2,3], 'k0':300, 'ref':90}], 'dih':[{'pair':[1,2,3,4], 'k0':30, 'ref':180}]}
-
-#core = np.array([np.array(2.100, 2.343, 2.245), np.array(2.088, 2.204, 2.019), np.array(1.915, 2.019, 1.924), np.array(2.176, 1.957, 1.952), np.array(2.067, 2.352, 2.483), np.array(2.068, 2.110, 2.372), np.array(1.919, 1.885, 2.362), np.array(2.185, 1.869, 2.402), np.array(2.033, 2.477, 2.688), np.array(2.055, 2.210, 2.710), np.array(1.928, 1.992, 2.806), np.array(2.195, 2.016, 2.836)])
-
-#start = np.array([np.array([2.100, 2.343, 2.245]), np.array([2.088, 2.204, 2.019]), np.array([1.915, 2.019, 1.924]), np.array([2.176, 1.957, 1.952])])
-
-
-#print start
-#bounds = np.c_[start[:1,:].ravel(), start[:1,:].ravel()].tolist() + [[None, None]] * (3*(len(start)-1))   
-#opt_coord = energy_min(start, bounds).x.reshape((-1,3))
-#print norm(opt_coord[0] - opt_coord[1])
-#print norm(opt_coord[1] - opt_coord[2])
-#print norm(opt_coord[2] - opt_coord[3])
-#print angle(opt_coord[0], opt_coord[1], opt_coord[2])
-#print angle(opt_coord[1], opt_coord[2], opt_coord[3])
-#fig = plt.figure()
-#ax = fig.add_subplot(111, projection='3d')
-#ax.plot(opt_coord[:,0], opt_coord[:,1], opt_coord[:,2], marker='o')
-#ax.plot(start[:,0], start[:,1], start[:,2], marker='o')
-#plt.show()
-
 #======================================================================================================================================================================
 #    IV                                                         DEFINITIONS & CONSTANTS
 #======================================================================================================================================================================
@@ -395,31 +344,6 @@ def PDI():
 #   XI                                                                 MAIN & INPUT ARGUMENTS
 #======================================================================================================================================================================
     
-def main():
-    global ff
-    ff = read_input(args.topfile)
-    convert_constraints(args.conv)
-    print ff['bonds']
-    conf = read_conf_file(args.structure_file, 'gro')
-    print "Read in conf:",conf
-    traj = metropolis_monte_carlo(args.n_chains, args.n_mon, args.frames, conf, args.box_vect, args.temp)
-    #analyse_traj(traj, infos)
-    write_gro_file(traj,'out.gro',len(traj))
-    return(None)
-
-parser = argparse.ArgumentParser(description='Generate polymer melt, single-chain in vaccum, single-chain in solvent, multiple-chains in solvent. ')
-parser.add_argument('-p', dest='topfile', type=str)
-parser.add_argument('-c', dest='structure_file',type=str)
-parser.add_argument('-n_chains', dest='n_chains', type=int)
-parser.add_argument('-n_repl', dest='frames',type=int, default=1) 
-parser.add_argument('-l',dest='box_vect', type=float, default=1)
-parser.add_argument('-n_mon', dest='n_mon', type=int)
-parser.add_argument('-T', dest='temp', type=float, default=298.0)
-parser.add_argument('-pdi', dest='pdi', type=float, default=1.0)
-parser.add_argument('-conv_const', dest='conv', type=bool,default=True)
-parser.add_argument('-env',dest='environment',type=str,default='vac')
-parser.add_argument('-v', dest='v', type=bool, default=False)
-args = parser.parse_args()
 
 #============================================================================= END =====================================================================================
 

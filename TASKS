@@ -1,0 +1,11 @@
+- combine input from individual scripts into polply 
+- allow for naming for bcps 
+-
+
+ITP MULTIPLIER TOOL
+- allow for comments on line of parameters
+- distingusih dihedral types
+- make n_atoms and offset global variables
+- provide a tool for selectively repeating only certain terms
+- rename new centers in repeat term function to something more intuative like centers_keys
+- implement block-copolymer capabilities

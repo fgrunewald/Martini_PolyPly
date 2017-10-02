@@ -1,13 +1,3 @@
-import numpy as np
-import argparse
-
-parser = argparse.ArgumentParser(description='This tool repeats terms of a gromacs .itp file as many times as n_monomer.' '\n'
-'Note that all lines, which contain ";" are removed.' '\n' 'Also note terms with an index exceeding the maximum number of atoms are removed.' )
-parser.add_argument('-f', metavar='filename' ,dest='infiles', type=str, help='name of the .itp file', nargs='*')
-parser.add_argument('-n_mon', metavar='repeats',dest='mon', type=int, help='number of repeats to be made.', nargs='*')
-parser.add_argument('-o', metavar='filename_out' ,dest='outfile',type=str, help='name of the new .itp file.')
-
-args = parser.parse_args()
 
 #-------------------------------------------------------------------------------------------------
 # Improvements to be made: 
@@ -19,9 +9,9 @@ args = parser.parse_args()
 # - implement block-copolymer capabilities
 #-------------------------------------------------------------------------------------------------
 
-#-------------------------------------------------------------------------------------------------
-#========================= GROMACS SPECIFIC SETTINGS ============================================
-#-------------------------------------------------------------------------------------------------
+#=======================================================================================================================================================================
+#      
+#=======================================================================================================================================================================
 
 # For adding a new term simply add it to the dictionary centers and key 
 # indexs to the dictionaries below together with the name between [].
@@ -71,9 +61,9 @@ format_outfile={
                 'exclusions': '{:<5d} {:<5d} {:<5d} {:<5d}{}',
                 'virtual_sitesn':'{:<5d} {:<1s} {:<5d} {:<5s} {:<5s} {}'}
 
-#-------------------------------------------------------------------------
-# ============================ Functions =================================
-#-------------------------------------------------------------------------
+#=======================================================================================================================================================================
+#                                                                         Summary of Functions
+#=======================================================================================================================================================================
 
 def line_up(new_centers):
     return([sorted(new_centers)[x][1] for x in np.arange(0,len(new_centers))])   
@@ -161,34 +151,20 @@ def write_itp(text):
            print(line)
            out_file.write(str(format_outfile[ID]).format(*line))
 
-#--------------------------------------------------------------------------------------------
-# =================================== Main ==================================================
-#--------------------------------------------------------------------------------------------
-
-#
-# Outsource the blockcopolymer generation in such a way that the main functions goes 
-# something like this block -> assemble new_itp -> write 
-#
-#
-
-def main(): 
+def itp_tool(): 
     block_count = 0 
-    for name, n_trans in zip(args.infiles, args.mon):
-        mon_itp, n_atoms = get_sections_itp(name, term_names)
-        if len(args.inflie) > 1:
+    if len(args.infile) > 1:
+       for name, n_trans in zip(args.itpfiles, args.mon):
+           mon_itp, n_atoms = get_sections_itp(name, term_names)
            block = [ repeat_section(section, n_trans, n_atoms) for section in mon_itp ]
            [ new_itp.append(line) for line in block[2::len(block)]]
            block_count = n_trans * n_atoms
            new_itp.append(block_bonds[block[1][0]])
-           polymer_name.append(block[1][0])
-        else:
+    else:
+       for name, n_trans in zip(args.itpfiles, args.mon):
            new_itp = [ repeat_section(section, n_trans, n_atoms) for section in mon_itp ]
-           write_itp(new_itp)
-           return None
-    #name = join strings of individual names 
-    new_itp.prepend(['[ moleculetype ]'])
-    new_itp.prepend(['UsefulName 3'])
-    write(new_itp)
-    return None
+           new_itp.prepend(['[ moleculetype ]'])
+           new_itp.prepend([ args.nexcl + '3'])
+    write_itp(new_itp)
+    return(None)
 
-main()
