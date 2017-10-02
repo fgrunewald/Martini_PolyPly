@@ -23,7 +23,7 @@ term_keys ={
               'exclusions':[],
               'virtual_sitesn':[1,3,4]}
 
-block_bonds={'PS', :{ 'PEO': '1 8000',
+block_bonds={'PS' :{ 'PEO': '1 8000',
                      'P3HT': '1 8000',
                       'PP' : '1 8000'},
               'PEO':{  'PS':'1 8000',
