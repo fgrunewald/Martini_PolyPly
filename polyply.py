@@ -32,3 +32,5 @@ def main():
    else:
       print('Please specify either -itp or -sys option.')
    return(None)
+
+main()
