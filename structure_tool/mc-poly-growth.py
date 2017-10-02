@@ -343,8 +343,18 @@ def PDI():
 #======================================================================================================================================================================
 #   XI                                                                 MAIN & INPUT ARGUMENTS
 #======================================================================================================================================================================
+
     
+def build_system():
+    global ff
+    ff = read_input(args.topfile)
+    convert_constraints(args.conv)
+    print ff['bonds']
+    conf = read_conf_file(args.structure_file, 'gro')
+    print "Read in conf:",conf
+    traj = metropolis_monte_carlo(args.n_chains, args.n_mon, args.frames, conf, args.box_vect, args.temp)
+    #analyse_traj(traj, infos)
+    write_gro_file(traj,'out.gro',len(traj))
+    return(None)
 
 #============================================================================= END =====================================================================================
-
-main()

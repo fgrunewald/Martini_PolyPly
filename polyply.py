@@ -4,11 +4,13 @@ import itertools
 import numpy as np
 import matplotlib.pyplot as plt
 import scipy.optimize as opt
+import Martini_PolyPly.itp_tool.itp_I
 from matplotlib import cm, colors
 from mpl_toolkits.mplot3d import Axes3D
 from numpy import sqrt, pi, cos, sin, dot, cross, arccos, degrees
 from numpy import float as nfl
 from numpy.linalg import norm
+
 
 parser = argparse.ArgumentParser(description=' ')
 parser.add_argument('-itp'   , metavar = 'itps of blocks'  , dest = 'itpfiles', type = str   , help = 'name of the monomer .itp files', nargs = '*')
@@ -22,19 +24,11 @@ parser.add_argument('-v'     , metavar = 'verbose'         , dest = 'v'       , 
 parser.add_argument('-excl'  , metavar = 'n_excluded'      , dest = 'nexcl'   , type = int   , help = 'number of excluded interactions', default=3)
 args = parser.parse_args()
 
-
-
-def strucure_tool():
-    global ff
-    ff = read_input(args.topfile)
-    convert_constraints(args.conv)
-    print ff['bonds']
-    conf = read_conf_file(args.structure_file, 'gro')
-    print "Read in conf:",conf
-    traj = metropolis_monte_carlo(args.n_chains, args.n_mon, args.frames, conf, args.box_vect, args.temp)
-    #analyse_traj(traj, infos)
-    write_gro_file(traj,'out.gro',len(traj))
-    return(None)
-
-
-
+def main():
+   if not args.itpfiles == None:
+      itp_tool
+   elif not args.sys == None:
+      build_system()
+   else:
+      print('Please specify either -itp or -sys option.')
+   return(None)
