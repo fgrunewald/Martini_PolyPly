@@ -1,3 +1,13 @@
+import itertools
+import numpy as np
+import matplotlib.pyplot as plt
+import scipy.optimize as opt
+from Martini_PolyPly.itp_tool.itp_I import *
+from matplotlib import cm, colors
+from mpl_toolkits.mplot3d import Axes3D
+from numpy import sqrt, pi, cos, sin, dot, cross, arccos, degrees
+from numpy import float as nfl
+from numpy.linalg import norm
 #=======================================================================================================================================================================
 #                                                         GROMACS Specific Definitions      
 #=======================================================================================================================================================================
@@ -127,8 +137,8 @@ def get_sections_itp(itp, IDs):
           IDs.remove(term_ID)
      return(all_terms, atoms)
 
-def write_itp(text):
-    out_file = open(args.outfile, 'w')
+def write_itp(text, outname):
+    out_file = open(outname, 'w')
     for item in text:
       for line in item:
         if str(line[0]) in '[ atoms, bonds, angles, dihedrals, constraints, moleculetype, exclusions, virtual_sitesn]':
@@ -136,23 +146,26 @@ def write_itp(text):
            ID = line[0]
         else:
            line.append('\n')
-           print(line)
+       #    print(line)
            out_file.write(str(format_outfile[ID]).format(*line))
 
-def itp_tool(): 
+def itp_tool(itpfiles, n_mon, nexcl, outname): 
     block_count = 0 
-    if len(args.infile) > 1:
-       for name, n_trans in zip(args.itpfiles, args.mon):
+    if len(itpfiles) > 1:
+       new_itp=[]
+       for name, n_trans in zip(itpfiles, n_mon):
            mon_itp, n_atoms = get_sections_itp(name, term_names)
            block = [ repeat_section(section, n_trans, n_atoms) for section in mon_itp ]
            [ new_itp.append(line) for line in block[2::len(block)]]
            block_count = n_trans * n_atoms
-           new_itp.append(block_bonds[block[1][0]])
+           print(block[0][1][0])
+           new_itp = new_itp + block_bonds[block[0][1][0]]
+       new_itp = np.insert(new_itp, ['[ moleculetype ]'])
+       new_itp = np.insert(new_itp, [ nexcl + '3'])
     else:
-       for name, n_trans in zip(args.itpfiles, args.mon):
+       for name, n_trans in zip(itpfiles, n_mon):
+           mon_itp, n_atoms = get_sections_itp(name, term_names)
            new_itp = [ repeat_section(section, n_trans, n_atoms) for section in mon_itp ]
-           new_itp.prepend(['[ moleculetype ]'])
-           new_itp.prepend([ args.nexcl + '3'])
-    write_itp(new_itp)
+    write_itp(new_itp, outname)
     return(None)
 

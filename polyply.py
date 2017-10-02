@@ -1,16 +1,5 @@
-import random
 import argparse
-import itertools
-import numpy as np
-import matplotlib.pyplot as plt
-import scipy.optimize as opt
-import Martini_PolyPly.itp_tool.itp_I
-from matplotlib import cm, colors
-from mpl_toolkits.mplot3d import Axes3D
-from numpy import sqrt, pi, cos, sin, dot, cross, arccos, degrees
-from numpy import float as nfl
-from numpy.linalg import norm
-
+from Martini_PolyPly.itp_tool.itp_I import *
 
 parser = argparse.ArgumentParser(description=' ')
 parser.add_argument('-itp'   , metavar = 'itps of blocks'  , dest = 'itpfiles', type = str   , help = 'name of the monomer .itp files', nargs = '*')
@@ -26,7 +15,7 @@ args = parser.parse_args()
 
 def main():
    if not args.itpfiles == None:
-      itp_tool()
+      itp_tool(args.itpfiles, args.mon, args.nexcl, args.outfile)
    elif not args.sys == None:
       build_system()
    else:

@@ -1,6 +1,18 @@
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 #                             METROPOLIS-MONTE-CARLO TOOL FOR GENERATING POLYMER CHAINS, MELTS & SOLVATED POLYMER SYSTEMS
-#+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+#++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+import random
+import argparse
+import itertools
+import numpy as np
+import matplotlib.pyplot as plt
+import scipy.optimize as opt
+from matplotlib import cm, colors
+from mpl_toolkits.mplot3d import Axes3D
+from numpy import sqrt, pi, cos, sin, dot, cross, arccos, degrees
+from numpy import float as nfl
+from numpy.linalg import norm
 
 #======================================================================================================================================================================
 #    IV                                                         DEFINITIONS & CONSTANTS
