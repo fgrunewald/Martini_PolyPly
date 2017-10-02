@@ -26,7 +26,7 @@ args = parser.parse_args()
 
 def main():
    if not args.itpfiles == None:
-      itp_tool
+      itp_tool()
    elif not args.sys == None:
       build_system()
    else:
