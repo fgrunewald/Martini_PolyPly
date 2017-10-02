@@ -1,20 +1,9 @@
 
-#-------------------------------------------------------------------------------------------------
-# Improvements to be made: 
-# - allow for comments on line of parameters
-# - distingusih dihedral types
-# - make n_atoms and offset global variables
-# - provide a tool for selectively repeating only certain terms
-# - rename new centers in repeat term function to something more intuative like centers_keys
-# - implement block-copolymer capabilities
-#-------------------------------------------------------------------------------------------------
-
 #=======================================================================================================================================================================
-#      
+#                                                         GROMACS Specific Definitions      
 #=======================================================================================================================================================================
 
-# For adding a new term simply add it to the dictionary centers and key 
-# indexs to the dictionaries below together with the name between [].
+# For adding a new term simply add it to the dictionary centers and key indexs to the dictionaries below together with the name between [].
 
 term_centers = {
               'moleculetype': [],
