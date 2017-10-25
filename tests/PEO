@@ -1,0 +1,59 @@
+; POLY ETHYLENE OXIDE (PEO), H3C-O-(Ch2-Ch2-O)n-CH3 monomer
+;
+; same topology models POLY ETHYLENE GLYCOL (PEG), HO-(CH2-CH2-O)n-H with n=37  
+;
+; please cite:
+;
+; "A Coarse-Grained Model for Polyethylene Oxide and Polyethylene Glycol: 
+;  Conformation and Hydrodynamics"
+;  Hwankyu Lee, Alex H. de Vries, Siewert-Jan Marrink and Richard W. Pastor
+;  J. Phys. Chem. B, 2009, 113 (40), pp 13186-13194
+;
+; 
+; Note: when using this topology, please make sure to change the 
+;       following line in you martini_v2.x.itp file:
+;
+; SN0	SN0	1 	0.85338E-01 	0.53946E-03 ; 75almost attractive, s=0.43 
+; (instead of SN0 SN0 1	0.66375E-01 	0.41957E-03 ; 75intermediate, s=0.43)
+;
+; AND
+; 
+;  P4 	SN0 	1 	0.17246E-00 	0.18590E-02 ; semi attractive
+; (instead of  P4 SN0 1	0.15091E-00 	0.16267E-02 ; intermediate)
+;
+; This is required to enhance the self-interaction between the PEO monomers 
+; and the interaction between PEO monomers and water
+; to the level of an Nda particle, see the reference above and also 
+; Lee & Larson, J. Phys. Chem. B, 2009, 113 (40), pp 13202-13207
+; Interaction with other particles types, initially a SNa type particle was chosen,
+; but later a SN0 type particle was shown to behave better, see
+; Lee & Pastor, J. Phys. Chem. B, 2011, 115, 7830-7837
+;
+; Be cautious if you have other particles in your system of type 'SN0', 
+; their self- and water-interaction will also be affected.
+;
+[ moleculetype ]
+; name nexcl.
+PEO         1
+;
+[ atoms ]
+1 SN0 1	PEO O1	1 0.000	75
+[ bonds ]
+; back bone bonds
+1  2   1   0.330 17000
+;
+[ angles ]
+;
+;
+; Note: in the original publication a force constant of 85 was used with a cosine-type angle potential (type 2).
+;       Numerical stability is improved when a normal harmonic angle potential (type 1) is used with a force constant of 50.
+;       The two potentials are virtually identical around the equilibrium angle, but the probability density of 
+;       angles around 180 degrees is lowered avoiding problems with the dihedral angles becoming ill-defined.
+;
+1	2	3	1	130.00 	50      
+;
+[ dihedrals ]
+1  2  3  4     1    180.00    1.96   1
+1  2  3  4     1     0        0.18   2  
+1  2  3  4     1     0        0.33   3
+1  2  3  4     1     0        0.12   4 

@@ -1,4 +1,5 @@
 import itertools
+import collections
 import numpy as np
 import matplotlib.pyplot as plt
 import scipy.optimize as opt
@@ -14,24 +15,30 @@ from numpy.linalg import norm
 
 # For adding a new term simply add it to the dictionary centers and key indexs to the dictionaries below together with the name between [].
 
-term_centers = {
-              'moleculetype': [],
-              'atoms': [0,2,5], 
-              'bonds': [0,1],
-              'angles': [0,1,2],
-              'constraints': [0,1],
-              'dihedrals': [0,1,2,3],
+centers = {   'moleculetype': [],
+              'atoms': [0,5], 
+              ('bonds', 1) : [0,1],
+              ('angles', 1) : [0,1,2],
+              ('constraints', 1): [0,1],
+              ('dihedrals', 3): [0,1,2,3],
+              ('dihedrals', 1): [0,1,2,3],
               'exclusions': [0,1,2,3],
               'virtual_sitesn': [0,2]}
-term_keys ={
+settings ={
               'moleculetype':[0,1],
-              'atoms':[1,3,4,6,7],
-              'bonds':[2,3,4], 
-              'angles':[3,4,5],
-              'constraints':[2,3],
-              'dihedrals':[4,5,6,7],
+              'atoms':[1,2,3,4,6,7],
+              ('bonds', 1) :[2,3,4], 
+              ('angles',1):[3,4,5],
+              ('constraints', 1):[2,3],
+              ('dihedrals', 1):[4,5,6,7],
               'exclusions':[],
               'virtual_sitesn':[1,3,4]}
+
+function ={ 'bonds':2, 
+             'angles':3,
+             'constraints':2,
+             'dihedrals':4,
+             'virtual_sitesn':0}
 
 block_bonds={'PS' :{ 'PEO': '1 8000',
                      'P3HT': '1 8000',
@@ -53,7 +60,7 @@ format_outfile={
                 'bonds': '{:<5d} {:<5d} {:<2s} {:<8s} {:<8s}{}', 
                 'angles': '{:<5d} {:<5d} {:<5d} {:<2s} {:<8s} {:<8s}{}',
                 'dihedrals': '{:<5d} {:<5d} {:<5d} {:<5d} {:<2s} {:<8s}{:<8s}{:<1s}{}', 
-                'atoms': '{:<5d} {:<5s} {:<1d} {:<5s} {:<3s} {:<1d} {:<8s} {:<3s}{}',
+                'atoms': '{:<5d} {:<5s} {:<1s} {:<5s} {:<3s} {:<1d} {:<8s} {:<3s}{}',
                 'constraints': '{:<5d} {:<5d} {:<2s}{:<8s}{}','[': '{:<1s}{:<10s}{:<1s}{}',
                 'moleculetype':'{:<5s} {:<1s}{}', 
                 'exclusions': '{:<5d} {:<5d} {:<5d} {:<5d}{}',
@@ -66,81 +73,87 @@ format_outfile={
 def line_up(new_centers):
     return([sorted(new_centers)[x][1] for x in np.arange(0,len(new_centers))])   
 
-def move(center, count, n_atoms):
-    offset =0
+def move(center, count, n_atoms, offset):
     return(int(center) + n_atoms * count + offset)
 
-def repeat_term(term, n_trans, n_atoms):
+def term_topology(key, term):
+    if all([key != item for item in ['atoms', 'moleculetype', 'exclusions']]):
+       return(centers[(key, int(term[function[key]]))], settings[(key, int(term[function[key]]))])
+    else:
+       return(centers[key], settings[key])
+
+def repeat_term(term, key, n_trans, n_atoms, offset):
      count = 0
      new_terms = []
-     max_atom = n_atoms * n_trans
-     centers = term_centers[term[-1]]
-     if term[-1] in '[ moleculetype ]':
-        n_trans = 1
+     max_atom = n_atoms * n_trans + offset
+     center_indices, setting_indices = term_topology(key, term)
+
      while count < n_trans: 
-          new_centers = [] 
-          [new_centers.append([x, term[x]]) for x in term_keys[term[-1]]]
-          [new_centers.append([x, move(term[x], count, n_atoms)]) for x in centers]
-          new_term = line_up(new_centers)
-          if all([ int(new_term[x]) <= max_atom for x in centers]):
+          new_term = []
+          [ new_term.append([x ,term[x]]) for x in setting_indices] 
+          [ new_term.append([x, move(term[x], count, n_atoms, offset)]) for x in center_indices ]
+          new_term = line_up(new_term)
+ 
+          if all([ int(new_term[x]) <= max_atom for x in center_indices]):
              new_terms.append(new_term)
           count = count + 1
+
      return(new_terms)
 
-def repeat_section(section, n_trans, n_atoms):
+def repeat_section(section, key, n_trans, n_atoms, offset):
        new_section = []
        for term in section:
-           new_terms = repeat_term(term, n_trans, n_atoms)
+           new_terms = repeat_term(term, key, n_trans, n_atoms, offset)
            [new_section.append(new_term) for new_term in new_terms]
        new_section=sorted(new_section)
-       new_section.insert(0,[str(section[0][-1])])
        return(new_section)
 
 def read_itp(name):
-    itp
+    itp = collections.OrderedDict({'moleculetype':[], 'atoms':[], 'bonds':[], 'angles':[], 'dihedrals':[], 'constraints':[], 'virtual_sitesn':[]})
     with open(name) as f:
          lines = f.readlines()
          for line in lines:
-             words = line.split()  
-             if not any([ word in '[ ;, \n, \r\n]' for word in words]):
+             words = line.split()
+             if not any([ word in ';, \n, \r\n' for word in words]):
                 if any([ word in '[ [ ]' for word in words]):
                    key = words[1]
-                   center_dict.update({key:[[]]})
-                   setting_dict.update({key:[[]]})
                 else:
-                   itp.update({key: itp[key] + [[line.split()]]})
-    return(itp)
-
+                   add =  itp[key] + [line.replace('\n', '').split()]
+                   itp.update({key:add})
+    out_itp = collections.OrderedDict({})
+    [ out_itp.update(collections.OrderedDict({key: value})) for key, value in itp.items() if len(value) != 0 ]
+    return(out_itp)
           
 def write_itp(text, outname):
     out_file = open(outname, 'w')
-    for item in text:
-      for line in item:
-        if str(line[0]) in '[ atoms, bonds, angles, dihedrals, constraints, moleculetype, exclusions, virtual_sitesn]':
-           out_file.write('{:<1s}{:^18s}{:>1s}{}'.format('[',line[0],']','\n'))
-           ID = line[0]
-        else:
-           line.append('\n')
-       #    print(line)
-           out_file.write(str(format_outfile[ID]).format(*line))
+    for key in ['moleculetype', 'atoms', 'bonds', 'angles', 'dihedrals', 'constraints', 'virtual_sitesn']:
+        if key in text:
+           out_file.write('{:<1s}{:^18s}{:>1s}{}'.format('[',key,']','\n'))
+           for line in text[key]:
+               print(line)
+               line.append('\n')
+               out_file.write(str(format_outfile[key]).format(*line))
 
-def itp_tool(itpfiles, n_mon, nexcl, outname): 
+def itp_tool(itpfiles, n_mon, nexcl, outname, name): 
     block_count = 0 
-    if len(itpfiles) > 1:
-       new_itp=[]
-       print(go here)
-       for name, n_trans in zip(itpfiles, n_mon):
-           mon_itp, n_atoms = get_sections_itp(name, term_names)
-           block = [ repeat_section(section, n_trans, n_atoms) for section in mon_itp ]
-           [ new_itp.append(line) for line in block[2::len(block)]]
-           block_count = n_trans * n_atoms
-           new_itp = new_itp + block_bonds[block[0][1][0]]
-       new_itp = np.insert(new_itp, ['[ moleculetype ]'])
-       new_itp = np.insert(new_itp, [ nexcl + '3'])
-    else:
-       for name, n_trans in zip(itpfiles, n_mon):
-           mon_itp, n_atoms = get_sections_itp(name, term_names)
-           new_itp = [ repeat_section(section, n_trans, n_atoms) for section in mon_itp ]
-    write_itp(new_itp, outname)
+    new_itp =collections.OrderedDict({'moleculetype':[], 'atoms':[], 'bonds':[], 'angles':[], 'dihedrals':[], 'constraints':[], 'virtual_sitesn':[]} )
+    offset = 0
+    n_atoms=0
+    mon_itp = read_itp(itpfiles[0])
+    nexcl = mon_itp["moleculetype"][0][1]
+    new_itp.update({'moleculetype':[[name, nexcl]]})
+  
+    for name, n_trans in zip(itpfiles, n_mon):
+           mon_itp = read_itp(name)
+           n_atoms = len(mon_itp["atoms"])
+           for key, section in mon_itp.items():                           
+               if key != 'moleculetype':
+                  add = new_itp[key] + repeat_section(section, key, n_trans, n_atoms, offset)
+                  new_itp.update(collections.OrderedDict({key: add}))
+               print(offset)
+           offset += n_atoms * n_trans            
+    out_itp = collections.OrderedDict({})
+    [ out_itp.update({key: value}) for key, value in new_itp.items() if len(value) != 0 ]
+    write_itp(out_itp, outname)
     return(None)
 
