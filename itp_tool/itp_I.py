@@ -1,5 +1,6 @@
 import itertools
 import collections
+import numpy as np
 #=======================================================================================================================================================================
 #                                                         GROMACS Specific Definitions      
 #=======================================================================================================================================================================
@@ -13,7 +14,7 @@ centers = {   'moleculetype': [],
               ('angles', 2) : [0,1,2],
               ('constraints', 1): [0,1],
               ('dihedrals', 9): [0,1,2,3],
-              ('dihedrals', 11): [0,1,2,3]
+              ('dihedrals', 11): [0,1,2,3],
               ('dihedrals', 1): [0,1,2,3],
               'exclusions': [0,1,2,3],
               ('virtual_sitesn',1): [0,2]}
@@ -110,7 +111,9 @@ def read_itp(name):
          lines = f.readlines()
          for line in lines:
              words = line.split()
-             if not any([ word in ';, \n, \r\n' for word in words]):
+             if len(words) != 0:
+               if not words[0] in ';, \n, \r\n':   
+             #if not any([ word in ';, \n, \r\n' for word in words]):
                 if any([ word in '[ [ ]' for word in words]):
                    key = words[1]
                 else:
@@ -126,11 +129,11 @@ def write_itp(text, outname):
         if key in text:
            out_file.write('{:<1s}{:^18s}{:>1s}{}'.format('[',key,']','\n'))
            for line in text[key]:
-               print(line)
+               #print(line)
                line.append('\n')
                out_file.write(str(format_outfile[key]).format(*line))
 
-def itp_tool(itpfiles, n_mon, nexcl, outname, name): 
+def itp_tool(itpfiles, n_mon, outname, name): 
     block_count = 0 
     new_itp =collections.OrderedDict({'moleculetype':[], 'atoms':[], 'bonds':[], 'angles':[], 'dihedrals':[], 'constraints':[], 'virtual_sitesn':[]} )
     offset = 0
@@ -146,7 +149,7 @@ def itp_tool(itpfiles, n_mon, nexcl, outname, name):
                if key != 'moleculetype':
                   add = new_itp[key] + repeat_section(section, key, n_trans, n_atoms, offset)
                   new_itp.update(collections.OrderedDict({key: add}))
-               print(offset)
+               #print(offset)
            offset += n_atoms * n_trans            
     out_itp = collections.OrderedDict({})
     [ out_itp.update({key: value}) for key, value in new_itp.items() if len(value) != 0 ]

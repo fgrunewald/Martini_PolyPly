@@ -44,6 +44,7 @@ PEO         1
 ;
 [ angles ]
 ;
+
 ;
 ; Note: in the original publication a force constant of 85 was used with a cosine-type angle potential (type 2).
 ;       Numerical stability is improved when a normal harmonic angle potential (type 1) is used with a force constant of 50.
@@ -54,6 +55,6 @@ PEO         1
 ;
 [ dihedrals ]
 1  2  3  4     1    180.00    1.96   1
-1  2  3  4     1     0        0.18   2  
+1  2  3  4     1     0        0.18   2  ; some garbage 
 1  2  3  4     1     0        0.33   3
 1  2  3  4     1     0        0.12   4 
