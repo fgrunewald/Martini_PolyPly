@@ -96,47 +96,22 @@ def repeat_section(section, n_trans, n_atoms):
        new_section.insert(0,[str(section[0][-1])])
        return(new_section)
 
-def is_term(name, IDs):
-    if name in IDs:
-       return True
-    else:
-       return False
+def read_itp(name):
+    itp
+    with open(name) as f:
+         lines = f.readlines()
+         for line in lines:
+             words = line.split()  
+             if not any([ word in '[ ;, \n, \r\n]' for word in words]):
+                if any([ word in '[ [ ]' for word in words]):
+                   key = words[1]
+                   center_dict.update({key:[[]]})
+                   setting_dict.update({key:[[]]})
+                else:
+                   itp.update({key: itp[key] + [[line.split()]]})
+    return(itp)
 
-def get_sections_itp(itp, IDs):
-     count=0
-     all_terms=[]
-     term_ID_list=[]
-     n_IDs=len(IDs)
-     while count < n_IDs:
-       with open(itp) as f:
-            lines=f.readlines()
-            section=[]
-            flag=False
-            for line in lines:
-                if not(any(is_term(word, [';', '\n', '\r\n']) for word in line.split())):
-                  if len(line.split()) != 0:
-                   if any(is_term(word, IDs) for word in line.split()):
-                      flag = not flag
-                      if len(section) == 0:
-                         term_ID=(line.split()[1])
-                         term_ID_list.append(line.split()[1])
-                      else:
-                         if term_ID in ['atoms']:
-                            atoms=len(section)
-                         all_terms.append(section)
-                         section=[]          
-                         break
-                   elif flag:
-                      term=line.replace('\n', '').split()
-                      term.append(term_ID)
-                      section.append(term)
-            if len(section) != 0:
-               all_terms.append(section)
-       count = count + 1
-       if term_ID in IDs:
-          IDs.remove(term_ID)
-     return(all_terms, atoms)
-
+          
 def write_itp(text, outname):
     out_file = open(outname, 'w')
     for item in text:
@@ -153,12 +128,12 @@ def itp_tool(itpfiles, n_mon, nexcl, outname):
     block_count = 0 
     if len(itpfiles) > 1:
        new_itp=[]
+       print(go here)
        for name, n_trans in zip(itpfiles, n_mon):
            mon_itp, n_atoms = get_sections_itp(name, term_names)
            block = [ repeat_section(section, n_trans, n_atoms) for section in mon_itp ]
            [ new_itp.append(line) for line in block[2::len(block)]]
            block_count = n_trans * n_atoms
-           print(block[0][1][0])
            new_itp = new_itp + block_bonds[block[0][1][0]]
        new_itp = np.insert(new_itp, ['[ moleculetype ]'])
        new_itp = np.insert(new_itp, [ nexcl + '3'])

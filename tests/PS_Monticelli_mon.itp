@@ -1,0 +1,44 @@
+; POLYSTYRENE (A-mapping, see ref. below)
+;
+; NUMBER OF MONOMERS:           100
+;
+; contributed by Luca Monticelli
+;
+; PLEASE CITE:
+; Coarse-graining polymers with the MARTINI force-field: polystyrene as a benchmark case
+; Giulia Rossi, Luca Monticelli, Sakari R. Puisto, Ilpo Vattulainen and Tapio Ala-Nissila
+; Soft Matter, 2011, 7, 698-708
+;
+; IMPORTANT NOTE: when using this topology, please used the modified martini_v2.1_PS.itp file
+;                 downloadable from the Example Applications page.
+[ moleculetype ]
+PS 3
+;
+[ atoms ]
+;  nr    type       resnr  residu    atom    cgnr        charge    mass 
+   1    SCY            1  STYR       B        1     0.00000E+00   45
+   2    STY            1  STYR       R1       2     0.00000E+00   45
+   3    STY            1  STYR       R2       3     0.00000E+00   45
+   4    STY            1  STYR       R3       4     0.00000E+00   45
+;
+[ bonds ]
+;  ai  aj   funct
+   1     2    1     0.270000 8000.000000
+   1     6    1     0.270000 8000.000000
+;
+[ constraints ]
+;  ai  aj  funct length
+   2     3    1     0.270000
+   3     4    1     0.270000
+   4     2    1     0.270000
+
+;
+[ angles ]
+;  ai  aj  ak  funct
+   1     2     3    1   136.000000  100.000000
+   1     2     4    1   136.000000  100.000000
+   1     6     7    1   136.000000  100.000000
+   1     6     8    1   136.000000  100.000000
+   2     1     6    1   120.000000   25.000000
+   1     6     5    1    52.000000  550.000000
+
