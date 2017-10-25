@@ -1,14 +1,5 @@
 import itertools
 import collections
-import numpy as np
-import matplotlib.pyplot as plt
-import scipy.optimize as opt
-from Martini_PolyPly.itp_tool.itp_I import *
-from matplotlib import cm, colors
-from mpl_toolkits.mplot3d import Axes3D
-from numpy import sqrt, pi, cos, sin, dot, cross, arccos, degrees
-from numpy import float as nfl
-from numpy.linalg import norm
 #=======================================================================================================================================================================
 #                                                         GROMACS Specific Definitions      
 #=======================================================================================================================================================================
@@ -19,8 +10,10 @@ centers = {   'moleculetype': [],
               'atoms': [0,5], 
               ('bonds', 1) : [0,1],
               ('angles', 1) : [0,1,2],
+              ('angles', 2) : [0,1,2],
               ('constraints', 1): [0,1],
               ('dihedrals', 9): [0,1,2,3],
+              ('dihedrals', 11): [0,1,2,3]
               ('dihedrals', 1): [0,1,2,3],
               'exclusions': [0,1,2,3],
               ('virtual_sitesn',1): [0,2]}
@@ -29,8 +22,10 @@ settings ={
               'atoms':[1,2,3,4,6,7],
               ('bonds', 1) :[2,3,4], 
               ('angles',1):[3,4,5],
+              ('angles',10):[3, 4, 5],
               ('constraints', 1):[2,3],
               ('dihedrals', 1):[4,5,6,7],
+              ('dihedrals',11):[4,5,6,7,8,9],
               ('dihedrals', 9):[4,5,6,7],
               'exclusions':[],
               ('virtual_sitesn',1):[1,3,4]}
