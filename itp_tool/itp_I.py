@@ -20,10 +20,10 @@ centers = {   'moleculetype': [],
               ('bonds', 1) : [0,1],
               ('angles', 1) : [0,1,2],
               ('constraints', 1): [0,1],
-              ('dihedrals', 3): [0,1,2,3],
+              ('dihedrals', 9): [0,1,2,3],
               ('dihedrals', 1): [0,1,2,3],
               'exclusions': [0,1,2,3],
-              'virtual_sitesn': [0,2]}
+              ('virtual_sitesn',1): [0,2]}
 settings ={
               'moleculetype':[0,1],
               'atoms':[1,2,3,4,6,7],
@@ -31,14 +31,15 @@ settings ={
               ('angles',1):[3,4,5],
               ('constraints', 1):[2,3],
               ('dihedrals', 1):[4,5,6,7],
+              ('dihedrals', 9):[4,5,6,7],
               'exclusions':[],
-              'virtual_sitesn':[1,3,4]}
+              ('virtual_sitesn',1):[1,3,4]}
 
 function ={ 'bonds':2, 
              'angles':3,
              'constraints':2,
              'dihedrals':4,
-             'virtual_sitesn':0}
+             'virtual_sitesn':1}
 
 block_bonds={'PS' :{ 'PEO': '1 8000',
                      'P3HT': '1 8000',
