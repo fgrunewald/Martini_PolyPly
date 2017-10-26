@@ -10,7 +10,7 @@ new_P3HT=read_itp("test_P3HT.itp")
 
 bonds, angles, constraints, dihedrals, exclusions, virtual = [], [], [], [], [], []
 
-for i, j in zip(ref["bonds"], new["bonds"]):
+for i, j in zip(sorted(ref["bonds"]), sorted(new["bonds"])):
     for a, b in zip(i,j):
         bonds += [a==b]
 
@@ -34,7 +34,7 @@ for i, j in zip(sorted(ref_PEO["dihedrals"]), sorted(new_PEO["dihedrals"])):
      for a, b in zip(i,j):
          dihedrals += [a==b]
 
-for i, j in zip(ref_P3HT["bonds"], new_P3HT["bonds"]):
+for i, j in zip(sorted(ref_P3HT["bonds"]), sorted(new_P3HT["bonds"])):
     for a, b in zip(i,j):
         bonds += [a==b]
 
@@ -62,6 +62,6 @@ print("Bonds:", all(bonds))
 print("Angles:", all(angles))
 print("Constraints:", all(constraints))
 print("dihedrals:", all(dihedrals))
-print("virtuals:", all(dihedrals))
-print("exclusions:", all(dihedrals))
+print("virtuals:", all(virtual))
+print("exclusions:", all(exclusions))
 

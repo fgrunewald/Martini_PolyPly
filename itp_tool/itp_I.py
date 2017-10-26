@@ -18,7 +18,7 @@ centers = {   'moleculetype': [],
               ('dihedrals', 11): [0,1,2,3],
               ('dihedrals', 1): [0,1,2,3],
               'exclusions': [0,1,2,3],
-              ('virtual_sitesn',2): [0,2]}
+              ('virtual_sitesn',2): [0,2,3,4]}
 settings ={
               'moleculetype':[0,1],
               'atoms':[1,2,3,4,6,7],
@@ -31,7 +31,7 @@ settings ={
               ('dihedrals',11):[4,5,6,7,8,9],
               ('dihedrals', 9):[4,5,6,7],
               'exclusions':[],
-              ('virtual_sitesn',2):[1,3,4]}
+              ('virtual_sitesn',2):[1]}
 
 function ={ 'bonds':2, 
              'angles':3,
@@ -63,7 +63,7 @@ format_outfile={
                 'constraints': '{:<5d} {:<5d} {:<2s}{:<8s}{}','[': '{:<1s}{:<10s}{:<1s}{}',
                 'moleculetype':'{:<5s} {:<1s}{}', 
                 'exclusions': '{:<5d} {:<5d} {:<5d} {:<5d}{}',
-                'virtual_sitesn':'{:<5d} {:<1s} {:<5d} {:<5s} {:<5s} {}'}
+                'virtual_sitesn':'{:<5d} {:<1s} {:<5d} {:<5d} {:<5d} {}'}
 
 #=======================================================================================================================================================================
 #                                                                         Summary of Functions
