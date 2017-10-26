@@ -18,7 +18,7 @@ centers = {   'moleculetype': [],
               ('dihedrals', 11): [0,1,2,3],
               ('dihedrals', 1): [0,1,2,3],
               'exclusions': [0,1,2,3],
-              ('virtual_sitesn',1): [0,2]}
+              ('virtual_sitesn',2): [0,2]}
 settings ={
               'moleculetype':[0,1],
               'atoms':[1,2,3,4,6,7],
@@ -31,7 +31,7 @@ settings ={
               ('dihedrals',11):[4,5,6,7,8,9],
               ('dihedrals', 9):[4,5,6,7],
               'exclusions':[],
-              ('virtual_sitesn',1):[1,3,4]}
+              ('virtual_sitesn',2):[1,3,4]}
 
 function ={ 'bonds':2, 
              'angles':3,
@@ -108,7 +108,7 @@ def repeat_section(section, key, n_trans, n_atoms, offset):
        return(new_section)
 
 def read_itp(name):
-    itp = collections.OrderedDict({'moleculetype':[], 'atoms':[], 'bonds':[], 'angles':[], 'dihedrals':[], 'constraints':[], 'virtual_sitesn':[]})
+    itp = collections.OrderedDict({'moleculetype':[], 'atoms':[], 'bonds':[], 'angles':[], 'dihedrals':[], 'constraints':[], 'virtual_sitesn':[], 'exclusions':[]})
     with open(name) as f:
          lines = f.readlines()
          for line in lines:
@@ -127,7 +127,7 @@ def read_itp(name):
           
 def write_itp(text, outname):
     out_file = open(outname, 'w')
-    for key in ['moleculetype', 'atoms', 'bonds', 'angles', 'dihedrals', 'constraints', 'virtual_sitesn']:
+    for key in ['moleculetype', 'atoms', 'bonds', 'angles', 'dihedrals', 'constraints', 'virtual_sitesn', 'exclusions']:
         if key in text:
            out_file.write('{:<1s}{:^18s}{:>1s}{}'.format('[',key,']','\n'))
            for line in text[key]:
@@ -137,7 +137,7 @@ def write_itp(text, outname):
 
 def itp_tool(itpfiles, n_mon, outname, name): 
     block_count = 0 
-    new_itp =collections.OrderedDict({'moleculetype':[], 'atoms':[], 'bonds':[], 'angles':[], 'dihedrals':[], 'constraints':[], 'virtual_sitesn':[]} )
+    new_itp =collections.OrderedDict({'moleculetype':[], 'atoms':[], 'bonds':[], 'angles':[], 'dihedrals':[], 'constraints':[], 'virtual_sitesn':[], 'exclusions':[]} )
     offset = 0
     n_atoms=0
     mon_itp = read_itp(itpfiles[0])

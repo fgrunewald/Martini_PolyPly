@@ -5,8 +5,8 @@ new=read_itp("test_PS.itp")
 ref_PEO=read_itp("PEO_Lee_37.itp")
 new_PEO=read_itp("test_PEO.itp")
 
-#ref_P3HT=read_itp("P3HT_Alessandri.itp")
-#new_P3HT=read_itp("test_P3HT.itp")
+ref_P3HT=read_itp("P3HT_Alessandri.itp")
+new_P3HT=read_itp("test_P3HT.itp")
 
 bonds, angles, constraints, dihedrals, exclusions, virtual = [], [], [], [], [], []
 
