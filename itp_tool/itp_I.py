@@ -30,7 +30,7 @@ settings ={
               ('constraints', 1):[2,3],
               ('dihedrals', 1):[4,5,6,7],
               ('dihedrals',11):[4,5,6,7,8,9],
-              ('dihedrals', 3):[4,5,6,7,8,9],
+              ('dihedrals', 3):[4,5,6,7,8,9,10],
               ('dihedrals', 9):[4,5,6,7],
               'exclusions':[],
               ('virtual_sitesn',2):[1]}
@@ -60,7 +60,7 @@ term_names=['moleculetype','atoms', 'bonds', 'angles', 'dihedrals', 'constraints
 format_outfile={
                 'bonds': '{:<5d} {:<5d} {:<2s} {:<8s} {:<8s}{}', 
                 'angles': '{:<5d} {:<5d} {:<5d} {:<2s} {:<8s} {:<8s}{}',
-                'dihedrals': '{:<5d} {:<5d} {:<5d} {:<5d} {:<2s} {:<8s}{:<8s}{:<8s}{:<8s}{:<8s}{}', 
+                'dihedrals': '{:<5d} {:<5d} {:<5d} {:<5d} {:<2s} {:<8s}{:<8s}{:<8s}{:<8s}{:<8s}{:<8s}{}', 
                 'atoms': '{:<5d} {:<5s} {:<1s} {:<5s} {:<3s} {:<1d} {:<8s} {:<3s}{}',
                 'constraints': '{:<5d} {:<5d} {:<2s}{:<8s}{}','[': '{:<1s}{:<10s}{:<1s}{}',
                 'moleculetype':'{:<5s} {:<1s}{}', 
