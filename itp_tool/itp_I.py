@@ -17,6 +17,7 @@ centers = {   'moleculetype': [],
               ('dihedrals', 9): [0,1,2,3],
               ('dihedrals', 11): [0,1,2,3],
               ('dihedrals', 1): [0,1,2,3],
+              ('dihedrals', 3): [0,1,2,3],
               'exclusions': [0,1,2,3],
               ('virtual_sitesn',2): [0,2,3,4]}
 settings ={
@@ -29,6 +30,7 @@ settings ={
               ('constraints', 1):[2,3],
               ('dihedrals', 1):[4,5,6,7],
               ('dihedrals',11):[4,5,6,7,8,9],
+              ('dihedrals', 3):[4,5,6,7,8,9],
               ('dihedrals', 9):[4,5,6,7],
               'exclusions':[],
               ('virtual_sitesn',2):[1]}
