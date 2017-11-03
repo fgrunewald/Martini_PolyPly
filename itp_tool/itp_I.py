@@ -18,6 +18,7 @@ centers = {   'moleculetype': [],
               ('dihedrals', 11): [0,1,2,3],
               ('dihedrals', 1): [0,1,2,3],
               ('dihedrals', 3): [0,1,2,3],
+              ('pairs',1):[0,1],
               'exclusions': [0,1,2,3],
               ('virtual_sitesn',2): [0,2,3,4]}
 settings ={
@@ -32,6 +33,7 @@ settings ={
               ('dihedrals',11):[4,5,6,7,8,9],
               ('dihedrals', 3):[4,5,6,7,8,9,10],
               ('dihedrals', 9):[4,5,6,7],
+              ('pairs', 1):[2,3,4],
               'exclusions':[],
               ('virtual_sitesn',2):[1]}
 
@@ -39,6 +41,7 @@ function ={ 'bonds':2,
              'angles':3,
              'constraints':2,
              'dihedrals':4,
+             'pairs':2,
              'virtual_sitesn':1}
 
 block_bonds={'PS' :{ 'PEO': '1 8000',
@@ -65,7 +68,8 @@ format_outfile={
                 'constraints': '{:<5d} {:<5d} {:<2s}{:<8s}{}','[': '{:<1s}{:<10s}{:<1s}{}',
                 'moleculetype':'{:<5s} {:<1s}{}', 
                 'exclusions': '{:<5d} {:<5d} {:<5d} {:<5d}{}',
-                'virtual_sitesn':'{:<5d} {:<1s} {:<5d} {:<5d} {:<5d} {}'}
+                'virtual_sitesn':'{:<5d} {:<1s} {:<5d} {:<5d} {:<5d} {}',
+                'pairs':'{:<5d} {:<5d} {:<2s} {:<8s} {:<8s}{}'}
 
 #=======================================================================================================================================================================
 #                                                                         Summary of Functions
@@ -110,7 +114,7 @@ def repeat_section(section, key, n_trans, n_atoms, offset):
        return(new_section)
 
 def read_itp(name):
-    itp = collections.OrderedDict({'moleculetype':[], 'atoms':[], 'bonds':[], 'angles':[], 'dihedrals':[], 'constraints':[], 'virtual_sitesn':[], 'exclusions':[]})
+    itp = collections.OrderedDict({'moleculetype':[], 'atoms':[], 'bonds':[], 'angles':[], 'dihedrals':[], 'constraints':[], 'pairs':[], 'virtual_sitesn':[], 'exclusions':[]})
     with open(name) as f:
          lines = f.readlines()
          for line in lines:
@@ -129,7 +133,7 @@ def read_itp(name):
           
 def write_itp(text, outname):
     out_file = open(outname, 'w')
-    for key in ['moleculetype', 'atoms', 'bonds', 'angles', 'dihedrals', 'constraints', 'virtual_sitesn', 'exclusions']:
+    for key in ['moleculetype', 'atoms', 'bonds', 'angles', 'dihedrals', 'constraints','pairs','virtual_sitesn', 'exclusions']:
         if key in text:
            out_file.write('{:<1s}{:^18s}{:>1s}{}'.format('[',key,']','\n'))
            for line in text[key]:
@@ -139,7 +143,7 @@ def write_itp(text, outname):
 
 def itp_tool(itpfiles, n_mon, outname, name): 
     block_count = 0 
-    new_itp =collections.OrderedDict({'moleculetype':[], 'atoms':[], 'bonds':[], 'angles':[], 'dihedrals':[], 'constraints':[], 'virtual_sitesn':[], 'exclusions':[]} )
+    new_itp =collections.OrderedDict({'moleculetype':[], 'atoms':[], 'bonds':[], 'angles':[], 'dihedrals':[], 'constraints':[],'pairs':[] ,'virtual_sitesn':[], 'exclusions':[]} )
     offset = 0
     n_atoms=0
     mon_itp = read_itp(itpfiles[0])
