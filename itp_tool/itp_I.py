@@ -142,7 +142,7 @@ def write_itp(text, outname):
     for key in ['moleculetype', 'atoms']:
         out_file.write('{:<1s}{:^18s}{:>1s}{}'.format('[',key,']','\n'))
         for line in text[key]:
-            print(line)
+ #           print(line)
             line.append('\n')
             out_file.write(str(format_outfile[key]).format(*line))
 
@@ -166,9 +166,9 @@ def itp_tool(itpfiles, n_mon, outname, name):
     for name, n_trans in zip(itpfiles, n_mon):
         mon_itp = read_itp(name)
         n_atoms = len(mon_itp["atoms"])
-        print(n_atoms)
+  #      print(n_atoms)
         max_atoms = n_atoms * n_trans + max_atoms
-    print(max_atoms)
+  #  print(max_atoms)
     for name, n_trans in zip(itpfiles, n_mon):
            mon_itp = read_itp(name)
            n_atoms = len(mon_itp["atoms"])
