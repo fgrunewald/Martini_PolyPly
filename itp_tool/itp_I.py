@@ -92,13 +92,12 @@ def term_topology(key, term):
     else:
        return(centers[key], settings[key])
 
-def repeat_term(term, key, n_trans, n_atoms, offset):
+def repeat_term(term, key, n_trans, n_atoms, offset, max_atom):
      count = 0
      new_terms = []
-     max_atom = n_atoms * n_trans + offset
-     print(max_atom)
      center_indices, setting_indices = term_topology(key, term)
-
+     #print(max_atom)
+     #print(n_atoms)
      while count < n_trans: 
           new_term = []
           [ new_term.append([x ,term[x]]) for x in setting_indices] 
@@ -111,10 +110,10 @@ def repeat_term(term, key, n_trans, n_atoms, offset):
 
      return(new_terms)
 
-def repeat_section(section, key, n_trans, n_atoms, offset):
+def repeat_section(section, key, n_trans, n_atoms, offset, max_atoms):
        new_section = []
        for term in section:
-           new_terms = repeat_term(term, key, n_trans, n_atoms, offset)
+           new_terms = repeat_term(term, key, n_trans, n_atoms, offset, max_atoms)
            [new_section.append(new_term) for new_term in new_terms]
        new_section=sorted(new_section)
        return(new_section)
@@ -163,13 +162,19 @@ def itp_tool(itpfiles, n_mon, outname, name):
     mon_itp = read_itp(itpfiles[0])
     nexcl = mon_itp["moleculetype"][0][1]
     new_itp.update({'moleculetype':[[name, nexcl]]})
-  
+    max_atoms = 0
+    for name, n_trans in zip(itpfiles, n_mon):
+        mon_itp = read_itp(name)
+        n_atoms = len(mon_itp["atoms"])
+        print(n_atoms)
+        max_atoms = n_atoms * n_trans + max_atoms
+    print(max_atoms)
     for name, n_trans in zip(itpfiles, n_mon):
            mon_itp = read_itp(name)
            n_atoms = len(mon_itp["atoms"])
            for key, section in mon_itp.items():                           
                if key != 'moleculetype':
-                  add = new_itp[key] + repeat_section(section, key, n_trans, n_atoms, offset)
+                  add = new_itp[key] + repeat_section(section, key, n_trans, n_atoms, offset, max_atoms)
                   new_itp.update(collections.OrderedDict({key: add}))
                #print(offset)
            offset += n_atoms * n_trans            
