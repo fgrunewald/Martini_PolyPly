@@ -10,6 +10,7 @@ import numpy as np
 centers = {   'moleculetype': [],
               'atoms': [0,5], 
               ('bonds', 1) : [0,1],
+              ('bonds', 2) : [0,1],
               ('angles', 1) : [0,1,2],
               ('angles', 2) : [0,1,2],
               ('angles', 10): [0,1,2],
@@ -24,7 +25,8 @@ centers = {   'moleculetype': [],
 settings ={
               'moleculetype':[0,1],
               'atoms':[1,2,3,4,6,7],
-              ('bonds', 1) :[2,3,4], 
+              ('bonds', 1) :[2,3,4],
+              ('bonds', 2) : [2,3,4], 
               ('angles',1):[3,4,5],
               ('angles',2):[3,4,5],
               ('angles',10):[3, 4, 5],
@@ -33,7 +35,7 @@ settings ={
               ('dihedrals',11):[4,5,6,7,8,9],
               ('dihedrals', 3):[4,5,6,7,8,9,10],
               ('dihedrals', 9):[4,5,6,7],
-              ('pairs', 1):[2,3,4],
+              ('pairs', 1):[2],
               'exclusions':[],
               ('virtual_sitesn',2):[1]}
 
@@ -61,15 +63,18 @@ term_names=['moleculetype','atoms', 'bonds', 'angles', 'dihedrals', 'constraints
 # Use cases are : - dihedrals, - exclusions, virtual-sides and 
 
 format_outfile={
-                'bonds': '{:<5d} {:<5d} {:<2s} {:<8s} {:<8s}{}', 
-                'angles': '{:<5d} {:<5d} {:<5d} {:<2s} {:<8s} {:<8s}{}',
-                'dihedrals': '{:<5d} {:<5d} {:<5d} {:<5d} {:<2s} {:<8s}{:<8s}{:<8s}{:<8s}{:<8s}{:<8s}{}', 
+                ('bonds',1): '{:<5d} {:<5d} {:<2s} {:<8s} {:<8s}{}', 
+                ('angles',1): '{:<5d} {:<5d} {:<5d} {:<2s} {:<8s} {:<8s}{}',
+                ('bonds',2): '{:<5d} {:<5d} {:<2s} {:<8s} {:<8s}{}', 
+                ('angles',2): '{:<5d} {:<5d} {:<5d} {:<2s} {:<8s} {:<8s}{}',
+                ('dihedrals',1): '{:<5d} {:<5d} {:<5d} {:<5d} {:<2s} {:<8s}{:<8s}{:<8s}{}', 
+                ('dihedrals',9): '{:<5d} {:<5d} {:<5d} {:<5d} {:<2s} {:<8s}{:<8s}{:<8s}{:<8s}{:<8s}{:<8s}{}{}{}', 
                 'atoms': '{:<5d} {:<5s} {:<1s} {:<5s} {:<3s} {:<1d} {:<8s} {:<3s}{}',
                 'constraints': '{:<5d} {:<5d} {:<2s}{:<8s}{}','[': '{:<1s}{:<10s}{:<1s}{}',
                 'moleculetype':'{:<5s} {:<1s}{}', 
                 'exclusions': '{:<5d} {:<5d} {:<5d} {:<5d}{}',
                 'virtual_sitesn':'{:<5d} {:<1s} {:<5d} {:<5d} {:<5d} {}',
-                'pairs':'{:<5d} {:<5d} {:<2s} {:<8s} {:<8s}{}'}
+                ('pairs',1):'{:<5d} {:<5d} {:<2s} {}'}
 
 #=======================================================================================================================================================================
 #                                                                         Summary of Functions
@@ -91,6 +96,7 @@ def repeat_term(term, key, n_trans, n_atoms, offset):
      count = 0
      new_terms = []
      max_atom = n_atoms * n_trans + offset
+     print(max_atom)
      center_indices, setting_indices = term_topology(key, term)
 
      while count < n_trans: 
@@ -124,6 +130,7 @@ def read_itp(name):
              #if not any([ word in ';, \n, \r\n' for word in words]):
                 if any([ word in '[ [ ]' for word in words]):
                    key = words[1]
+                   #print(key)
                 else:
                    add =  itp[key] + [line.replace('\n', '').split()]
                    itp.update({key:add})
@@ -133,13 +140,20 @@ def read_itp(name):
           
 def write_itp(text, outname):
     out_file = open(outname, 'w')
-    for key in ['moleculetype', 'atoms', 'bonds', 'angles', 'dihedrals', 'constraints','pairs','virtual_sitesn', 'exclusions']:
+    for key in ['moleculetype', 'atoms']:
+        out_file.write('{:<1s}{:^18s}{:>1s}{}'.format('[',key,']','\n'))
+        for line in text[key]:
+            print(line)
+            line.append('\n')
+            out_file.write(str(format_outfile[key]).format(*line))
+
+    for key in ['bonds', 'angles', 'dihedrals', 'constraints','pairs','virtual_sitesn', 'exclusions']:
         if key in text:
            out_file.write('{:<1s}{:^18s}{:>1s}{}'.format('[',key,']','\n'))
            for line in text[key]:
-               #print(line)
+               print(line)
                line.append('\n')
-               out_file.write(str(format_outfile[key]).format(*line))
+               out_file.write(str(format_outfile[(key, int(line[function[key]]))]).format(*line))
 
 def itp_tool(itpfiles, n_mon, outname, name): 
     block_count = 0 
