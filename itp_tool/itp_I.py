@@ -67,7 +67,7 @@ format_outfile={
                 ('angles',1): '{:<5d} {:<5d} {:<5d} {:<2s} {:<8s} {:<8s}{}',
                 ('bonds',2): '{:<5d} {:<5d} {:<2s} {:<8s} {:<8s}{}', 
                 ('angles',2): '{:<5d} {:<5d} {:<5d} {:<2s} {:<8s} {:<8s}{}',
-                ('dihedrals',1): '{:<5d} {:<5d} {:<5d} {:<5d} {:<2s} {:<8s}{:<8s}{:<8s}{}', 
+                ('dihedrals',1): '{:<5d} {:<5d} {:<5d} {:<5d} {:<2s} {:<10s} {:<10s} {:<10s}{}', 
                 ('dihedrals',9): '{:<5d} {:<5d} {:<5d} {:<5d} {:<2s} {:<8s}{:<8s}{:<8s}{:<8s}{:<8s}{:<8s}{}{}{}', 
                 'atoms': '{:<5d} {:<5s} {:<1s} {:<5s} {:<3s} {:<1d} {:<8s} {:<3s}{}',
                 'constraints': '{:<5d} {:<5d} {:<2s}{:<8s}{}','[': '{:<1s}{:<10s}{:<1s}{}',
@@ -150,7 +150,7 @@ def write_itp(text, outname):
         if key in text:
            out_file.write('{:<1s}{:^18s}{:>1s}{}'.format('[',key,']','\n'))
            for line in text[key]:
-               print(line)
+               #print(line)
                line.append('\n')
                out_file.write(str(format_outfile[(key, int(line[function[key]]))]).format(*line))
 
