@@ -6,10 +6,10 @@ import random
 import argparse
 import itertools
 import numpy as np
-import matplotlib.pyplot as plt
+#import matplotlib.pyplot as plt
 import scipy.optimize as opt
-from matplotlib import cm, colors
-from mpl_toolkits.mplot3d import Axes3D
+#from matplotlib import cm, colors
+#from mpl_toolkits.mplot3d import Axes3D
 from numpy import sqrt, pi, cos, sin, dot, cross, arccos, degrees
 from numpy import float as nfl
 from numpy.linalg import norm
@@ -77,10 +77,10 @@ def convert_constraints(STATUS):
        new_bonds =  ff['bonds'] + new_bonds
        ff.update({'bonds':new_bonds})
     else:
-       print "!!!!!!!!!!! WARNING !!!!!!!!!"
-       print "Constraints don't minimize that well!"
-       print "Your structure might be quite distorted!"
-       print "If you want to keep them constraints, use a different program."
+       print("!!!!!!!!!!! WARNING !!!!!!!!!")
+       print("Constraints don't minimize that well!")
+       print("Your structure might be quite distorted!")
+       print("If you want to keep them constraints, use a different program.")
        exit()
     return(None)
 
@@ -121,10 +121,10 @@ def read_conf_file(filename, file_type):
            for line in lines:
                if count == 0:
                   title = line.replace('\n', '')
-                  print title
+                  print(title)
                   count = count + 1
                elif 1 < count < len(lines) - 1:
-                  print line.replace('\n', '').split()
+                  print(line.replace('\n', '').split())
                   #res_num, res_name, atom, a_index, x, y, z, v1, v2, v3 = line.replace('\n', '').split()
                   # In principle one can also put velocities in the gro file so we should account for that at some point
                   res_num_name, atom, a_index, x, y, z = line.replace('\n', '').split()
@@ -186,6 +186,7 @@ def proper_dih(dih, ref, k0,n):
 def legal(term, traj):
     status_A = all( [index - 1 <= len(traj) for index in term['pairs']])
     if status_A:
+       print(traj)
        coords = [traj[i - 1] for i in term['pairs']]
        status_B = all([any(coord != np.array([0,0,0])) for coord in coords])
        return(status_B)
@@ -256,19 +257,19 @@ def take_step(vectors, step_size, item):
     return(new_item, index)
 
 def selv_av_random_step(traj, rad_sphere):
-        print '-> take random step '
+        print('-> take random step ')
         subcount =0
         while True:
               vector_bundel = norm_sphere()
               new_coord, index = take_step(vector_bundel, rad_sphere, traj[len(traj) - 1])
-              #print (traj)
+              print (traj)
               if not(is_overlap(new_coord, traj, rad_sphere)):
                  break
               elif subcount < 5000:
                  vector_bundel = np.delete(vector_bundel, index, axis=0)
                  subcount = subcount + 1
               else:
-                 print 'WARNING in SELF-AV-RANDOM'
+                 print('WARNING in SELF-AV-RANDOM')
                  break
         return(new_coord)
 
@@ -278,11 +279,11 @@ def determine_step_legnth(monomer):
     return(max(distances), distances)
 
 def add_particels(traj, new_point ,n_atoms, distances):
-    print '-> adding particles '
+    print('-> adding particles ')
     bounds = np.c_[traj.ravel(), traj.ravel()].tolist() + [[None, None]] * (3 * n_atoms)
     directions = np.random.normal(0.0, 1.0, (n_atoms,3))
     for i, direct in enumerate(directions):
-	   atom = new_point + u_vect(direct) * distances[i]
+           atom = new_point + u_vect(direct) * distances[i]
            traj = np.append(traj, atom)  
     traj = energy_min(traj, bounds).x.reshape(-1,3)
     return(traj)   
@@ -299,8 +300,8 @@ def accaptable(E, temp, prev_E):
        else:
           return(False)
 
-def metropolis_monte_carlo(n_chains, n_repeat, n_steps, conf, l_box, temp):
-    print '\n++++++++++ Starting Monte-Carlo Program +++++++++\n'
+def metropolis_monte_carlo(n_chains, n_repeat, conf, l_box, temp):
+    print('\n++++++++++ Starting Monte-Carlo Program +++++++++\n')
     n_atoms = len(conf) 
     step_length, distances = determine_step_legnth(conf)
     traj = np.empty(0)
@@ -309,7 +310,7 @@ def metropolis_monte_carlo(n_chains, n_repeat, n_steps, conf, l_box, temp):
     count = 0
     prev_E = 0.0
     while count < n_repeat:
-       print '---', count
+       print('---', count)
        while True:
           new_cg   = selv_av_random_step(cg_traj, step_length)
           new_traj = add_particels(traj.reshape(-1,3), new_cg, n_atoms, distances)
@@ -317,18 +318,18 @@ def metropolis_monte_carlo(n_chains, n_repeat, n_steps, conf, l_box, temp):
           new_cg  = geometrical_center(new_points)
           total_E  = Hamiltonion(new_traj)/len(new_traj)
           if accaptable(total_E, temp, prev_E):
-            print 'accapted'
-            print total_E * len(new_traj)
+            print('accapted')
+            print(total_E * len(new_traj))
             prev_E = total_E
             traj = new_traj
             cg_traj = np.append(cg_traj, new_traj)
             count = count + 1
-            print traj
+            print(traj)
             write_gro_file(traj.reshape(-1,3), str(count), len(traj))
             break
           else:
-            print 'rejected'
-    print 'E-min results:', Hamiltonion(new_traj)
+            print('rejected')
+    print('E-min results:', Hamiltonion(new_traj))
     return(traj)
 
 #======================================================================================================================================================================
@@ -357,14 +358,14 @@ def PDI():
 #======================================================================================================================================================================
 
     
-def build_system():
+def build_system(topfile, conv, structure_file, n_chains, n_mon, box_vect, temp):
     global ff
-    ff = read_input(args.topfile)
-    convert_constraints(args.conv)
-    print ff['bonds']
-    conf = read_conf_file(args.structure_file, 'gro')
-    print "Read in conf:",conf
-    traj = metropolis_monte_carlo(args.n_chains, args.n_mon, args.frames, conf, args.box_vect, args.temp)
+    ff = read_input(topfile)
+    convert_constraints(conv)
+    print(ff['bonds'])
+    conf = read_conf_file(structure_file, 'gro')
+    print("Read in conf:",conf)
+    traj = metropolis_monte_carlo(n_chains, n_mon, conf, box_vect, temp)
     #analyse_traj(traj, infos)
     write_gro_file(traj,'out.gro',len(traj))
     return(None)
