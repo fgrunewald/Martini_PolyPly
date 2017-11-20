@@ -186,7 +186,7 @@ def proper_dih(dih, ref, k0,n):
 def legal(term, traj):
     status_A = all( [index <= len(traj) for index in term['pairs']])
     if status_A:
-       print(term['pairs'])
+     #  print(term['pairs'])
        coords = [traj[i - 1] for i in term['pairs']]
        status_B = all([any(coord != np.array([0,0,0])) for coord in coords])
        return(status_B)
@@ -262,7 +262,7 @@ def selv_av_random_step(traj, rad_sphere):
         while True:
               vector_bundel = norm_sphere()
               new_coord, index = take_step(vector_bundel, rad_sphere, traj[len(traj) - 1])
-              print (traj)
+#              print (traj)
               if not(is_overlap(new_coord, traj, rad_sphere)):
                  break
               elif subcount < 5000:
@@ -280,14 +280,14 @@ def determine_step_legnth(monomer):
 
 def add_particels(traj, new_point ,n_atoms, distances):
     print('-> adding particles ')
-    print(traj)
+#    print(traj)
     bounds = np.c_[traj.ravel(), traj.ravel()].tolist() + [[None, None]] * (3 * n_atoms)
     directions = np.random.normal(0.0, 1.0, (n_atoms,3))
     for i, direct in enumerate(directions):
            atom = new_point + u_vect(direct) * distances[i]
            traj = np.append(traj, atom)  
-    print(atom)
-    print(traj)
+ #   print(atom)
+  #  print(traj)
     traj = energy_min(traj, bounds).x.reshape(-1,3)
     return(traj)   
   
@@ -328,8 +328,8 @@ def metropolis_monte_carlo(n_chains, n_repeat, conf, l_box, temp):
             traj = new_traj
             cg_traj = np.append(cg_traj, new_traj)
             count = count + 1
-            print(traj)
-            write_gro_file(traj.reshape(-1,3), str(count), len(traj))
+   #         print(traj)
+      #      write_gro_file(traj.reshape(-1,3), str(count), len(traj))
             break
           else:
             print('rejected')
