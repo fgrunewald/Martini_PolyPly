@@ -184,9 +184,9 @@ def proper_dih(dih, ref, k0,n):
     return( k0 * (1 + cos(n * phi - ref)))
 
 def legal(term, traj):
-    status_A = all( [index - 1 <= len(traj) for index in term['pairs']])
+    status_A = all( [index <= len(traj) for index in term['pairs']])
     if status_A:
-       print(traj)
+       print(term['pairs'])
        coords = [traj[i - 1] for i in term['pairs']]
        status_B = all([any(coord != np.array([0,0,0])) for coord in coords])
        return(status_B)
@@ -280,11 +280,14 @@ def determine_step_legnth(monomer):
 
 def add_particels(traj, new_point ,n_atoms, distances):
     print('-> adding particles ')
+    print(traj)
     bounds = np.c_[traj.ravel(), traj.ravel()].tolist() + [[None, None]] * (3 * n_atoms)
     directions = np.random.normal(0.0, 1.0, (n_atoms,3))
     for i, direct in enumerate(directions):
            atom = new_point + u_vect(direct) * distances[i]
            traj = np.append(traj, atom)  
+    print(atom)
+    print(traj)
     traj = energy_min(traj, bounds).x.reshape(-1,3)
     return(traj)   
   
@@ -304,7 +307,8 @@ def metropolis_monte_carlo(n_chains, n_repeat, conf, l_box, temp):
     print('\n++++++++++ Starting Monte-Carlo Program +++++++++\n')
     n_atoms = len(conf) 
     step_length, distances = determine_step_legnth(conf)
-    traj = np.empty(0)
+    #print(conf)
+    traj = conf  #np.empty(0)
     cg_traj = np.empty(0)
     cg_traj = np.append(cg_traj,np.random.normal(0,1))
     count = 0
