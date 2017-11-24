@@ -84,19 +84,18 @@ def convert_constraints(STATUS):
        exit()
     return(None)
 
-def write_gro_file(data, name, n, polymer_name, resname):
+def write_gro_file(data, name, n, polymer_name, resname, atom_names):
     out_file = open(name, 'w')
     out_file.write('Monte Carlo generated ' + polymer_name + '\n')
     out_file.write('{:>3s}{:<8d}{}'.format('',n,'\n'))
     count = 1
-    atoms = ['B','R','R','R']
     res_num = 1
     index = 0
     for coord in data:
         #print(count)
-        out_file.write('{:>5d}{:<5s}{:>5s}{:5d}{:8.3F}{:8.3F}{:8.3F}{}'.format(res_num, resname, atoms[index], count, coord[0], coord[1], coord[2],'\n'))
+        out_file.write('{:>5d}{:<5s}{:>5s}{:5d}{:8.3F}{:8.3F}{:8.3F}{}'.format(res_num, resname, atom_names[index], count, coord[0], coord[1], coord[2],'\n'))
         index = index + 1
-        if count % 4 is 0:
+        if count % len(atom_names) is 0:
             #print('--------------')
             res_num = res_num + 1
             index = 0
@@ -117,6 +116,7 @@ def read_conf_file(filename, file_type):
         lines=f.readlines()
         coordinates=np.zeros(((len(lines)-3),3))
         count=0
+        atoms=[]
         if file_type in '[ .gro, gro]':
            for line in lines:
                if count == 0:
@@ -131,10 +131,11 @@ def read_conf_file(filename, file_type):
                   point = np.array([x,y,z])
                   coordinates[count - 3] = point
                   count = count + 1
+                  atoms += [atom]
                else:
                   count = count +1 
     resname = ''.join([i for i in res_num_name if not i.isdigit()])
-    return(resname, coordinates)
+    return(resname, atoms, coordinates)
 
 #======================================================================================================================================================================
 #   VI                                                       GEOMETRICAL FUNCTIONS
@@ -368,11 +369,11 @@ def build_system(topfile, conv, structure_file, n_chains, n_mon, box_vect, temp,
     ff = read_input(topfile)
     convert_constraints(conv)
     print(ff['bonds'])
-    resname, conf = read_conf_file(structure_file, 'gro')
+    resname, atom_names, conf = read_conf_file(structure_file, 'gro')
     print("Read in conf:",conf)
     traj = metropolis_monte_carlo(n_chains, n_mon, conf, box_vect, temp)
     #analyse_traj(traj, infos)
-    write_gro_file(traj,'out.gro',len(traj), name, resname)
+    write_gro_file(traj,'out.gro',len(traj), name, resname, atom_names)
     return(None)
 
 #============================================================================= END =====================================================================================
