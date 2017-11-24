@@ -20,7 +20,7 @@ def main():
    if not args.itpfiles == None:
       itp_tool(args.itpfiles, args.mon, args.outfile, args.name)
    elif not args.system == None:
-      build_system(args.topfile, args.conv, args.grofile, 1, args.mon[0], np.array([5.0,5.0,5.0]), args.temp)
+      build_system(args.topfile, args.conv, args.grofile, 1, args.mon[0], np.array([5.0,5.0,5.0]), args.temp,args.name)
    else:
       print('Please specify either -itp or -sys option.')
    return(None)
