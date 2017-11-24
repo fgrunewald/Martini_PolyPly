@@ -87,10 +87,11 @@ def convert_constraints(STATUS):
 def write_gro_file(data, name, n, polymer_name, resname, atom_names):
     out_file = open(name, 'w')
     out_file.write('Monte Carlo generated ' + polymer_name + '\n')
-    out_file.write('{:>3s}{:<8d}{}'.format('',n,'\n'))
+    out_file.write('{:>3s}{:<8d}{}'.format('',n-1,'\n'))
     count = 1
     res_num = 1
     index = 0
+    data = np.delete(data, 0,axis=0)
     for coord in data:
         #print(count)
         out_file.write('{:>5d}{:<5s}{:>5s}{:5d}{:8.3F}{:8.3F}{:8.3F}{}'.format(res_num, resname, atom_names[index], count, coord[0], coord[1], coord[2],'\n'))
