@@ -163,12 +163,7 @@ def norm_sphere():
     v_sphere = np.random.normal(0.0, 1, (5000,3))
     return(np.array([ u_vect(vect) for vect in v_sphere]))
 
-#def dist_mat(traj, nexcl):
-#    indexs = np.arange(0, len(traj))
-#    while i < len(traj):
-#          diag = 
-           
-
+     
 #======================================================================================================================================================================
 #   VII                                                   GROMACS POTENTIAL DEFINITIONS 
 #======================================================================================================================================================================
@@ -226,12 +221,15 @@ def Vdw_pot(traj):
 #      VIII                                                 POTENTIAL ENERGY & MINIMIZATION
 #======================================================================================================================================================================
 
-def Hamiltonion(traj):
+def Hamiltonion(traj, display):
     traj = traj.reshape(-1,3)
     bonded = bonded_pot(traj)
     angle = angle_pot(traj)
     dihedral = dihedral_pot(traj)
     vdw = Vdw_pot(traj)
+    if display:
+       for term, name in zip([bonded, angle, dihedral, vdw],['bonds', 'angle', 'dihedral', 'vdw']):
+           print(name, term)
     return(bonded + angle + dihedral + vdw)
 
 def energy_min(initial, bounds):
@@ -262,7 +260,7 @@ def take_step(vectors, step_length, item):
     return(new_item, index)
 
 def selv_av_random_step(traj, step_length, size, nexcl):
-        print('-> take random step ')
+        #print('-> take random step ')
         subcount =0
         n=len(traj) - 1
         
@@ -292,7 +290,7 @@ def determine_step_legnth(coords, bb_indices):
        step_length =  norm(sum(bb_coord))
        g0 = geometrical_center(coords)
        max_dist_from_center = max([ norm(g0 - point) for point in coords])
-       size =  max_dist_from_center + 0.43
+       size =  max_dist_from_center + 0.45
        nexcl = math.ceil(size/step_length)
        print("step:",step_length)
        print("size:", size)
@@ -336,29 +334,34 @@ def metropolis_monte_carlo(n_chains, n_repeat, conf, l_box, temp, bb_indices):
     cg_traj = np.array([[0.0,0.0,0.0]])
     #cg_traj = np.append(cg_traj,np.array([np.random.normal(0,1,3)]))
     count = 0                               
-    prev_E = 0.0                            
+    prev_E = 0.0
+    rejected = 0                            
     while count < n_repeat -1:                 
-       print('---', count)                  
+       #print('---', count)                  
        while True:                         
           #print(cg_traj) 
           new_cg   = selv_av_random_step(cg_traj.reshape(-1,3), step_length, size, nexcl)
           new_traj = add_particels(traj.reshape(-1,3), new_cg, n_atoms, [0])
           new_points = new_traj[-1::-(n_atoms+1)]
           new_cg  = geometrical_center(new_points)
-          total_E  = Hamiltonion(new_traj)/len(new_traj)
+          total_E  = Hamiltonion(new_traj, False)/len(new_traj)
           if accaptable(total_E, temp, prev_E):
-            print('accapted')
-            print(total_E * len(new_traj))
+           # print('accapted')
+           # print(total_E * len(new_traj))
             prev_E = total_E
             traj = new_traj
             cg_traj = np.append(cg_traj, new_traj)
             count = count + 1
             #print(traj)
-      #      write_gro_file(traj.reshape(-1,3), str(count), len(traj))
+            #write_gro_file(traj.reshape(-1,3), str(count), len(traj))
             break
           else:
             print('rejected')
-    print('E-min results:', Hamiltonion(new_traj))
+            rejected = rejected + 1
+    print('++++++++++++++++ RESULTS FORM MONTE-CARLO PROGRAM ++++++++++++++\n')
+    print('Total Energy:', Hamiltonion(new_traj, True))
+    print('Radius of Gyration:', radius_of_gyr(traj))
+    print('Number of rejected MC steps:', rejected)
     return(traj)
 
 #======================================================================================================================================================================
@@ -393,10 +396,8 @@ def build_system(topfile, conv, structure_file, n_chains, n_mon, box_vect, temp)
     convert_constraints(conv)
  #   print(ff['bonds'])
     conf = read_conf_file(structure_file, 'gro')
-    print("Read in conf:",conf)
+ #   print("Read in conf:",conf)
     traj = metropolis_monte_carlo(n_chains, n_mon, conf, box_vect, temp, [0])
-    print(radius_of_gyr(traj))
-    #print(traj)
     write_gro_file(traj,'out.gro',len(traj))
     return(None)
 
