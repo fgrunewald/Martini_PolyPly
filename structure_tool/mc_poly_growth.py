@@ -304,8 +304,8 @@ def determine_step_legnth(coords, bb_indices):
 #======================================================================================================================================================================
 
 def add_particels(traj, new_point, n_atoms, distances):
-    print('-> adding particles ')
-    print(new_point)
+  #  print('-> adding particles ')
+ #   print(new_point)
     #bounds = np.c_[traj.ravel(), traj.ravel()].tolist() + [[None, None]] * (3 * n_atoms)
     directions = np.random.normal(0.0, 1.0, (n_atoms,3))
     for i, direct in enumerate(directions):
@@ -321,8 +321,8 @@ def accaptable(E, temp, prev_E):
        return(True)
     else:
        N = np.random.normal(0,1,(1,1))
-      # F = np.exp(-10**3 * (E-prev_E)/(kb*temp))
-       F = np.exp( -(E-prev_E)/(kb*temp))
+       F = np.exp(-10**3 * (E-prev_E)/(kb*temp))
+    #   F = np.exp( -(E-prev_E)/(kb*temp))
        if N < F:
           return(True)
        else:
