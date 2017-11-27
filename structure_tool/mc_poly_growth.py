@@ -199,7 +199,7 @@ def angle_pot(traj):
     return(sum([pot_I(ang, term['k0'], term['ref']) for term, ang in zip(ff['angles'], angles)])) 
 
 def dihedral_pot(traj):
-    dih_ang = [dih(traj[(t['pairs'][0] - 1)], traj[(t['pairs'][1] - 1)], traj[(t['pairs'][2] - 1)], traj[(t['pair'][3] -1)]) for t in ff['dih'] if legal(t, traj)]
+    dih_ang = [dih(traj[(t['pairs'][0] - 1)], traj[(t['pairs'][1] - 1)], traj[(t['pairs'][2] - 1)], traj[(t['pairs'][3] -1)]) for t in ff['dih'] if legal(t, traj)]
     return(sum([pot_I(ang, term['k0'], term['ref']) for term, ang in zip(ff['dih'], dih_ang)]))
 
 # Needs for VdW
@@ -223,7 +223,7 @@ def Hamiltonion(traj):
     traj = traj.reshape(-1,3)
     bonded = bonded_pot(traj)
     angle = angle_pot(traj)
-    #dihedral = dihedral_pot(traj)
+    dihedral = dihedral_pot(traj)
     #print 'dih:', dihedral
     #Vdw = Vdw_pot(traj)
     return(bonded + angle)# + dihedral)
