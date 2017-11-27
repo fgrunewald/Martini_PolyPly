@@ -29,7 +29,8 @@ kb = 1.38964852 * 10**(-23.0) # J/K
 
 def read_input(name):
     ff = {}
-    atoms, nonbond_params, bonds, angles, dih, constraints, virtual_sitsn = [], [], [], [], [], [], []
+    atoms, bonds, angles, dih, constraints, virtual_sitsn = [], [], [], [], [], []
+    nonbond_params = {}
     section = 'moleculetype'
     empty=0
     with open(name) as f:
@@ -45,10 +46,10 @@ def read_input(name):
               elif section in '[ atoms ]':
                   # print line
                   n, typ, resnr, res, atom, cgnr, charge, mass = line.replace('\n', '').split()
-                  atoms.append({'n': int(n), 'atom':atom, 'charge':nfl(charge)})
+                  atoms.append({'n': int(n), 'typ':typ ,'atom':atom, 'charge':nfl(charge)})
               elif section in '[ nonbond_params ]':
                   atom1, atom2, sigma, epsilon = line.replace('\n', '').split()
-                  nonbond_params.append({'atom1': atom1, 'atom2': atom2, 'sigma':nfl(sigma), 'epsilon':nfl(epsilon)})
+                  nonbond_params.update({(atom1, atom2): {'sigma':nfl(sigma), 'epsilon':nfl(epsilon)}})
               elif section in '[ bonds ]':
                   # print line
                   A, B, f, ref, k0 = line.replace('\n', '').split()
@@ -66,7 +67,7 @@ def read_input(name):
                   #print line.replace('\n', '')
                   A, B, f, ref = line.replace('\n', '').split()
                   constraints.append({'pairs':[A, B], 'f':nfl(f), 'ref':nfl(ref)}) 
-    ff.update({'atoms':atoms, 'bonds':bonds, 'angles':angles, 'constraints':constraints, 'dih':dih})  
+    ff.update({'atoms':atoms, 'bonds':bonds, 'angles':angles, 'constraints':constraints, 'dih':dih, 'nonbond_params':nonbond_params})  
     return(ff)              
 
 def convert_constraints(STATUS):
@@ -203,10 +204,24 @@ def dihedral_pot(traj):
     dih_ang = [dih(traj[(t['pairs'][0] - 1)], traj[(t['pairs'][1] - 1)], traj[(t['pairs'][2] - 1)], traj[(t['pairs'][3] -1)]) for t in ff['dih'] if legal(t, traj)]
     return(sum([pot_I(ang, term['k0'], term['ref']) for term, ang in zip(ff['dih'], dih_ang)]))
 
+# Small note here:
+# Potentially we don't really wanna do dynamics with this thing. Thus we can recycle the pair list and all the other stuff since we don't move it. 
+# The only thing might be that we want an in-house energy minimization after the super-CG back-transformation
+
 def Vdw_pot(traj):
-    pair_dist = [ norm(traj[i] - traj[j]) for i, j in zip(np.arange(0,len(traj)), np.arange(0,len(traj)))]
-    return(sum([LJ(term['sig'], term['eps'], r) for term, r in zip(ff['atoms'], pair_dist)]))
-    
+    energy=0
+    for i, pos_A in enumerate(traj):
+       for j, pos_B in enumerate(traj):
+           dist = norm(pos_A - pos_B)
+           atom_A, atom_B = ff['atoms'][i]['typ'], ff['atoms'][j]['typ']
+   #        print(atom_A, atom_B  )
+           epsilon = ff['nonbond_params'][(atom_A, atom_B)]['epsilon']
+           sigma = ff['nonbond_params'][(atom_A, atom_B)]['sigma']
+           if dist != 0:
+              energy = energy + LJ(sigma, epsilon, dist)
+    return(energy)
+
+  
 #======================================================================================================================================================================
 #      VIII                                                 POTENTIAL ENERGY & MINIMIZATION
 #======================================================================================================================================================================
@@ -216,8 +231,8 @@ def Hamiltonion(traj):
     bonded = bonded_pot(traj)
     angle = angle_pot(traj)
     dihedral = dihedral_pot(traj)
-    #Vdw = Vdw_pot(traj)
-    return(bonded + angle + dihedral)
+    vdw = Vdw_pot(traj)
+    return(bonded + angle + dihedral + vdw)
 
 def energy_min(initial, bounds):
     #print '---------bounds and initial---------------'
@@ -322,7 +337,7 @@ def metropolis_monte_carlo(n_chains, n_repeat, conf, l_box, temp, bb_indices):
     #cg_traj = np.append(cg_traj,np.array([np.random.normal(0,1,3)]))
     count = 0                               
     prev_E = 0.0                            
-    while count < n_repeat:                 
+    while count < n_repeat -1:                 
        print('---', count)                  
        while True:                         
           #print(cg_traj) 
@@ -376,7 +391,7 @@ def build_system(topfile, conv, structure_file, n_chains, n_mon, box_vect, temp)
     global ff
     ff = read_input(topfile)
     convert_constraints(conv)
-    print(ff['bonds'])
+ #   print(ff['bonds'])
     conf = read_conf_file(structure_file, 'gro')
     print("Read in conf:",conf)
     traj = metropolis_monte_carlo(n_chains, n_mon, conf, box_vect, temp, [0])
