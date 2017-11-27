@@ -29,7 +29,7 @@ kb = 1.38964852 * 10**(-23.0) # J/K
 
 def read_input(name):
     ff = {}
-    atoms, bonds, angles, dih, constraints, virtual_sitsn = [], [], [], [], [], []
+    atoms, nonbond_params, bonds, angles, dih, constraints, virtual_sitsn = [], [], [], [], [], [], []
     section = 'moleculetype'
     empty=0
     with open(name) as f:
@@ -46,6 +46,9 @@ def read_input(name):
                   # print line
                   n, typ, resnr, res, atom, cgnr, charge, mass = line.replace('\n', '').split()
                   atoms.append({'n': int(n), 'atom':atom, 'charge':nfl(charge)})
+              elif section in '[ nonbond_params ]':
+                  atom1, atom2, sigma, epsilon = line.replace('\n', '').split()
+                  nonbond_params.append({'atom1': atom1, 'atom2': atom2, 'sigma':nfl(sigma), 'epsilon':nfl(epsilon)})
               elif section in '[ bonds ]':
                   # print line
                   A, B, f, ref, k0 = line.replace('\n', '').split()
@@ -182,7 +185,6 @@ def proper_dih(dih, ref, k0,n):
 def legal(term, traj):
     status_A = all( [index <= len(traj) for index in term['pairs']])
     if status_A:
-     #  print(term['pairs'])
        coords = [traj[i - 1] for i in term['pairs']]
        status_B = all([any(coord != np.array([0,0,0])) for coord in coords])
        return(status_B)
@@ -191,7 +193,6 @@ def legal(term, traj):
 
 def bonded_pot(traj):
     bond_pairs = [ norm(traj[(term['pairs'][0] - 1)] - traj[(term['pairs'][1] - 1)]) for term in ff['bonds'] if legal(term, traj)]
- #   print  [[term['pairs'][0] , term['pairs'][1]] for term in ff['bonds'] if legal(term, traj)]
     return(sum([pot_I(dist, term['k0'], term['ref']) for term, dist in zip(ff['bonds'], bond_pairs)])) 
 
 def angle_pot(traj):
@@ -202,16 +203,7 @@ def dihedral_pot(traj):
     dih_ang = [dih(traj[(t['pairs'][0] - 1)], traj[(t['pairs'][1] - 1)], traj[(t['pairs'][2] - 1)], traj[(t['pairs'][3] -1)]) for t in ff['dih'] if legal(t, traj)]
     return(sum([pot_I(ang, term['k0'], term['ref']) for term, ang in zip(ff['dih'], dih_ang)]))
 
-# Needs for VdW
-# ---------------------------------------------------------------------
-# - exlcusions
-# - pair list?
-# - pair shif or so ?
-# - read in structure
-# - concurrent processing of dihedral?????
-
 def Vdw_pot(traj):
-    pair_matrix = dist_mat(traj)
     pair_dist = [ norm(traj[i] - traj[j]) for i, j in zip(np.arange(0,len(traj)), np.arange(0,len(traj)))]
     return(sum([LJ(term['sig'], term['eps'], r) for term, r in zip(ff['atoms'], pair_dist)]))
     
@@ -224,9 +216,8 @@ def Hamiltonion(traj):
     bonded = bonded_pot(traj)
     angle = angle_pot(traj)
     dihedral = dihedral_pot(traj)
-    #print 'dih:', dihedral
     #Vdw = Vdw_pot(traj)
-    return(bonded + angle)# + dihedral)
+    return(bonded + angle + dihedral)
 
 def energy_min(initial, bounds):
     #print '---------bounds and initial---------------'
@@ -389,7 +380,7 @@ def build_system(topfile, conv, structure_file, n_chains, n_mon, box_vect, temp)
     conf = read_conf_file(structure_file, 'gro')
     print("Read in conf:",conf)
     traj = metropolis_monte_carlo(n_chains, n_mon, conf, box_vect, temp, [0])
-    #analyse_traj(traj, infos)
+    print(radius_of_gyr(traj))
     #print(traj)
     write_gro_file(traj,'out.gro',len(traj))
     return(None)

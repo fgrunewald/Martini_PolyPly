@@ -1,3 +1,5 @@
+[ nonbond_params ]
+PEO  PEO  0.43  3.6
 [   moleculetype   ]
 PEO   1
 [      atoms       ]
