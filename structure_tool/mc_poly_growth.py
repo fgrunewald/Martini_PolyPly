@@ -3,13 +3,11 @@
 #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 # Some random edit
 import random
+import math
 import argparse
 import itertools
 import numpy as np
-#import matplotlib.pyplot as plt
 import scipy.optimize as opt
-#from matplotlib import cm, colors
-#from mpl_toolkits.mplot3d import Axes3D
 from numpy import sqrt, pi, cos, sin, dot, cross, arccos, degrees
 from numpy import float as nfl
 from numpy.linalg import norm
@@ -155,9 +153,7 @@ def dih(A, B, C, D):
     n2 = cross(r2, r3)
     return(degrees(arccos(np.clip(dot(u_vect(n1), u_vect(n2)), -1.0, 1.0))))
 
-def geometrical_center(coord):
-    #coord = np.array([structure[atom]['xyz'] for atom in structure])
-    return(sum(coord)/float(len(coord)))
+
 
 def norm_sphere():
     v_sphere = np.random.normal(0.0, 1, (5000,3))
@@ -246,50 +242,73 @@ def energy_min(initial, bounds):
 #      IX                                                      METROPOLIS-MONTE-CARLO FUNCTIONS
 #======================================================================================================================================================================
 
-def is_overlap(new_point, traj, tol):
-    distances = [ point - new_point for point in traj]
-    return( any(norm(distances, axis=1) < tol))
+def is_overlap(new_point, traj, tol, nexcl=1):
+ #   print('---------- output is overlap ---------')
+    n = len(traj) - nexcl
+    distances = [ point - new_point for point in traj[0:n]]
+  #  print(norm(distances,axis=1))
+  #  print('-----------end is overlap -----------')
+    return( any(norm(distances, axis=1) <  tol))
 
-def take_step(vectors, step_size, item):
+def take_step(vectors, step_length, item):
     index = random.randint(0, len(vectors) - 1)
-    new_item = item + vectors[index] * step_size
-    #print step_size
+    new_item = item + vectors[index] * step_length
     return(new_item, index)
 
-def selv_av_random_step(traj, rad_sphere):
+def selv_av_random_step(traj, step_length, size, nexcl):
         print('-> take random step ')
         subcount =0
+        n=len(traj) - 1
+        
         while True:
               vector_bundel = norm_sphere()
-              new_coord, index = take_step(vector_bundel, rad_sphere, traj[len(traj) - 1])
-#              print (traj)
-              if not(is_overlap(new_coord, traj, rad_sphere)):
-                 break
-              elif subcount < 5000:
-                 vector_bundel = np.delete(vector_bundel, index, axis=0)
-                 subcount = subcount + 1
+              new_coord, index = take_step(vector_bundel, step_length, traj[len(traj) - 1])
+             # print('from slev_av_random')
+             # print(traj)
+              if n != 0:
+                 if not(is_overlap(new_coord, traj, size, nexcl)):
+                    break
+                 elif subcount < 5000:
+                    vector_bundel = np.delete(vector_bundel, index, axis=0)
+                    subcount = subcount + 1
+                 else:
+                    print('WARNING in SELF-AV-RANDOM')
+                    break
               else:
-                 print('WARNING in SELF-AV-RANDOM')
-                 break
+                break
         return(new_coord)
 
-def determine_step_legnth(monomer):
-    g0 = geometrical_center(monomer)
-    distances = [ norm(g0 - point) for point in monomer]
-    return(max(distances), distances)
+def geometrical_center(coord):
+    return(sum(coord)/float(len(coord)))
 
-def add_particels(traj, new_point ,n_atoms, distances):
+def determine_step_legnth(coords, bb_indices):
+       bb_coord = [coords[i] for i in bb_indices]
+       step_length =  norm(sum(bb_coord))
+       g0 = geometrical_center(coords)
+       max_dist_from_center = max([ norm(g0 - point) for point in coords])
+       size =  max_dist_from_center + 0.43
+       nexcl = math.ceil(size/step_length)
+       print("step:",step_length)
+       print("size:", size)
+       print("Will exclude",nexcl, "interactions.")
+       return(step_length, size, nexcl)
+
+#======================================================================================================================================================================
+# RESOLUTION TRANSFORMATION
+#======================================================================================================================================================================
+
+def add_particels(traj, new_point, n_atoms, distances):
     print('-> adding particles ')
-#    print(traj)
-    bounds = np.c_[traj.ravel(), traj.ravel()].tolist() + [[None, None]] * (3 * n_atoms)
+    print(new_point)
+    #bounds = np.c_[traj.ravel(), traj.ravel()].tolist() + [[None, None]] * (3 * n_atoms)
     directions = np.random.normal(0.0, 1.0, (n_atoms,3))
     for i, direct in enumerate(directions):
            atom = new_point + u_vect(direct) * distances[i]
            traj = np.append(traj, atom)  
- #   print(atom)
-  #  print(traj)
-    traj = energy_min(traj, bounds).x.reshape(-1,3)
-    return(traj)   
+    #print("Froma add particles\n")
+    #print(traj)
+    #traj = energy_min(traj, bounds).x.reshape(-1,3)
+    return(traj.reshape(-1,3))   
   
 def accaptable(E, temp, prev_E):
     if E < prev_E:
@@ -303,21 +322,21 @@ def accaptable(E, temp, prev_E):
        else:
           return(False)
 
-def metropolis_monte_carlo(n_chains, n_repeat, conf, l_box, temp):
+def metropolis_monte_carlo(n_chains, n_repeat, conf, l_box, temp, bb_indices):
     print('\n++++++++++ Starting Monte-Carlo Program +++++++++\n')
     n_atoms = len(conf) 
-    step_length, distances = determine_step_legnth(conf)
-    #print(conf)
+    step_length, size, nexcl = determine_step_legnth(conf, bb_indices)
     traj = conf  #np.empty(0)
-    cg_traj = np.empty(0)
-    cg_traj = np.append(cg_traj,np.random.normal(0,1))
-    count = 0
-    prev_E = 0.0
-    while count < n_repeat:
-       print('---', count)
-       while True:
-          new_cg   = selv_av_random_step(cg_traj, step_length)
-          new_traj = add_particels(traj.reshape(-1,3), new_cg, n_atoms, distances)
+    cg_traj = np.array([[0.0,0.0,0.0]])
+    #cg_traj = np.append(cg_traj,np.array([np.random.normal(0,1,3)]))
+    count = 0                               
+    prev_E = 0.0                            
+    while count < n_repeat:                 
+       print('---', count)                  
+       while True:                         
+          #print(cg_traj) 
+          new_cg   = selv_av_random_step(cg_traj.reshape(-1,3), step_length, size, nexcl)
+          new_traj = add_particels(traj.reshape(-1,3), new_cg, n_atoms, [0])
           new_points = new_traj[-1::-(n_atoms+1)]
           new_cg  = geometrical_center(new_points)
           total_E  = Hamiltonion(new_traj)/len(new_traj)
@@ -328,7 +347,7 @@ def metropolis_monte_carlo(n_chains, n_repeat, conf, l_box, temp):
             traj = new_traj
             cg_traj = np.append(cg_traj, new_traj)
             count = count + 1
-   #         print(traj)
+            #print(traj)
       #      write_gro_file(traj.reshape(-1,3), str(count), len(traj))
             break
           else:
@@ -369,8 +388,9 @@ def build_system(topfile, conv, structure_file, n_chains, n_mon, box_vect, temp)
     print(ff['bonds'])
     conf = read_conf_file(structure_file, 'gro')
     print("Read in conf:",conf)
-    traj = metropolis_monte_carlo(n_chains, n_mon, conf, box_vect, temp)
+    traj = metropolis_monte_carlo(n_chains, n_mon, conf, box_vect, temp, [0])
     #analyse_traj(traj, infos)
+    #print(traj)
     write_gro_file(traj,'out.gro',len(traj))
     return(None)
 
