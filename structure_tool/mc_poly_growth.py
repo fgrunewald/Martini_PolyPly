@@ -290,7 +290,7 @@ def determine_step_legnth(coords, bb_indices):
        step_length =  norm(sum(bb_coord))
        g0 = geometrical_center(coords)
        max_dist_from_center = max([ norm(g0 - point) for point in coords])
-       size =  max_dist_from_center + 0.45
+       size =  max_dist_from_center + 0.43
        nexcl = math.ceil(size/step_length)
        print("step:",step_length)
        print("size:", size)
