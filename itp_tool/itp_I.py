@@ -34,7 +34,7 @@ settings ={
               ('dihedrals', 1):[4,5,6,7],
               ('dihedrals',11):[4,5,6,7,8,9],
               ('dihedrals', 3):[4,5,6,7,8,9,10],
-              ('dihedrals', 9):[4,5,6,7],
+              ('dihedrals',9):[4,5,6,7],
               ('pairs', 1):[2],
               'exclusions':[],
               ('virtual_sitesn',2):[1]}
@@ -69,12 +69,12 @@ format_outfile={
                 ('angles',2): '{:<5d} {:<5d} {:<5d} {:<2s} {:<8s} {:<8s}{}',
                 ('angles',10): '{:<5d} {:<5d} {:<5d} {:<2s} {:<8s} {:<8s}{}',
                 ('dihedrals',1): '{:<5d} {:<5d} {:<5d} {:<5d} {:<2s} {:<10s} {:<10s} {:<10s}{}', 
-                ('dihedrals',9): '{:<5d} {:<5d} {:<5d} {:<5d} {:<2s} {:<8s}{:<8s}{:<8s}{:<8s}{:<8s}{:<8s}{}{}{}', 
+                ('dihedrals',9): '{:<5d} {:<5d} {:<5d} {:<5d} {:<2s} {:<10s} {:<10s} {:<10s}{}', 
                 'atoms': '{:<5d} {:<5s} {:<1s} {:<5s} {:<3s} {:<1d} {:<8s} {:<3s}{}',
-                'constraints': '{:<5d} {:<5d} {:<2s}{:<8s}{}','[': '{:<1s}{:<10s}{:<1s}{}',
+                ('constraints',1): '{:<5d} {:<5d} {:<2s}{:<8s}{}','[': '{:<1s}{:<10s}{:<1s}{}',
                 'moleculetype':'{:<5s} {:<1s}{}', 
                 'exclusions': '{:<5d} {:<5d} {:<5d} {:<5d}{}',
-                'virtual_sitesn':'{:<5d} {:<1s} {:<5d} {:<5d} {:<5d} {}',
+                ('virtual_sitesn',2):'{:<5d} {:<1s} {:<5d} {:<5d} {:<5d} {}',
                 ('pairs',1):'{:<5d} {:<5d} {:<2s} {}'}
 
 #=======================================================================================================================================================================
@@ -140,18 +140,19 @@ def read_itp(name):
           
 def write_itp(text, outname):
     out_file = open(outname, 'w')
-    for key in ['moleculetype', 'atoms']:
+    for key in ['moleculetype', 'atoms', 'exclusions']:
+      if key in text:
         out_file.write('{:<1s}{:^18s}{:>1s}{}'.format('[',key,']','\n'))
         for line in text[key]:
  #           print(line)
             line.append('\n')
             out_file.write(str(format_outfile[key]).format(*line))
 
-    for key in ['bonds', 'angles', 'dihedrals', 'constraints','pairs','virtual_sitesn', 'exclusions']:
+    for key in ['bonds', 'angles', 'dihedrals', 'constraints','pairs','virtual_sitesn']:
         if key in text:
            out_file.write('{:<1s}{:^18s}{:>1s}{}'.format('[',key,']','\n'))
            for line in text[key]:
-               #print(line)
+        #       print(int(line[function[key]]))
                line.append('\n')
                out_file.write(str(format_outfile[(key, int(line[function[key]]))]).format(*line))
 
