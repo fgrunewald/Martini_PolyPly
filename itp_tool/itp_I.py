@@ -167,9 +167,8 @@ def itp_tool(itpfiles, n_mon, outname, name):
     for name, n_trans in zip(itpfiles, n_mon):
         mon_itp = read_itp(name)
         n_atoms = len(mon_itp["atoms"])
-  #      print(n_atoms)
         max_atoms = n_atoms * n_trans + max_atoms
-  #  print(max_atoms)
+
     for name, n_trans in zip(itpfiles, n_mon):
            mon_itp = read_itp(name)
            n_atoms = len(mon_itp["atoms"])
