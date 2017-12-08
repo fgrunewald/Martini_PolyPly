@@ -137,14 +137,14 @@ def read_itp(name):
     out_itp = collections.OrderedDict({})
     [ out_itp.update(collections.OrderedDict({key: value})) for key, value in itp.items() if len(value) != 0 ]
     return(out_itp)
-          
+
+       
 def write_itp(text, outname):
     out_file = open(outname, 'w')
     for key in ['moleculetype', 'atoms', 'exclusions']:
       if key in text:
         out_file.write('{:<1s}{:^18s}{:>1s}{}'.format('[',key,']','\n'))
         for line in text[key]:
- #           print(line)
             line.append('\n')
             out_file.write(str(format_outfile[key]).format(*line))
 
@@ -152,11 +152,29 @@ def write_itp(text, outname):
         if key in text:
            out_file.write('{:<1s}{:^18s}{:>1s}{}'.format('[',key,']','\n'))
            for line in text[key]:
-        #       print(int(line[function[key]]))
                line.append('\n')
                out_file.write(str(format_outfile[(key, int(line[function[key]]))]).format(*line))
 
-def itp_tool(itpfiles, n_mon, outname, name): 
+# The sole purpose of this function is to convert
+# the centers to ints. So this can for sure be 
+# handled smater in some way. 
+
+def add_links(itp, linkfile):
+    linkers = read_itp(linkfile)
+    for key, section in linkers.items():
+       for term in section:
+          new_term = []
+          center_indices, setting_indices = term_topology(key, term)
+          [ new_term.append([x ,term[x]]) for x in setting_indices]
+          [ new_term.append([x, int(term[x])]) for x in center_indices ]
+          new_term = line_up(new_term)
+          new_section = itp[key]
+          new_section.append(new_term)
+          itp.update({key: new_section})
+    return(itp)
+      
+
+def itp_tool(itpfiles, linkfile, n_mon, outname, name): 
     block_count = 0 
     new_itp =collections.OrderedDict({'moleculetype':[], 'atoms':[], 'bonds':[], 'angles':[], 'dihedrals':[], 'constraints':[],'pairs':[] ,'virtual_sitesn':[], 'exclusions':[]} )
     offset = 0
@@ -180,6 +198,8 @@ def itp_tool(itpfiles, n_mon, outname, name):
                #print(offset)
            offset += n_atoms * n_trans            
     out_itp = collections.OrderedDict({})
+    if linkfile != None:
+       new_itp = add_links(new_itp, linkfile)
     [ out_itp.update({key: value}) for key, value in new_itp.items() if len(value) != 0 ]
     write_itp(out_itp, outname)
     return(None)

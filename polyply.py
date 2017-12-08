@@ -13,12 +13,12 @@ parser.add_argument('-T'     , metavar = 'temperature'     , dest = 'temp'    , 
 parser.add_argument('-sys'   , metavar = 'system'          , dest = 'system'  , type = str   , help = 'type of system to create' , default='vac')
 parser.add_argument('-v'     , metavar = 'verbose'         , dest = 'v'       , type = bool  , help = 'be loud and noisy', default=False)
 parser.add_argument('-conv'  , metavar = 'convert-constraints', dest = 'conv' , type = bool  , help = 'convert constraints to bonds for minimization', default=True)
-#parser.add_argument('-excl'  , metavar = 'n_excluded'      , dest = 'nexcl'   , type = int   , help = 'number of excluded interactions', default=3)
+parser.add_argument('-links' , metavar = 'linkfile'        , dest = 'linkfile', type = str   , help = 'file where the bonded links are specified.', default=None)
 args = parser.parse_args()
 
 def main():
    if not args.itpfiles == None:
-      itp_tool(args.itpfiles, args.mon, args.outfile, args.name)
+      itp_tool(args.itpfiles, args.linkfile ,args.mon, args.outfile, args.name)
    elif not args.system == None:
       build_system(args.topfile, args.conv, args.grofile, 1, args.mon[0], np.array([5.0,5.0,5.0]), args.temp,args.name)
    else:
