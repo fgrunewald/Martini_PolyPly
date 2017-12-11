@@ -100,11 +100,17 @@ def repeat_term(term, key, n_trans, n_atoms, offset, max_atom):
      #print(max_atom)
      #print(n_atoms)
      while count < n_trans: 
-          new_term = []
-          [ new_term.append([x ,term[x]]) for x in setting_indices] 
-          [ new_term.append([x, move(term[x], count, n_atoms, offset)]) for x in center_indices ]
-          new_term = line_up(new_term)
- 
+          try:
+              new_term = []
+              [ new_term.append([x ,term[x]]) for x in setting_indices] 
+              [ new_term.append([x, move(term[x], count, n_atoms, offset)]) for x in center_indices ]
+              new_term = line_up(new_term)
+          except IndexError:
+              print("+++++++++++++++++++ Error +++++++++++++++++++++++")
+              print("Check your itp file!")
+              print("Too many or few parameters on the following line:")  
+              print(term, '\n')
+              exit()
           if all([ int(new_term[x]) <= max_atom for x in center_indices]):
              new_terms.append(new_term)
           count = count + 1
@@ -128,12 +134,24 @@ def read_itp(name):
              if len(words) != 0:
                if not words[0] in ';, \n, \r\n':   
              #if not any([ word in ';, \n, \r\n' for word in words]):
-                if any([ word in '[ [ ]' for word in words]):
-                   key = words[1]
-                   #print(key)
-                else:
-                   add =  itp[key] + [line.replace('\n', '').split()]
-                   itp.update({key:add})
+                try:
+                  if any([ word in '[ [ ]' for word in words]):
+                     key = words[1]
+                     #print(key)
+                  else:
+                     add =  itp[key] + [line.replace('\n', '').split()]
+                     itp.update({key:add})       
+                except (UnboundLocalError):
+                       print("+++++++++++++ Error when reading the itp file ++++++++++++++++")
+                       print("Check your format.")
+                       print("There was something wrong with the section header!\n")
+                       print("Note that there has to be a space between the [ and the section name.")
+                       exit()
+                except (KeyError):
+                       print("+++++++++++++ Error when reading the itp file ++++++++++++++++")
+                       print("Check your format.")
+                       print("Your section type is currently not implemented.")
+                       exit()
     out_itp = collections.OrderedDict({})
     [ out_itp.update(collections.OrderedDict({key: value})) for key, value in itp.items() if len(value) != 0 ]
     return(out_itp)
