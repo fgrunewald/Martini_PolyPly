@@ -190,9 +190,29 @@ def add_links(itp, linkfile):
           new_section.append(new_term)
           itp.update({key: new_section})
     return(itp)
-      
+ 
+# We use the offset to automatically manipulate
+# the terms of the end-group. Something similar
+# could probably be done for the linker, so
+# that one only has a single function. 
 
-def itp_tool(itpfiles, linkfile, n_mon, outname, name): 
+def terminate(itp, end_group_file, offset):
+    group = read_itp(end_group_file)
+    for key, section in group.items():
+       for term in section:
+          new_term = []
+          center_indices, setting_indices = term_topology(key, term)
+          [ new_term.append([x ,term[x]]) for x in setting_indices]
+          if offset != 0:
+             offset = count - len(center_indices) + 1
+          [ new_term.append([x, move(term[x], 0, 0, offset)]) for x in center_indices ]
+          new_term = line_up(new_term)
+          new_section = itp[key]
+          new_section.append(new_term)
+          itp.update({key: new_section})
+    return(itp)    
+
+def itp_tool(itpfiles, linkfile, n_mon, outname, name, term_info): 
     block_count = 0 
     new_itp =collections.OrderedDict({'moleculetype':[], 'atoms':[], 'bonds':[], 'angles':[], 'dihedrals':[], 'constraints':[],'pairs':[] ,'virtual_sitesn':[], 'exclusions':[]} )
     offset = 0
@@ -218,6 +238,8 @@ def itp_tool(itpfiles, linkfile, n_mon, outname, name):
     out_itp = collections.OrderedDict({})
     if linkfile != None:
        new_itp = add_links(new_itp, linkfile)
+    if term_info != None:
+       new_itp = terminate(new_itp, term_info)
     [ out_itp.update({key: value}) for key, value in new_itp.items() if len(value) != 0 ]
     write_itp(out_itp, outname)
     return(None)
