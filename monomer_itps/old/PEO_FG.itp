@@ -1,0 +1,20 @@
+[ moleculetype ]
+; name nexcl.
+PEO         1
+;
+[ atoms ]
+1  PEO    1   PEO   O  1   0.000  45
+[ bonds ]
+; back bone bonds
+1  2   1   0.330 17000
+;
+[ angles ]
+;
+1	2	3	1	130.00 	50    
+1       2       3      10       130.00  25  
+;
+[ dihedrals ]
+1  2  3  4     1    180.00    1.96   1
+1  2  3  4     1     0        0.18   2  
+1  2  3  4     1     0        0.33   3
+1  2  3  4     1     0        0.12   4 
