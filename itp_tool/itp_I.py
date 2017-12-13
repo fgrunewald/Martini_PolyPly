@@ -204,8 +204,13 @@ def terminate(itp, end_group_file, offset):
           center_indices, setting_indices = term_topology(key, term)
           [ new_term.append([x ,term[x]]) for x in setting_indices]
           if offset != 0:
-             offset = count - len(center_indices) + 1
-          [ new_term.append([x, move(term[x], 0, 0, offset)]) for x in center_indices ]
+             offset_new = -len(center_indices) + offset
+             print(len(center_indices))
+             if key == 'atoms':
+                offset_new = offset_new + 1
+          else:
+             offset_new = offset
+          [ new_term.append([x, move(term[x], 0, 0, offset_new)]) for x in center_indices ]
           new_term = line_up(new_term)
           new_section = itp[key]
           new_section.append(new_term)
@@ -217,14 +222,20 @@ def itp_tool(itpfiles, linkfile, n_mon, outname, name, term_info):
     new_itp =collections.OrderedDict({'moleculetype':[], 'atoms':[], 'bonds':[], 'angles':[], 'dihedrals':[], 'constraints':[],'pairs':[] ,'virtual_sitesn':[], 'exclusions':[]} )
     offset = 0
     n_atoms=0
+
     mon_itp = read_itp(itpfiles[0])
     nexcl = mon_itp["moleculetype"][0][1]
     new_itp.update({'moleculetype':[[name, nexcl]]})
     max_atoms = 0
+
     for name, n_trans in zip(itpfiles, n_mon):
         mon_itp = read_itp(name)
         n_atoms = len(mon_itp["atoms"])
         max_atoms = n_atoms * n_trans + max_atoms
+
+    if term_info != None:
+       new_itp = terminate(new_itp, term_info[0], 0)
+       offset  = len(new_itp['atoms'])   
 
     for name, n_trans in zip(itpfiles, n_mon):
            mon_itp = read_itp(name)
@@ -238,8 +249,11 @@ def itp_tool(itpfiles, linkfile, n_mon, outname, name, term_info):
     out_itp = collections.OrderedDict({})
     if linkfile != None:
        new_itp = add_links(new_itp, linkfile)
-    if term_info != None:
-       new_itp = terminate(new_itp, term_info)
+
+    try:
+        new_itp = terminate(new_itp, term_info[1], offset)
+    except (IndexError,TypeError):
+        print('No second terminal found. Are you sure you want to leave the polymer unterminated?')
     [ out_itp.update({key: value}) for key, value in new_itp.items() if len(value) != 0 ]
     write_itp(out_itp, outname)
     return(None)
