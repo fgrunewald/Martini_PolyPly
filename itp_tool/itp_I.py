@@ -235,7 +235,8 @@ def itp_tool(itpfiles, linkfile, n_mon, outname, name, term_info):
 
     if term_info != None:
        new_itp = terminate(new_itp, term_info[0], 0)
-       offset  = len(new_itp['atoms'])   
+       offset  = len(new_itp['atoms'])
+       max_atoms = max_atoms + len(new_itp['atoms'])   
 
     for name, n_trans in zip(itpfiles, n_mon):
            mon_itp = read_itp(name)
@@ -251,7 +252,7 @@ def itp_tool(itpfiles, linkfile, n_mon, outname, name, term_info):
        new_itp = add_links(new_itp, linkfile)
 
     try:
-        new_itp = terminate(new_itp, term_info[1], offset)
+        new_itp = terminate(new_itp, term_info[1], offset+1)
     except (IndexError,TypeError):
         print('No second terminal found. Are you sure you want to leave the polymer unterminated?')
     [ out_itp.update({key: value}) for key, value in new_itp.items() if len(value) != 0 ]
