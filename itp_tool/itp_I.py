@@ -226,27 +226,29 @@ def itp_tool(itpfiles, linkfile, n_mon, outname, name, term_info):
     mon_itp = read_itp(itpfiles[0])
     nexcl = mon_itp["moleculetype"][0][1]
     new_itp.update({'moleculetype':[[name, nexcl]]})
-    max_atoms = 0
-
+    max_atoms = []
+ 
     for name, n_trans in zip(itpfiles, n_mon):
         mon_itp = read_itp(name)
         n_atoms = len(mon_itp["atoms"])
-        max_atoms = n_atoms * n_trans + max_atoms
-
+        max_atoms.append(n_atoms * n_trans + sum(max_atoms))
+    print(max_atoms[0])
     if term_info != None:
        new_itp = terminate(new_itp, term_info[0], 0)
        offset  = len(new_itp['atoms'])
-       max_atoms = max_atoms + len(new_itp['atoms'])   
+       max_atoms = [ n + len(new_itp['atoms']) for n in max_atoms ]  
 
+    count=0
     for name, n_trans in zip(itpfiles, n_mon):
            mon_itp = read_itp(name)
            n_atoms = len(mon_itp["atoms"])
            for key, section in mon_itp.items():                           
                if key != 'moleculetype':
-                  add = new_itp[key] + repeat_section(section, key, n_trans, n_atoms, offset, max_atoms)
+                  add = new_itp[key] + repeat_section(section, key, n_trans, n_atoms, offset, max_atoms[count])
                   new_itp.update(collections.OrderedDict({key: add}))
                #print(offset)
            offset += n_atoms * n_trans            
+           count = count + 1
     out_itp = collections.OrderedDict({})
     if linkfile != None:
        new_itp = add_links(new_itp, linkfile)
