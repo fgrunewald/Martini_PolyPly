@@ -106,13 +106,21 @@ def repeat_term(term, key, n_trans, n_atoms, offset, max_atom):
               [ new_term.append([x, move(term[x], count, n_atoms, offset)]) for x in center_indices ]
               new_term = line_up(new_term)
           except IndexError:
-              print("+++++++++++++++++++ Error +++++++++++++++++++++++")
+              print("\n+++++++++++++++++++ Fatal Error +++++++++++++++++++++++")
               print("Check your itp file!")
               print("Too many or few parameters on the following line:")  
               print(term, '\n')
               exit()
+          if key in '[ atoms ]':
+             if new_term[center_indices[1]] > max_atom:
+                print("\n++++++++++++++++ Fatal Error ++++++++++++++++++++++++")
+                print("The largest charge group index exceeds the number")
+                print("of atoms in the repeat unit. You cannot have more")
+                print("charge groups than atoms. Check your input!\n")             
+                exit()
           if all([ int(new_term[x]) <= max_atom for x in center_indices]):
              new_terms.append(new_term)
+  #        print(new_term)
           count = count + 1
 
      return(new_terms)
@@ -154,6 +162,7 @@ def read_itp(name):
                        exit()
     out_itp = collections.OrderedDict({})
     [ out_itp.update(collections.OrderedDict({key: value})) for key, value in itp.items() if len(value) != 0 ]
+ #   print(out_itp['atoms'])
     return(out_itp)
 
        
@@ -232,7 +241,7 @@ def itp_tool(itpfiles, linkfile, n_mon, outname, name, term_info):
         mon_itp = read_itp(name)
         n_atoms = len(mon_itp["atoms"])
         max_atoms.append(n_atoms * n_trans + sum(max_atoms))
-    print(max_atoms[0])
+ #   print(max_atoms[0])
     if term_info != None:
        new_itp = terminate(new_itp, term_info[0], 0)
        offset  = len(new_itp['atoms'])
@@ -246,10 +255,11 @@ def itp_tool(itpfiles, linkfile, n_mon, outname, name, term_info):
                if key != 'moleculetype':
                   add = new_itp[key] + repeat_section(section, key, n_trans, n_atoms, offset, max_atoms[count])
                   new_itp.update(collections.OrderedDict({key: add}))
-               #print(offset)
+                #print(offset)
            offset += n_atoms * n_trans            
            count = count + 1
     out_itp = collections.OrderedDict({})
+
     if linkfile != None:
        new_itp = add_links(new_itp, linkfile)
 
