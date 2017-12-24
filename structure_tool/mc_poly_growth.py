@@ -12,8 +12,6 @@ from Martini_PolyPly.structure_tool.analysis_funtions import *
 from Martini_PolyPly.structure_tool.geometrical_functions import *
 from Martini_PolyPly.structure_tool.force_field_tools import *
 
-# Metropolis Monte Carlo Criterion for accepting new configuration
-
 def accaptable(E, temp, prev_E, overlap_limit):
     if E < prev_E:
        return(True)
