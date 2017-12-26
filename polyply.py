@@ -24,20 +24,31 @@ parser.add_argument('-env'    , metavar = 'environmnet'        , dest = 'env'   
 parser.add_argument('-maxsteps', metavar = 'max MC steps'       , dest = 'maxsteps', type = int   , help = 'maximum number of MC steps befaure exit by error', default=5000)
 parser.add_argument('-links'  , metavar = 'linkfile'           , dest = 'linkfile', type = str   , help = 'file where the bonded links are specified.', default=None)
 parser.add_argument('-endgroup', metavar = 'endgroup itps'     , dest = 'endgroup', type = str   , help = 'itp files with endgroups', nargs='*' ,default=None)
-
+parser.add_argument('-lipid'   , metavar = 'lipid type'        , dest = 'lipid'   , type = str   , help = 'lipid type of the bilayer when env is bilayer')
+parser.add_argument('-box'     , metavar = 'dimensions of box' , dest = 'box'     , type = float , help = 'boxdimensions in nm for x, y, z', nargs=3)
+parser.add_argument('-spacing' , metavar = 'spacing of PEL'    , dest = 'spacing' , type = float , help = 'spaceing between PEL in a bilayer', default=0 )
+parser.add_argument('-sol'     , metavar = 'solvent'           , dest = 'solvent' , type = str   , help = 'name of solvent for the polymer system', default=None)   
 args = parser.parse_args()
 
 def main():
+ 
    if not args.itpfiles == None:
       itp_tool(args.itpfiles, args.linkfile ,args.mon, args.outfile, args.name, args.endgroup)
+
    elif not args.r_itp_name == None:
       path = os.path.abspath(__file__).replace('polyply.py', '')
       itp_files = resolve_name(args.r_itp_name, path)
       itp_tool(itp_files, args.linkfile ,args.mon, args.outfile, args.name, args.endgroup)
+
    elif not args.chain == None:
-      build_system(args.topfile, args.grofile, args.chain, args.env , 1, args.mon[0], np.array([5.0,5.0,5.0]), args.temp, args.maxsteps, True, args.v)
+      env_options = (args.env, args.solvent, args.box, args.spacing, args.lipid)
+      top_options = (args.topfile, args.grofile, args.chain, args.conv)
+      mc_options =  (args.mon[0], args.temp, args.maxsteps, args.v)
+      build_system(top_options, env_options, mc_options)
+
    else:
       print('Please specify either -itp or -sys option.')
+
    return(None)
 
 main()

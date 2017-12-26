@@ -11,6 +11,7 @@ from Martini_PolyPly.structure_tool.mc_poly_growth import *
 from Martini_PolyPly.structure_tool.analysis_funtions import *
 from Martini_PolyPly.structure_tool.geometrical_functions import *
 from Martini_PolyPly.structure_tool.force_field_tools import *
+from Martini_PolyPly.structure_tool.environment import *
 
 def accaptable(E, temp, prev_E, overlap_limit):
     if E < prev_E:
@@ -97,8 +98,10 @@ def metropolis_monte_carlo(ff, conf, temp, n_repeat, step_length, max_steps, ver
     print('Number of rejected MC steps:', rejected)       
     return(traj)
 
-def generate_chains(ff, conf, step_length, nexcl, chain, n_mon, temp, max_steps, conv, verbose):
+def generate_chains(ff, conf, step_length, nexcl, chain, mc_options):
+    n_mon, temp, max_steps, verbose = mc_options
     traj = conf 
+
     if chain in '[ linear-random ]':
        traj = metropolis_monte_carlo(ff, conf, temp, n_mon, step_length, max_steps, verbose)
     elif chain in '[ PEGylated-bilayer ]':
@@ -107,17 +110,28 @@ def generate_chains(ff, conf, step_length, nexcl, chain, n_mon, temp, max_steps,
        print('PS module')
     return(traj)
 
-def add_environment():
-    return(None)
+def build_system(top_options, env_options, mc_options):
+    topfile, structure_file, chain, conv = top_options 
 
-def build_system(topfile, structure_file, chain, env, n_chains, n_mon, box_vect, temp, max_steps, conv, verbose):
     ff = read_itp(topfile)
-    # Since FF is global there is no output of convert_constraints  
-    verbose=False
     ff = convert_constraints(ff, conv)
+
     conf = read_conf_file(structure_file, 'gro')
     step_length, size, nexcl = determine_step_legnth(conf, [0])
-    traj = generate_chains(ff, conf, step_length, nexcl, chain, n_mon, temp, max_steps, conv, verbose)
-    #print(traj)
+    print(env_options)
+    if env_options[0] in '[ vac ]':
+       traj = generate_chains(ff, conf, step_length, nexcl, chain, mc_options) 
+
+    elif env_options[0] in '[ bulk ]':
+       options = 0
+       print('Not active yet!')
+       exit()
+       env_traj = create_environment(env_type, options)
+       traj = generate_chains(ff, conf, step_length, nexcl, chain, mc_options)
+
+    elif env_options[0] in '[ bilayer ]':
+       env_traj = create_environment(env_options)
+       #traj = generate_chains(ff, conf, step_length, nexcl, chain, mc_options)
+       exit()
     write_gro_file(traj,'out.gro',len(traj))
     return(None)   

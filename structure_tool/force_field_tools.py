@@ -102,6 +102,7 @@ def read_conf_file(filename, file_type):
     with open(filename) as f:
         lines=f.readlines()
         coordinates=np.zeros(((len(lines)-3),3))
+        res_num_names = []
         count=0
         if file_type in '[ .gro, gro]':
            for line in lines:
@@ -115,6 +116,7 @@ def read_conf_file(filename, file_type):
                   # In principle one can also put velocities in the gro file so we should account for that at some point
                   res_num_name, atom, a_index, x, y, z = line.replace('\n', '').split()
                   point = np.array([x,y,z])
+                  res_num_names += res_num_name
                   coordinates[count - 3] = point
                   count = count + 1
                else:
