@@ -7,7 +7,8 @@ import scipy.optimize as opt
 from numpy import sqrt, pi, cos, sin, dot, cross, arccos, degrees
 from numpy import float as nfl
 from numpy.linalg import norm
-from Martini_PolyPly.structure_tool.mc_poly_growth import *
+from string import digits
+#from Martini_PolyPly.structure_tool.mc_poly_growth import *
 from Martini_PolyPly.structure_tool.analysis_funtions import *
 from Martini_PolyPly.structure_tool.geometrical_functions import *
 from Martini_PolyPly.structure_tool.force_field_tools import *
@@ -15,6 +16,36 @@ from Martini_PolyPly.structure_tool.force_field_tools import *
 
 global kB
 kb = 1.38964852 * 10**(-23.0) *10**-3.0 # kJ/K
+
+def read_top(name):
+    itpfiles =  []
+    system, ff = {}, {}
+    empty = 0
+    section = 'Random'
+    with open(name) as f:
+         lines = f.readlines()
+         for line in lines:
+           #print(line)
+           if len(line.replace('\n', '').split()) == 0:
+              empty = empty +  1
+           elif not any([ word in ';' for word in line.split()]):
+              if any([ word in '[ [ ]' for word in line.split()]):
+                 section = line.replace('\n', '').split()[1]
+                 print(section)
+              elif section in '[ molecules ]':
+                 name, n_mol = line.replace('\n', '').split()
+                 system.update({name: int(n_mol)})
+              elif section in '[ System ]':
+                 print('Reading in', line)  
+              elif any([ word in '#include' for word in line.split()]):
+                 itpfiles += [line.replace('\n', ' ').replace('\"', ' ').split()[1]]
+                 print(line)
+
+    for itp in itpfiles:
+        name, parameters =  read_itp(itp)
+        ff.update({name: parameters})
+       
+    return(ff, system)
 
 def read_itp(name):
     ff = {}
@@ -28,46 +59,51 @@ def read_itp(name):
            if len(line.replace('\n', '').split()) == 0:
               empty = empty +  1
            elif not any([ word in ';' for word in line.split()]):
-              #print line.replace('\n', '')
+ 
               if any([ word in '[ [ ]' for word in line.split()]):
                  section = line.replace('\n', '').split()[1]
-                 #print section
+ 
               elif section in '[ moleculetype ]':
+ #                  print(line)
                    name, nexcl = line.replace('\n', '').split()
                    molecules.append({'name':name,'nexcl':nfl(nexcl)})
+                   molecule_type = name
+                    
               elif section in '[ atoms ]':
-                  # print line
                   n, typ, resnr, res, atom, cgnr, charge, mass = line.replace('\n', '').split()
                   atoms.append({'n': int(n), 'typ':typ ,'atom':atom, 'charge':nfl(charge)})
+ 
               elif section in '[ nonbond_params ]':
-                  atom1, atom2, sigma, epsilon = line.replace('\n', '').split()
+                  atom1, atom2, f, sigma, epsilon = line.replace('\n', '').split()
                   nonbond_params.update({(atom1, atom2): {'sigma':nfl(sigma), 'epsilon':nfl(epsilon)}})
+ 
               elif section in '[ bonds ]':
-                  # print line
                   A, B, f, ref, k0 = line.replace('\n', '').split()
                   bonds.append({'pairs':[int(A),int(B)], 'k0':nfl(k0), 'ref':nfl(ref)})
+ 
               elif section in '[ angles ]':
-                  #print line
                   A, B, C, f, ref, k0 = line.replace('\n', '').split()
                   angles.append({'pairs': [int(A), int(B), int(C)], 'k0':nfl(k0), 'ref':nfl(ref)})
-                  #angles.append({'pairs': [int(A), int(B), int(C)], 'k0':1000.0, 'ref':nfl(ref)})
+  
               elif section in '[ dihedrals ]':
-                  # print line
                   A, B, C, D, f, ref, k0, n = line.replace('\n', '').split()
                   dih.append({'pairs':[int(A),int(B),int(C), int(D)], 'k0':nfl(k0), 'f':nfl(f), 'n':nfl(n), 'ref':nfl(ref)})
+  
               elif section in '[ constraints ]':
-                  #print line.replace('\n', '')
                   A, B, f, ref = line.replace('\n', '').split()
                   constraints.append({'pairs':[A, B], 'f':nfl(f), 'ref':nfl(ref)})
-    ff.update({'atoms':atoms, 'bonds':bonds, 'angles':angles, 'constraints':constraints, 'dih':dih, 'nonbond_params':nonbond_params, 'molecules':molecules})
-    return(ff)
-
+  
+    if len(nonbond_params) != 0:
+       return('nonbond_params', nonbond_params)
+    else:
+       return(molecule_type,{'nexcl':nfl(nexcl), 'atoms':atoms, 'bonds':bonds, 'angles':angles, 'constraints':constraints, 'dih':dih})
+   
 def convert_constraints(ff, STATUS):
     # This is not really fast but mehh it works
     # For very many molecules we should make this more efficent
     if STATUS:
        new_bonds=[]
-       new_bonds = [ {'pairs':[int(term['pairs'][0]), int(term['pairs'][1])], 'ref':term['ref'], 'k0': nfl(8000.0)} for term in ff['constraints'] ]
+       new_bonds = [ {'pairs':[int(term['pairs'][0]), int(term['pairs'][1])], 'ref':term['ref'], 'k0': nfl(8000.0)} for molecule in ff for term in ff[molecule]['constraints'] ]
        new_bonds =  ff['bonds'] + new_bonds
        ff.update({'bonds':new_bonds})
     else:
@@ -101,9 +137,11 @@ def write_log_file(infos, fomat_info):
 def read_conf_file(filename, file_type):
     with open(filename) as f:
         lines=f.readlines()
-        coordinates=np.zeros(((len(lines)-3),3))
-        res_num_names = []
+        traj={}
         count=0
+        atom_count=0
+        coordinates=np.zeros(((len(lines)-3),3))
+        index=0
         if file_type in '[ .gro, gro]':
            for line in lines:
                if count == 0:
@@ -111,27 +149,49 @@ def read_conf_file(filename, file_type):
                   print(title)
                   count = count + 1
                elif 1 < count < len(lines) - 1:
-                  print(line.replace('\n', '').split())
-                  #res_num, res_name, atom, a_index, x, y, z, v1, v2, v3 = line.replace('\n', '').split()
-                  # In principle one can also put velocities in the gro file so we should account for that at some point
+                  #print(line.replace('\n', '').split())
                   res_num_name, atom, a_index, x, y, z = line.replace('\n', '').split()
                   point = np.array([x,y,z])
-                  res_num_names += res_num_name
-                  coordinates[count - 3] = point
+                  molecule = ''.join([i for i in res_num_name if not i.isdigit()])
+                  index = ''.join([i for i in res_num_name if i.isdigit()])
+
+                  if count == 2:
+                     prev_molecule = molecule
+                     prev_index = index
+                    
+                  if index == prev_index:
+                     coordinates[atom_count] = point
+                     prev_index = index
+                     prev_molecule = molecule
+                     atom_count = atom_count + 1
+                  else:
+                     coords = [np.array([ coordinates[i] for i in np.arange(0,atom_count)])]
+                     try:
+                         positions=traj[prev_molecule] + coords
+                     except KeyError:
+                         positions = coords
+
+                     traj.update({prev_molecule:positions})
+                     prev_index=index
+                     prev_molecule=molecule
+                     coordinates[0] = point
+                     atom_count = 1
+              
                   count = count + 1
                else:
                   count = count +1
-    return(coordinates)
+    return(traj)
 
 
 def pot_I( val ,k0, ref):
     return(0.5 * k0 * (val-ref)**2.0)
 
-def LJ(sig, eps, r):
+def LJ(C6, C12, r):
   #  print(sig)
  #   print(eps)
-    return(4.0 * eps * ( (sig/r)**12.0 - (sig/r)**6.0))
-   
+    #return(4.0 * eps * ( (sig/r)**12.0 - (sig/r)**6.0))
+    return( (C12/r**12.0 - C6/r**6.0) )    
+
 def proper_dih(dih, k0, ref, n):
     return( k0 * (1 + cos(n * np.radians(dih) - np.radians(ref))))
 
@@ -154,28 +214,47 @@ def angle_pot(ff, traj):
 
 def dihedral_pot(ff, traj):
     dih_ang = [dih(traj[(t['pairs'][0] - 1)], traj[(t['pairs'][1] - 1)], traj[(t['pairs'][2] - 1)], traj[(t['pairs'][3] -1)]) for t in ff['dih'] if legal(t, traj)]
-    #print('Dihedral')
-    #print(dih_ang)
     return(sum([proper_dih(ang, term['k0'], term['ref'], term['n']) for term, ang in zip(ff['dih'], dih_ang)]))
 
 def Vdw_pot(ff, traj):
     energy=0
-    for i, pos_A in enumerate(traj):
-       for j, pos_B in enumerate(traj):
-           dist = norm(pos_A - pos_B)
-     #      print(dist)
-           atom_A, atom_B = ff['atoms'][i]['typ'], ff['atoms'][j]['typ']
-   #        print(atom_A, atom_B  )
-           epsilon = ff['nonbond_params'][(atom_A, atom_B)]['epsilon']
-           sigma = ff['nonbond_params'][(atom_A, atom_B)]['sigma']
-           if i-j > ff['molecules'][0]['nexcl']:
-              energy = energy + LJ(sigma, epsilon, dist)
-        #      print('Positions')
-        #      print(pos_A)
-        #      print(pos_B)
-        #      print(dist)
-        #      print(LJ(sigma, epsilon, dist))
-        #      print('-----------\n')
-             #  print(i,' ' , j)
+    print('Commence Computation of Nonbonded Interactions.')
+    for molecule_A, coords_A in traj.items():   
+       for pos_mol_A in coords_A:
+          for i, point_A in enumerate(pos_mol_A):
+             for molecule_B, coords_B in traj.items():
+               for pos_mol_B in coords_B:
+                  for j, point_B in enumerate(pos_mol_B):
+                    
+                     dist = norm(point_A - point_B)
+                     atom_A, atom_B = ff[molecule_A]['atoms'][i]['typ'], ff[molecule_B]['atoms'][j]['typ']
+                     try:
+                         epsilon = ff['nonbond_params'][(atom_A, atom_B)]['epsilon']
+                         sigma = ff['nonbond_params'][(atom_A, atom_B)]['sigma']
+                     except KeyError:
+                         epsilon = ff['nonbond_params'][(atom_B, atom_A)]['epsilon']
+                         sigma = ff['nonbond_params'][(atom_B, atom_A)]['sigma']
 
+                     if molecule_A == molecule_B:
+                        if i-j > ff[molecule_A]['nexcl']:
+                          if atom_A != "PEO" and atom_B != "P5" and atom_A != "PEO":
+                           energy = energy + LJ(sigma, epsilon, dist)
+                           #print(i-j)     
+                           if dist < 0.8*0.43:
+                              energy = math.inf
+                              print('Self-Overlap')
+                              print(atom_A)
+                              print(atom_B)
+                              return(energy)
+                     else:
+                        energy = energy + LJ(sigma, epsilon, dist)
+                        #if dist < 0.5:
+                           #print(LJ(sigma, epsilon, dist))
+                        if dist < 0.8*0.47:
+                           energy = math.inf
+                           print('Overlap')
+                           print(molecule_B)
+                           print(molecule_A)
+                           return(energy)
+    print('Computed all Nonbonded Interactions')
     return(energy)

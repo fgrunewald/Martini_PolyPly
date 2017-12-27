@@ -1,11 +1,13 @@
-#include "martini_v_FG_PEG.itp"
-#include "martini_v_FG_PEG.solvents.itp"
-#include "3.itp"
+#include "martini.itp"
+#include "W.itp"
+#include "PEL.itp"
+#include "DOPE.itp"
+#include "DOPC.itp"
 
 [ System ]
-;Name
+; Name
 PEO 27 in W
 
 [ molecules ]
-; compound #mols
+; compound mols
 PEO 1

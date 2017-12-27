@@ -41,8 +41,24 @@ def gen_bilayer(lipid_type, n_lipids, x_dim, y_dim, z_dim):
     print(insane_command)
     process = subprocess.Popen(insane_command.split(), stdout=subprocess.PIPE)
     output, error = process.communicate()
-    bilayer_coords = read_conf_file('bilayer.gro', ".gro")
-    return(bilayer_coords)
+
+    grompp_command = "gmx_mpi grompp -f min.mdp -c bilayer.gro -p topol.top"
+    process = subprocess.Popen(grompp_command.split(), stdout=subprocess.PIPE)
+    output, error = process.communicate()
+    
+    mdrun_command = "gmx_mpi mdrun -v"
+    process = subprocess.Popen(mdrun_command.split(), stdout=subprocess.PIPE)
+    output, error = process.communicate()
+
+    mdrun_command = "gmx_mpi trjconv -f confout.gro -o out.gro -pbc whole"
+    process = subprocess.Popen(mdrun_command.split(), stdout=subprocess.PIPE)
+    output, error = process.communicate()
+
+    bilayer_coords = read_conf_file('out.gro', ".gro")
+    head = bilayer_coords['DOPE'][0][0]
+    print(head)
+    constraints = [{'type':'dist-x-axis', 'tol':x_dim, 'ref':head[0]}, {'type':'dist-y-axis', 'tol':y_dim, 'ref':head[1]}]
+    return(bilayer_coords, constraints, head)
 
 def solvate(options):
     solvated_box=0

@@ -13,11 +13,11 @@ from Martini_PolyPly.structure_tool.geometrical_functions import *
 from Martini_PolyPly.structure_tool.force_field_tools import *
 from Martini_PolyPly.structure_tool.environment import *
 
-def accaptable(E, temp, prev_E, overlap_limit):
+def accaptable(E, temp, prev_E):
+    if E == math.inf:
+       return(False)
     if E < prev_E:
        return(True)
-    elif E > overlap_limit:
-       return(False)
     else:
        N = np.random.normal(0,1,(1,1))
        F = np.exp(- (E-prev_E)/(kb*temp))
@@ -25,6 +25,39 @@ def accaptable(E, temp, prev_E, overlap_limit):
           return(True)
        else:
           return(False)
+
+def remove_overlap(new_point, traj, tol, sol):
+    count=0
+    for index, coords in enumerate(traj):
+        for point in coords:
+       #   print(norm(point-new_point))
+          if norm(point - new_point) < tol:
+             del traj[index]
+             count = count + 1
+    print('Removed', count, 'atoms')
+    return(traj)
+
+def is_overlap(new_point, traj, tol, nexcl=1):
+    n = len(traj) - nexcl
+    distances = [ point - new_point for point in traj[0:n]]
+    return( any(norm(distances, axis=1) <  tol))
+
+
+def constraints(new_point, list_of_constraints):
+    status = []
+    for const in list_of_constraints:
+        if const['type'] is '[ dist-x-axis ]':
+           dist = const['ref'] - new_point
+           status += dist[0]  < const['tol']
+        elif const['type'] is '[ dist-y-axis ]':
+           dist = const['ref'] - new_point
+           status += dist[1]  < const['tol']
+        elif const['type'] is '[ dist-z-axis ]':
+           dist = const['ref'] - new_point
+           status += dist[2]  < const['tol']
+        elif const['type'] == None:
+           return(True)
+    return(all(status))
 
 def determine_step_legnth(coords, bb_indices):
        bb_coord = [coords[i] for i in bb_indices]
@@ -44,19 +77,35 @@ def take_step(vectors, step_length, item):
     return(new_item, index)
 
 def Hamiltonion(ff, traj, display):
-    traj = traj.reshape(-1,3)
-    bonded = bonded_pot(ff, traj)
-    angle = angle_pot(ff, traj)
-    dihedral = dihedral_pot(ff, traj)
+    #traj = traj.reshape(-1,3)
+    bond, angle, dihedral = 0, 0, 0
+
+    for molecule, positions in traj.items():
+      for coords in positions:
+        #print(ff[molecule])
+        bond  += bonded_pot(ff[molecule], coords)
+        #print('get here')
+        angle += angle_pot(ff[molecule], coords)
+        dihedral += dihedral_pot(ff[molecule], coords)
+    
+    #print(ff['nonbond_params'])
     vdw = Vdw_pot(ff, traj)
+    display=True
     if display:
-       for term, name in zip([bonded, angle, dihedral, vdw],['bonds', 'angle', 'dihedral', 'vdw']):
+       for term, name in zip([bond, angle, dihedral, vdw],['bonds', 'angle', 'dihedral', 'vdw']):
            print(name, term)
-    return(bonded + angle + dihedral + vdw)
+
+    return(bond + angle + dihedral + vdw)
 
 
-def metropolis_monte_carlo(ff, conf, temp, n_repeat, step_length, max_steps, verbose):
-    traj = np.array(conf)
+def metropolis_monte_carlo(ff, name, start, temp, n_repeat, step_length, max_steps, verbose, env_traj, list_of_constraints, sol):
+    try:
+        traj = {name:env_traj['DOPE'][0]}
+        del env_traj['DOPE'][0]
+        print(traj)               
+    except KeyError:
+        traj = {name:[start]}
+
     count = 0
     prev_E = 0.0
     rejected = 0
@@ -65,32 +114,44 @@ def metropolis_monte_carlo(ff, conf, temp, n_repeat, step_length, max_steps, ver
        #print('----------------')     
        while True:
           vector_bundel = norm_sphere()
-          new_coord, index = take_step(vector_bundel, step_length, traj[len(traj) - 1])
-          new_traj = np.append(traj, np.array([new_coord])).reshape(-1,3)
-          total_E  = Hamiltonion(ff, new_traj, verbose)/len(new_traj)
-          atom_type =  ff['atoms'][count]['typ']
-          epsilon = ff['nonbond_params'][(atom_type, atom_type)]['epsilon']
-          sigma = ff['nonbond_params'][(atom_type, atom_type)]['sigma']
-          overlap_limit = LJ(sigma , epsilon, sigma * 0.8)      
-          if accaptable(total_E, temp, prev_E, overlap_limit):
-            if verbose:
-               print('accapted')
-               print(total_E * len(new_traj))
-            prev_E = total_E
-            traj = new_traj
-            print(count)
-            count = count + 1
-            break
-          elif count < max_steps:
-            #print('rejected')
-            if verbose:
-               print('rejected')         
-            rejected = rejected + 1
-            vector_bundel = np.delete(vector_bundel, index, axis=0)
+          new_coord, index = take_step(vector_bundel, step_length, start)
+          #print(start)
+          new_traj = {name:[np.append(traj[name], np.array([new_coord])).reshape(-1,3)]}
+          #print(new_traj)
+          #exit()
+
+          if len(env_traj) != 0:
+             sol_traj_temp = remove_overlap(new_coord, env_traj[sol], 0.43, sol)                    
+             new_traj.update({sol: sol_traj_temp})
+             [ new_traj.update({key:values}) for key, values in env_traj.items() if key != sol ]
+          
+          if constraints(new_coord, list_of_constraints):
+             total_E  = Hamiltonion(ff, new_traj, verbose)
+
+             if accaptable(total_E, temp, prev_E):
+               if verbose:
+                  print('accapted')
+                  print(total_E * len(new_traj))
+               prev_E = total_E
+               traj = new_traj
+               print(count)
+               count = count + 1
+               break
+             elif count < max_steps:
+               #print('rejected')
+               if verbose:
+                  print('rejected')         
+               rejected = rejected + 1
+               vector_bundel = np.delete(vector_bundel, index, axis=0)
+             else:
+               print('+++++++++++++ FATAL ERROR ++++++++++++++++++++++++++++\n')
+               print('Exceeded maximum number of steps in the monte-carlo module.')
+               print('If you know what you do set -maxconstraints to -1')
           else:
-            print('+++++++++++++ FATAL ERROR ++++++++++++++++++++++++++++\n')
-            print('Exceeded maximum number of steps in the monte-carlo module.')
-            print('If you know what you do set -maxconstraints to -1')
+             if verbose:
+                print('rejected')         
+             rejected = rejected + 1
+             vector_bundel = np.delete(vector_bundel, index, axis=0)
 
     print('++++++++++++++++ RESULTS FORM MONTE CARLO MODULE ++++++++++++++\n')
     print('Total Energy:', Hamiltonion(ff, new_traj, verbose))
@@ -98,40 +159,43 @@ def metropolis_monte_carlo(ff, conf, temp, n_repeat, step_length, max_steps, ver
     print('Number of rejected MC steps:', rejected)       
     return(traj)
 
-def generate_chains(ff, conf, step_length, nexcl, chain, mc_options):
-    n_mon, temp, max_steps, verbose = mc_options
-    traj = conf 
+def generate_chains(ff, start, step_length, nexcl, chain, mc_options, env_traj, constraints, sol):
+    n_mon, temp, max_steps, verbose, name = mc_options
+    traj = start
 
     if chain in '[ linear-random ]':
-       traj = metropolis_monte_carlo(ff, conf, temp, n_mon, step_length, max_steps, verbose)
+       traj = metropolis_monte_carlo(ff, name, start, temp, n_mon, step_length, max_steps, verbose, env_traj, constraints, sol)
     elif chain in '[ PEGylated-bilayer ]':
-       traj = metropolis_monte_carlo(ff,  conf,temp, n_mon, step_length, max_steps, verbose)
+       traj = metropolis_monte_carlo(ff, name, start, temp, n_mon, step_length, max_steps, verbose, env_traj, constraints, sol)
     elif chain in '[ Polystyrene ]':
-       print('PS module')
+       print('PS module not implemented yet!')
+       exit()
     return(traj)
 
 def build_system(top_options, env_options, mc_options):
     topfile, structure_file, chain, conv = top_options 
 
-    ff = read_itp(topfile)
-    ff = convert_constraints(ff, conv)
-
     conf = read_conf_file(structure_file, 'gro')
-    step_length, size, nexcl = determine_step_legnth(conf, [0])
+    step_length, size, nexcl = 0.322, 0.43, 1   #determine_step_legnth(conf, [0])
+
     print(env_options)
     if env_options[0] in '[ vac ]':
-       traj = generate_chains(ff, conf, step_length, nexcl, chain, mc_options) 
+       env_traj = []
+       ff, system = read_top(topfile)
+       traj = generate_chains(ff, conf, step_length, nexcl, chain, mc_options, env_traj, None) 
 
     elif env_options[0] in '[ bulk ]':
        options = 0
        print('Not active yet!')
        exit()
-       env_traj = create_environment(env_type, options)
-       traj = generate_chains(ff, conf, step_length, nexcl, chain, mc_options)
+       env_traj, constraints = create_environment(env_type, options)
+       traj = generate_chains(ff, conf, step_length, nexcl, chain, mc_options, env_traj, None)
 
     elif env_options[0] in '[ bilayer ]':
-       env_traj = create_environment(env_options)
-       #traj = generate_chains(ff, conf, step_length, nexcl, chain, mc_options)
+       env_traj, constraints, head = create_environment(env_options)
+       ff, system = read_top(topfile)
+       traj = generate_chains(ff, head, step_length, nexcl, chain, mc_options, env_traj, constraints, 'W')
        exit()
+ 
     write_gro_file(traj,'out.gro',len(traj))
-    return(None)   
+    retur(None)   

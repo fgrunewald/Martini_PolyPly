@@ -43,7 +43,7 @@ def main():
    elif not args.chain == None:
       env_options = (args.env, args.solvent, args.box, args.spacing, args.lipid)
       top_options = (args.topfile, args.grofile, args.chain, args.conv)
-      mc_options =  (args.mon[0], args.temp, args.maxsteps, args.v)
+      mc_options =  (args.mon[0], args.temp, args.maxsteps, args.v, args.name)
       build_system(top_options, env_options, mc_options)
 
    else:
