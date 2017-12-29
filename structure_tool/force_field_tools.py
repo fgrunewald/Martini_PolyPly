@@ -118,11 +118,15 @@ def write_gro_file(data, name, n):
     out_file = open(name, 'w')
     out_file.write('Monte Carlo generated PEO'+'\n')
     out_file.write('{:>3s}{:<8d}{}'.format('',n,'\n'))
-    count = 1
-    res_num = 1
-    for coord in data:
-        out_file.write('{:>5d}{:<5s}{:>5s}{:5d}{:8.3F}{:8.3F}{:8.3F}{}'.format(1, 'PEO', 'PEO', count, coord[0], coord[1], coord[2],'\n'))
-        count = count + 1
+    count = 0
+    resnum = 1
+  
+    for resname, mols in data.items():
+       for coords in mols:
+         resnum = resnum + 1
+         for line in coords:
+             count = count + 1
+             out_file.write('{:>5d}{:<5s}{:>5s}{:5d}{:8.3F}{:8.3F}{:8.3F}{}'.format(resnum, resname, 'PEO', count, line[0], line[1], line[2],'\n'))
     out_file.write('{:>2s}{:<.5F} {:<.5F} {:<.5F}'.format('',10.000000, 10.00000, 10.00000))
     out_file.close()
     return(None)
@@ -216,6 +220,28 @@ def dihedral_pot(ff, traj):
     dih_ang = [dih(traj[(t['pairs'][0] - 1)], traj[(t['pairs'][1] - 1)], traj[(t['pairs'][2] - 1)], traj[(t['pairs'][3] -1)]) for t in ff['dih'] if legal(t, traj)]
     return(sum([proper_dih(ang, term['k0'], term['ref'], term['n']) for term, ang in zip(ff['dih'], dih_ang)]))
 
+def are_bonded(atom_A,atom_B,molecule_A,ff):
+    atom_A = atom_A + 1
+    atom_B = atom_B + 1
+    if len(ff[molecule_A]['bonds']) > 1:
+      for bond in ff[molecule_A]['bonds']:
+        index_A, index_B = bond['pairs'][0], bond['pairs'][1]
+        #print(molecule_A)
+        #print(index_A, index_B)
+        #print(atom_A, atom_B)
+        if index_A == atom_A and index_B == atom_B:
+           #print(molecule_A)
+           #print( index_A == atom_A )
+           #print(  index_B == atom_B)
+           #exit()
+           return(True)
+        elif index_A == atom_B and index_B == atom_A:
+           return(True)
+      else:
+           return(False)
+    else:
+      return(False)
+
 def Vdw_pot(ff, traj):
     energy=0
     print('Commence Computation of Nonbonded Interactions.')
@@ -236,16 +262,23 @@ def Vdw_pot(ff, traj):
                          sigma = ff['nonbond_params'][(atom_B, atom_A)]['sigma']
 
                      if molecule_A == molecule_B:
-                        if i-j > ff[molecule_A]['nexcl']:
-                          if atom_A != "PEO" and atom_B != "P5" and atom_A != "PEO":
-                           energy = energy + LJ(sigma, epsilon, dist)
-                           #print(i-j)     
+                        if i-j != 0:
+                          if not are_bonded(i, j, molecule_A, ff): #> ff[molecule_A]['nexcl']:
+                           energy = energy + LJ(sigma, epsilon, dist)                           
                            if dist < 0.8*0.43:
                               energy = math.inf
+                              print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
                               print('Self-Overlap')
-                              print(atom_A)
-                              print(atom_B)
+                              print(molecule_A)
+                              print('atomA:',atom_A)
+                              print('atomB:',atom_B)
+                              print('diff:',j-i)
+                              print(are_bonded(i, j, molecule_A, ff))
+                              print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+                              #exit()
                               return(energy)
+                        else:
+                           energy = energy   
                      else:
                         energy = energy + LJ(sigma, epsilon, dist)
                         #if dist < 0.5:

@@ -16,7 +16,7 @@ title                    = Martini
 
 integrator               = steep
 dt                       = 0.01 
-nsteps                   = 5000
+nsteps                   = 800
 nstcomm                  = 100
 comm-grps		 = 
 

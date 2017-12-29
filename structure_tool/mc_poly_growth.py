@@ -45,18 +45,22 @@ def is_overlap(new_point, traj, tol, nexcl=1):
 
 def constraints(new_point, list_of_constraints):
     status = []
+   
     for const in list_of_constraints:
-        if const['type'] is '[ dist-x-axis ]':
-           dist = const['ref'] - new_point
-           status += dist[0]  < const['tol']
-        elif const['type'] is '[ dist-y-axis ]':
-           dist = const['ref'] - new_point
-           status += dist[1]  < const['tol']
-        elif const['type'] is '[ dist-z-axis ]':
-           dist = const['ref'] - new_point
-           status += dist[2]  < const['tol']
-        elif const['type'] == None:
+        print(const['type'])
+        if const['type'] == None:
            return(True)
+        elif const['type'] in '[ dist-x-axis ]':
+           dist = const['ref'] - new_point
+           status += [dist[0]  < const['tol']]
+        elif const['type'] in '[ dist-y-axis ]':
+           dist = const['ref'] - new_point
+           status += [dist[1]  < const['tol']]
+        elif const['type'] in '[ dist-z-axis ]':
+           dist = const['ref'] - new_point
+           status += [dist[2]  < const['tol']]
+           print(status)
+
     return(all(status))
 
 def determine_step_legnth(coords, bb_indices):
@@ -103,19 +107,20 @@ def metropolis_monte_carlo(ff, name, start, temp, n_repeat, step_length, max_ste
         traj = {name:env_traj['DOPE'][0]}
         del env_traj['DOPE'][0]
         print(traj)               
-    except KeyError:
+    except (KeyError,TypeError):
         traj = {name:[start]}
 
     count = 0
     prev_E = 0.0
     rejected = 0
+    last_point = start
     print('\n++++++++++ STARTING MONTE CARLO MODULE +++++++++\n')
     while count < n_repeat -1:
-       #print('----------------')     
+       print('----------------')     
        while True:
           vector_bundel = norm_sphere()
-          new_coord, index = take_step(vector_bundel, step_length, start)
-          #print(start)
+          print(last_point)
+          new_coord, index = take_step(vector_bundel, step_length, last_point)
           new_traj = {name:[np.append(traj[name], np.array([new_coord])).reshape(-1,3)]}
           #print(new_traj)
           #exit()
@@ -134,6 +139,7 @@ def metropolis_monte_carlo(ff, name, start, temp, n_repeat, step_length, max_ste
                   print(total_E * len(new_traj))
                prev_E = total_E
                traj = new_traj
+               last_point = new_coord
                print(count)
                count = count + 1
                break
@@ -155,7 +161,7 @@ def metropolis_monte_carlo(ff, name, start, temp, n_repeat, step_length, max_ste
 
     print('++++++++++++++++ RESULTS FORM MONTE CARLO MODULE ++++++++++++++\n')
     print('Total Energy:', Hamiltonion(ff, new_traj, verbose))
-    print('Radius of Gyration:', radius_of_gyr(traj))
+    #print('Radius of Gyration:', radius_of_gyr(traj))
     print('Number of rejected MC steps:', rejected)       
     return(traj)
 
@@ -182,7 +188,7 @@ def build_system(top_options, env_options, mc_options):
     if env_options[0] in '[ vac ]':
        env_traj = []
        ff, system = read_top(topfile)
-       traj = generate_chains(ff, conf, step_length, nexcl, chain, mc_options, env_traj, None) 
+       traj = generate_chains(ff, np.array([0,0,0]), step_length, nexcl, chain, mc_options, env_traj, [{'type':None}], None) 
 
     elif env_options[0] in '[ bulk ]':
        options = 0
@@ -195,7 +201,6 @@ def build_system(top_options, env_options, mc_options):
        env_traj, constraints, head = create_environment(env_options)
        ff, system = read_top(topfile)
        traj = generate_chains(ff, head, step_length, nexcl, chain, mc_options, env_traj, constraints, 'W')
-       exit()
  
     write_gro_file(traj,'out.gro',len(traj))
-    retur(None)   
+    return(None)   

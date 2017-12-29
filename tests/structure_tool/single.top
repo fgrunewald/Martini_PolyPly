@@ -1,0 +1,11 @@
+#include "martini_v_FG_PEG.itp"
+#include "100.itp"
+
+[ System ]
+; Name
+PEO 27 in W
+
+[ molecules ]
+; compound mols
+PEO              1
+

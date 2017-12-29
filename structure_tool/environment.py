@@ -29,6 +29,15 @@ def create_environment(options):
       
     return(supp_traj)
 
+def reorder_lipid(lipid_coords):
+    good_lipid = [0,0,0,0,0,0,0,0,0,0,0]
+    good_lipid[0:7] = lipid_coords[4:12]
+    good_lipid[8] = lipid_coords[3]
+    good_lipid[9] = lipid_coords[2]
+    good_lipid[10] = lipid_coords[1]
+    good_lipid[11] = lipid_coords[0]
+    return(good_lipid)
+
 def gen_bilayer(lipid_type, n_lipids, x_dim, y_dim, z_dim):
 
     '''
@@ -54,10 +63,16 @@ def gen_bilayer(lipid_type, n_lipids, x_dim, y_dim, z_dim):
     process = subprocess.Popen(mdrun_command.split(), stdout=subprocess.PIPE)
     output, error = process.communicate()
 
-    bilayer_coords = read_conf_file('out.gro', ".gro")
-    head = bilayer_coords['DOPE'][0][0]
-    print(head)
-    constraints = [{'type':'dist-x-axis', 'tol':x_dim, 'ref':head[0]}, {'type':'dist-y-axis', 'tol':y_dim, 'ref':head[1]}]
+    bilayer_coords = read_conf_file('out.gro', ".gro")  
+    DOPE_new = reorder_lipid(bilayer_coords['DOPE'][0])
+    print('New coordinates')
+    bilayer_coords['DOPE'][0] = DOPE_new
+    head = bilayer_coords['DOPE'][0][11]
+    for atom in DOPE_new:
+        print(10*atom)
+
+    constraints = [{'type':'dist-x-axis', 'tol':x_dim, 'ref':head[0]}, {'type':'dist-y-axis', 'tol':y_dim, 'ref':head[1]},  
+                   {'type':'dist-z-axis', 'tol':0, 'ref':head[2]}]
     return(bilayer_coords, constraints, head)
 
 def solvate(options):

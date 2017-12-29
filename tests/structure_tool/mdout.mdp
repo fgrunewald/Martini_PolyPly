@@ -2,7 +2,7 @@
 ;	File 'mdout.mdp' was generated
 ;	By user: unknown (1001)
 ;	On host: fabian-XPS-13-9360
-;	At date: Wed Dec 27 19:43:47 2017
+;	At date: Fri Dec 29 15:17:39 2017
 
 ;
 
@@ -18,7 +18,7 @@ integrator               = steep
 ; Start time and timestep in ps
 tinit                    = 0
 dt                       = 0.01
-nsteps                   = 5000
+nsteps                   = 800
 ; For exact run continuation or redoing part of a run
 init-step                = 0
 ; Part index is updated automatically on checkpointing (keeps files separate)

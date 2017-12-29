@@ -1,4 +1,4 @@
-#include "martini.itp"
+#include "martini_v_FG_PEG.itp"
 #include "W.itp"
 #include "PEL.itp"
 #include "DOPE.itp"
@@ -10,4 +10,8 @@ PEO 27 in W
 
 [ molecules ]
 ; compound mols
-PEO 1
+DOPE             1
+W             2521
+PEL              1
+DOPC            68
+

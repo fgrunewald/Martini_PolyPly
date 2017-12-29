@@ -1,26 +1,26 @@
 [   moleculetype   ]
 PEO   1
 [      atoms       ]
-1     PEO   1 PEG   O1  1 0.000    45 
-2     PEO   1 PEG   O1  2 0.000    45 
-3     PEO   1 PEG   O1  3 0.000    45 
-4     PEO   1 PEG   O1  4 0.000    45 
-5     PEO   1 PEG   O1  5 0.000    45 
-6     PEO   1 PEG   O1  6 0.000    45 
-7     PEO   1 PEG   O1  7 0.000    45 
-8     PEO   1 PEG   O1  8 0.000    45 
-9     PEO   1 PEG   O1  9 0.000    45 
-10    PEO   1 PEG   O1  10 0.000    45 
-11    PEO   1 PEG   O1  11 0.000    45 
-12    PEO   1 PEG   O1  12 0.000    45 
-13    PEO   1 PEG   O1  13 0.000    45 
-14    PEO   1 PEG   O1  14 0.000    45 
-15    PEO   1 PEG   O1  15 0.000    45 
-16    PEO   1 PEG   O1  16 0.000    45 
-17    PEO   1 PEG   O1  17 0.000    45 
-18    PEO   1 PEG   O1  18 0.000    45 
-19    PEO   1 PEG   O1  19 0.000    45 
-20    PEO   1 PEG   O1  20 0.000    45 
+1     PEO   1 PEO   O1  1 0.000    45 
+2     PEO   1 PEO   O1  2 0.000    45 
+3     PEO   1 PEO   O1  3 0.000    45 
+4     PEO   1 PEO   O1  4 0.000    45 
+5     PEO   1 PEO   O1  5 0.000    45 
+6     PEO   1 PEO   O1  6 0.000    45 
+7     PEO   1 PEO   O1  7 0.000    45 
+8     PEO   1 PEO   O1  8 0.000    45 
+9     PEO   1 PEO   O1  9 0.000    45 
+10    PEO   1 PEO   O1  10 0.000    45 
+11    PEO   1 PEO   O1  11 0.000    45 
+12    PEO   1 PEO   O1  12 0.000    45 
+13    PEO   1 PEO   O1  13 0.000    45 
+14    PEO   1 PEO   O1  14 0.000    45 
+15    PEO   1 PEO   O1  15 0.000    45 
+16    PEO   1 PEO   O1  16 0.000    45 
+17    PEO   1 PEO   O1  17 0.000    45 
+18    PEO   1 PEO   O1  18 0.000    45 
+19    PEO   1 PEO   O1  19 0.000    45 
+20    PEO   1 PEO   O1  20 0.000    45 
 [      bonds       ]
 1     2     1  0.330    7000   
 2     3     1  0.330    7000   
