@@ -10,8 +10,8 @@ PEO 27 in W
 
 [ molecules ]
 ; compound mols
-DOPE             1
-W             2521
 PEL              1
+DOPE             1
 DOPC            68
+W             2467
 

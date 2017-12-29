@@ -4,6 +4,7 @@ import argparse
 import itertools
 import numpy as np
 import scipy.optimize as opt
+import multiprocessing
 from numpy import sqrt, pi, cos, sin, dot, cross, arccos, degrees
 from numpy import float as nfl
 from numpy.linalg import norm
@@ -12,6 +13,7 @@ from Martini_PolyPly.structure_tool.analysis_funtions import *
 from Martini_PolyPly.structure_tool.geometrical_functions import *
 from Martini_PolyPly.structure_tool.force_field_tools import *
 from Martini_PolyPly.structure_tool.environment import *
+
 
 def accaptable(E, temp, prev_E):
     if E == math.inf:
@@ -39,15 +41,15 @@ def remove_overlap(new_point, traj, tol, sol):
 
 def is_overlap(new_point, traj, tol, nexcl=1):
     n = len(traj) - nexcl
-    distances = [ point - new_point for point in traj[0:n]]
-    return( any(norm(distances, axis=1) <  tol))
+    distances = [ norm(point - new_point) for point in traj[0:n]]
+    return( any([ dist <  tol for dist in distances]))
 
 
 def constraints(new_point, list_of_constraints):
     status = []
    
     for const in list_of_constraints:
-        print(const['type'])
+        #print(const['type'])
         if const['type'] == None:
            return(True)
         elif const['type'] in '[ dist-x-axis ]':
@@ -59,7 +61,7 @@ def constraints(new_point, list_of_constraints):
         elif const['type'] in '[ dist-z-axis ]':
            dist = const['ref'] - new_point
            status += [dist[2]  < const['tol']]
-           print(status)
+           #print(status)
 
     return(all(status))
 
@@ -93,7 +95,8 @@ def Hamiltonion(ff, traj, display):
         dihedral += dihedral_pot(ff[molecule], coords)
     
     #print(ff['nonbond_params'])
-    vdw = Vdw_pot(ff, traj)
+    vdw =  non_bond_interactions(ff, traj)
+    print('returned')
     display=True
     if display:
        for term, name in zip([bond, angle, dihedral, vdw],['bonds', 'angle', 'dihedral', 'vdw']):
@@ -119,14 +122,21 @@ def metropolis_monte_carlo(ff, name, start, temp, n_repeat, step_length, max_ste
        print('----------------')     
        while True:
           vector_bundel = norm_sphere()
-          print(last_point)
-          new_coord, index = take_step(vector_bundel, step_length, last_point)
+       #   print(last_point)
+          while True:
+                new_coord, index = take_step(vector_bundel, step_length, last_point)
+                if not is_overlap(new_coord, traj[name], 0.43*0.8,1):
+                   break
+                else:
+                   print('gp')
+              
+
           new_traj = {name:[np.append(traj[name], np.array([new_coord])).reshape(-1,3)]}
           #print(new_traj)
           #exit()
 
           if len(env_traj) != 0:
-             sol_traj_temp = remove_overlap(new_coord, env_traj[sol], 0.43, sol)                    
+             sol_traj_temp = remove_overlap(new_coord, env_traj[sol], 0.47*0.8, sol)                    
              new_traj.update({sol: sol_traj_temp})
              [ new_traj.update({key:values}) for key, values in env_traj.items() if key != sol ]
           
@@ -150,7 +160,7 @@ def metropolis_monte_carlo(ff, name, start, temp, n_repeat, step_length, max_ste
                rejected = rejected + 1
                vector_bundel = np.delete(vector_bundel, index, axis=0)
              else:
-               print('+++++++++++++ FATAL ERROR ++++++++++++++++++++++++++++\n')
+               print('+++++++++++++++++++++ FATAL ERROR ++++++++++++++++++++++++++++\n')
                print('Exceeded maximum number of steps in the monte-carlo module.')
                print('If you know what you do set -maxconstraints to -1')
           else:
