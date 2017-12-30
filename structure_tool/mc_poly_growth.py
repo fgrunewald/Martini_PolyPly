@@ -54,10 +54,10 @@ def constraints(new_point, list_of_constraints):
            return(True)
         elif const['type'] in '[ dist-x-axis ]':
            dist = const['ref'] - new_point
-           status += [dist[0]  < const['tol']]
+           status += [abs(dist[0])  < const['tol']]
         elif const['type'] in '[ dist-y-axis ]':
            dist = const['ref'] - new_point
-           status += [dist[1]  < const['tol']]
+           status += [abs(dist[1])  < const['tol']]
         elif const['type'] in '[ dist-z-axis ]':
            dist = const['ref'] - new_point
            status += [dist[2]  < const['tol']]

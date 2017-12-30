@@ -74,7 +74,7 @@ def gen_bilayer(lipid_type, n_lipids, x_dim, y_dim, z_dim):
     #for atom in DOPE_new:
     #    print(10*atom)
 
-    constraints = [{'type':'dist-x-axis', 'tol':x_dim, 'ref':head[0]}, {'type':'dist-y-axis', 'tol':y_dim, 'ref':head[1]},  
+    constraints = [{'type':'dist-x-axis', 'tol':float(box[0])/2, 'ref':head[0]}, {'type':'dist-y-axis', 'tol':float(box[1])/2, 'ref':head[1]},  
                    {'type':'dist-z-axis', 'tol':0, 'ref':head[2]}]
     return(bilayer_coords, constraints, head, box)
 
