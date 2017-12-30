@@ -191,7 +191,7 @@ def generate_chains(ff, start, step_length, nexcl, chain, mc_options, env_traj, 
 def build_system(top_options, env_options, mc_options, outfile):
     topfile, structure_file, chain, conv = top_options 
 
-    conf = read_conf_file(structure_file, 'gro')
+    conf, box = read_conf_file(structure_file, 'gro')
     step_length, size, nexcl = 0.322, 0.43, 1   #determine_step_legnth(conf, [0])
 
     print(env_options)
@@ -208,9 +208,9 @@ def build_system(top_options, env_options, mc_options, outfile):
        traj = generate_chains(ff, conf, step_length, nexcl, chain, mc_options, env_traj, None)
 
     elif env_options[0] in '[ bilayer ]':
-       env_traj, constraints, head = create_environment(env_options)
+       env_traj, constraints, head, box = create_environment(env_options)
        ff, system = read_top(topfile)
        traj = generate_chains(ff, head, step_length, nexcl, chain, mc_options, env_traj, constraints, 'W')
  
-    write_gro_file(traj,outfile,ff)
+    write_gro_file(traj,outfile,ff, box)
     return(None)   

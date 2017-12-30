@@ -115,7 +115,7 @@ def convert_constraints(ff, STATUS):
        exit()
     return(ff)
 
-def write_gro_file(data, name, ff):
+def write_gro_file(data, name, ff, box):
     n = sum([ len(coords) for resname, list_of_coords in data.items() for coords in list_of_coords ])
     out_file = open(name, 'w')
     out_file.write('Monte Carlo generated PEO'+'\n')
@@ -130,7 +130,7 @@ def write_gro_file(data, name, ff):
              atomtype = ff[resname]['atoms'][index]['atom']
              count = count + 1
              out_file.write('{:>5d}{:<5s}{:>5s}{:5d}{:8.3F}{:8.3F}{:8.3F}{}'.format(resnum, resname, atomtype, count, line[0], line[1], line[2],'\n'))
-    out_file.write('{:>2s}{:<.5F} {:<.5F} {:<.5F}'.format('',10.000000, 10.00000, 10.00000))
+    out_file.write('{:>2s}{:<.5F} {:<.5F} {:<.5F}'.format('',float(box[0]), float(box[1]), float(box[2])))
     out_file.close()
     return(None)
 
@@ -185,9 +185,13 @@ def read_conf_file(filename, file_type):
                      atom_count = 1
               
                   count = count + 1
-               else:
-                  count = count +1
-    return(traj)
+               elif count == 1:
+                  nlines = int(line.replace('\n', '').split()[0]) + 3
+                  count = count + 1  
+               elif count == nlines - 1:
+                  box = line.replace('\n', '').split()
+                  count = count + 1
+    return(traj, box)
 
 
 def pot_I( val ,k0, ref):
