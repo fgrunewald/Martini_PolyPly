@@ -255,9 +255,9 @@ def non_bond_interactions(ff, traj):
     fit in the RAM.
     '''
     flat_traj = [ [ molecule, pos ]  for molecule, pos_mols in traj.items() for pos in pos_mols ]
-    partitioned_data = partition(flat_traj, 1)
+    partitioned_data = partition(flat_traj, 4)
     data = [ (ff, part, traj) for part in partitioned_data ]
-    with  multiprocessing.Pool(1) as p:
+    with  multiprocessing.Pool(4) as p:
           energy = p.map(Vdw_pot, data)
     energy = sum(energy)
     return(energy)
