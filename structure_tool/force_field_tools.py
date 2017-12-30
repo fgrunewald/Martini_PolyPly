@@ -115,7 +115,8 @@ def convert_constraints(ff, STATUS):
        exit()
     return(ff)
 
-def write_gro_file(data, name, n):
+def write_gro_file(data, name, ff):
+    n = sum([ len(coords) for resname, list_of_coords in data.items() for coords in list_of_coords ])
     out_file = open(name, 'w')
     out_file.write('Monte Carlo generated PEO'+'\n')
     out_file.write('{:>3s}{:<8d}{}'.format('',n,'\n'))
@@ -125,9 +126,10 @@ def write_gro_file(data, name, n):
     for resname, mols in data.items():
        for coords in mols:
          resnum = resnum + 1
-         for line in coords:
+         for index, line in enumerate(coords):
+             atomtype = ff[resname]['atoms'][index]['atom']
              count = count + 1
-             out_file.write('{:>5d}{:<5s}{:>5s}{:5d}{:8.3F}{:8.3F}{:8.3F}{}'.format(resnum, resname, 'PEO', count, line[0], line[1], line[2],'\n'))
+             out_file.write('{:>5d}{:<5s}{:>5s}{:5d}{:8.3F}{:8.3F}{:8.3F}{}'.format(resnum, resname, atomtype, count, line[0], line[1], line[2],'\n'))
     out_file.write('{:>2s}{:<.5F} {:<.5F} {:<.5F}'.format('',10.000000, 10.00000, 10.00000))
     out_file.close()
     return(None)
@@ -255,9 +257,9 @@ def non_bond_interactions(ff, traj):
     fit in the RAM.
     '''
     flat_traj = [ [ molecule, pos ]  for molecule, pos_mols in traj.items() for pos in pos_mols ]
-    partitioned_data = partition(flat_traj, 4)
+    partitioned_data = partition(flat_traj, 1)
     data = [ (ff, part, traj) for part in partitioned_data ]
-    with  multiprocessing.Pool(4) as p:
+    with  multiprocessing.Pool(1) as p:
           energy = p.map(Vdw_pot, data)
     energy = sum(energy)
     return(energy)

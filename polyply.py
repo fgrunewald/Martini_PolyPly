@@ -13,7 +13,7 @@ parser.add_argument('-itp'    , metavar = 'itps of blocks'     , dest = 'itpfile
 parser.add_argument('-n_mon'  , metavar = 'length of blocks'   , dest = 'mon'     , type = int   , help = 'number of monomers per blocks', nargs = '*')
 parser.add_argument('-polymer', metavar = 'itp from monomers'  , dest = 'r_itp_name', type = str   , help = 'use itps in default repository', nargs='*')
 parser.add_argument('-name'   , metavar = 'name of molecule'   , dest = 'name'    , type = str   , help = 'name of the new polymer molecule', default='polymer')
-parser.add_argument('-o'      , metavar = 'name of outfile'    , dest = 'outfile' , type = str   , help = 'name of the new .itp file.' )
+parser.add_argument('-o'      , metavar = 'name of outfile'    , dest = 'outfile' , type = str   , help = 'name of the output file', default='out.gro')
 parser.add_argument('-p'      , metavar = 'topology file'      , dest = 'topfile' , type = str   , help = 'name of system topology file')
 parser.add_argument('-c'      , metavar = 'structure file'     , dest = 'grofile' , type = str   , help = 'name of monomer structure file')
 parser.add_argument('-T'      , metavar = 'temperature'        , dest = 'temp'    , type = float , help = 'temperature of system', default=298.0) 
@@ -44,7 +44,7 @@ def main():
       env_options = (args.env, args.solvent, args.box, args.spacing, args.lipid)
       top_options = (args.topfile, args.grofile, args.chain, args.conv)
       mc_options =  (args.mon[0], args.temp, args.maxsteps, args.v, args.name)
-      build_system(top_options, env_options, mc_options)
+      build_system(top_options, env_options, mc_options, args.outfile)
 
    else:
       print('Please specify either -itp or -sys option.')

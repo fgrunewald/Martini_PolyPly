@@ -188,7 +188,7 @@ def generate_chains(ff, start, step_length, nexcl, chain, mc_options, env_traj, 
        exit()
     return(traj)
 
-def build_system(top_options, env_options, mc_options):
+def build_system(top_options, env_options, mc_options, outfile):
     topfile, structure_file, chain, conv = top_options 
 
     conf = read_conf_file(structure_file, 'gro')
@@ -212,5 +212,5 @@ def build_system(top_options, env_options, mc_options):
        ff, system = read_top(topfile)
        traj = generate_chains(ff, head, step_length, nexcl, chain, mc_options, env_traj, constraints, 'W')
  
-    write_gro_file(traj,'out.gro',len(traj))
+    write_gro_file(traj,outfile,ff)
     return(None)   
