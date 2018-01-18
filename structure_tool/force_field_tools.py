@@ -49,6 +49,7 @@ def read_top(name):
     return(ff, system)
 
 def read_itp(name):
+    print('Reading',name)
     ff = {}
     molecules, atoms, bonds, angles, dih, constraints, virtual_sitsn = [], [], [], [], [], [], []
     nonbond_params = {}
@@ -210,6 +211,7 @@ def legal(term, traj):
     status_A = all( [index <= len(traj) for index in term['pairs']])
     if status_A:
        coords = [traj[i - 1] for i in term['pairs']]
+       #print(coords)
        status_B = all([any(coord != np.array([0,0,0])) for coord in coords])
        return(status_B)
     else:
@@ -255,15 +257,16 @@ def partition(lst, n):
     return([lst[round(parts * i):round(parts * (i + 1))] for i in range(n)])
 
 def non_bond_interactions(ff, traj):
+    print('------> computing non-bonded interactions')
     '''
     The outermost loop over molecules is computed in parallel. To do so we, however,
     have to flaten the traj, which for not so long trajs is OK, as long as they can
     fit in the RAM.
     '''
     flat_traj = [ [ molecule, pos ]  for molecule, pos_mols in traj.items() for pos in pos_mols ]
-    partitioned_data = partition(flat_traj, 1)
+    partitioned_data = partition(flat_traj, 4)
     data = [ (ff, part, traj) for part in partitioned_data ]
-    with  multiprocessing.Pool(1) as p:
+    with  multiprocessing.Pool(4) as p:
           energy = p.map(Vdw_pot, data)
     energy = sum(energy)
     return(energy)
@@ -274,7 +277,7 @@ def Vdw_pot(input_data):
     for coords_A in traj_part:   
           molecule_A = coords_A[0]
           pos_mol_A = coords_A[1]
-          #print(coords_A)
+       #   print(coords_A)
           for i, point_A in enumerate(pos_mol_A):
              for molecule_B, coords_B in traj.items():
                for pos_mol_B in coords_B:
@@ -300,6 +303,7 @@ def Vdw_pot(input_data):
                               print(molecule_A)
                               print('atomA:',atom_A)
                               print('atomB:',atom_B)
+                              print(i,j)
                               print('diff:',j-i)
                               print(are_bonded(i, j, molecule_A, ff))
                               print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
@@ -349,6 +353,7 @@ def Vdw_pot_old(input_data):
                               print(molecule_A)
                               print('atomA:',atom_A)
                               print('atomB:',atom_B)
+                              print('index',i)
                               print('diff:',j-i)
                               print(are_bonded(i, j, molecule_A, ff))
                               print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")

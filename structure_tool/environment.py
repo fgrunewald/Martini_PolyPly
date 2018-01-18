@@ -15,19 +15,24 @@ from Martini_PolyPly.structure_tool.force_field_tools import *
 
 
 def create_environment(options):
-    env_type, sol, box, spacing, lipid_type = options 
+    env_type, sol, box, spacing, lipid_type, ratio = options 
 
     if env_type in '[ bulk ]':
        supp_traj = make_box_w_solvent(options)
 
     elif env_type in '[ bilayer ]':
-        area_per_lipid = 0.8 # this should be made variable but on average 0.8 should be fine
-        z_dim = box[2]
-        xy_dim = spacing / area_per_lipid
-        print('xy-dimension:',xy_dim)
-        n_lipids = int(xy_dim**2.0)
-        print("n-other lipids:",n_lipids)
-        supp_traj = gen_bilayer(lipid_type, n_lipids, xy_dim, xy_dim, z_dim)
+       if spacing != 0:
+           area_per_lipid = 0.8 # this should be made variable but on average 0.8 should be fine
+           z_dim = box[2]
+           xy_dim = (spacing**2.0 / area_per_lipid**2.0)**(0.5)
+           print('xy-dimension:',xy_dim)
+           n_lipids = int(xy_dim**2.0)
+           print("n-other lipids:",n_lipids-1)
+       else:
+           n_lipids = ratio + 1
+           xy_dim = box[0]
+           z_dim = box[2]
+       supp_traj = gen_bilayer(lipid_type, n_lipids, (xy_dim, xy_dim, z_dim))
       
     return(supp_traj)
 
@@ -40,15 +45,17 @@ def reorder_lipid(lipid_coords):
     good_lipid[11] = lipid_coords[0]
     return(good_lipid)
 
-def gen_bilayer(lipid_type, n_lipids, x_dim, y_dim, z_dim):
+def gen_bilayer(lipid_type, n_lipids, dim):
 
     '''
     This module returns a ready to go bilayer made by insane. 
     We use suprocess because insane is currently in python 2. 
     '''
+
     variable_lipid = lipid_type + ":" + str(n_lipids - 1)
-    print(variable_lipid) 
+    x_dim, y_dim, z_dim = dim
     insane_command = "insane -o bilayer.gro -p topol.top -x " + str(x_dim) + " -y " + str(y_dim) + " -z " + str(z_dim) + " -l " + str(variable_lipid) + " -l DOPE:1 -salt 0 -sol W"
+    
     print(insane_command)
     
     process = subprocess.Popen(insane_command.split(), stdout=subprocess.PIPE)

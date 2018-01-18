@@ -1,0 +1,6 @@
+#include "10.itp"
+
+[ system ]
+test
+[ molecules ]
+PEO 1

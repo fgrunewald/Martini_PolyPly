@@ -15,7 +15,7 @@ parser.add_argument('-polymer', metavar = 'itp from monomers'  , dest = 'r_itp_n
 parser.add_argument('-name'   , metavar = 'name of molecule'   , dest = 'name'    , type = str   , help = 'name of the new polymer molecule', default='polymer')
 parser.add_argument('-o'      , metavar = 'name of outfile'    , dest = 'outfile' , type = str   , help = 'name of the output file', default='out.gro')
 parser.add_argument('-p'      , metavar = 'topology file'      , dest = 'topfile' , type = str   , help = 'name of system topology file')
-parser.add_argument('-c'      , metavar = 'structure file'     , dest = 'grofile' , type = str   , help = 'name of monomer structure file')
+#parser.add_argument('-c'      , metavar = 'structure file'     , dest = 'grofile' , type = str   , help = 'name of monomer structure file')
 parser.add_argument('-T'      , metavar = 'temperature'        , dest = 'temp'    , type = float , help = 'temperature of system', default=298.0) 
 parser.add_argument('-chain'  , metavar = 'chain topology'     , dest = 'chain'   , type = str   , help = 'topology of chain' , default='linear-random')
 parser.add_argument('-v'      , metavar = 'verbose'            , dest = 'v'       , type = bool  , help = 'be loud and noisy')
@@ -27,6 +27,7 @@ parser.add_argument('-endgroup', metavar = 'endgroup itps'     , dest = 'endgrou
 parser.add_argument('-lipid'   , metavar = 'lipid type'        , dest = 'lipid'   , type = str   , help = 'lipid type of the bilayer when env is bilayer')
 parser.add_argument('-box'     , metavar = 'dimensions of box' , dest = 'box'     , type = float , help = 'boxdimensions in nm for x, y, z', nargs=3)
 parser.add_argument('-spacing' , metavar = 'spacing of PEL'    , dest = 'spacing' , type = float , help = 'spaceing between PEL in a bilayer', default=0 )
+parser.add_argument('-ratio'   , metavar = 'ratio of lipids'   , dest = 'ratio'   , type = int    , help = 'ratio of lipid to PEL')
 parser.add_argument('-sol'     , metavar = 'solvent'           , dest = 'solvent' , type = str   , help = 'name of solvent for the polymer system', default=None)   
 args = parser.parse_args()
 
@@ -41,8 +42,9 @@ def main():
       itp_tool(itp_files, args.linkfile ,args.mon, args.outfile, args.name, args.endgroup)
 
    elif not args.chain == None:
-      env_options = (args.env, args.solvent, args.box, args.spacing, args.lipid)
-      top_options = (args.topfile, args.grofile, args.chain, args.conv)
+      env_options = (args.env, args.solvent, args.box, args.spacing, args.lipid, args.ratio)
+ #     top_options = (args.topfile, args.grofile, args.chain, args.conv)
+      top_options = (args.topfile, args.chain, args.conv)
       mc_options =  (args.mon[0], args.temp, args.maxsteps, args.v, args.name)
       build_system(top_options, env_options, mc_options, args.outfile)
 
