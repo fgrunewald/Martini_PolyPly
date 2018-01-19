@@ -157,7 +157,7 @@ def read_conf_file(filename, file_type):
                   print(title)
                   count = count + 1
                elif 1 < count < len(lines) - 1:
-                  #print(line.replace('\n', '').split())
+                 # print(line.replace('\n', '').split())
                   res_num_name, atom, a_index, x, y, z = line.replace('\n', '').split()
                   point = np.array([x,y,z])
                   molecule = ''.join([i for i in res_num_name if not i.isdigit()])
@@ -257,7 +257,7 @@ def partition(lst, n):
     return([lst[round(parts * i):round(parts * (i + 1))] for i in range(n)])
 
 def non_bond_interactions(ff, traj):
-    print('------> computing non-bonded interactions')
+    #print('------> computing non-bonded interactions')
     '''
     The outermost loop over molecules is computed in parallel. To do so we, however,
     have to flaten the traj, which for not so long trajs is OK, as long as they can
@@ -298,15 +298,15 @@ def Vdw_pot(input_data):
                            energy = energy + LJ(sigma, epsilon, dist)                           
                            if dist < 0.8*0.43:
                               energy = math.inf
-                              print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+                            #  print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
                               print('Self-Overlap')
-                              print(molecule_A)
-                              print('atomA:',atom_A)
-                              print('atomB:',atom_B)
-                              print(i,j)
-                              print('diff:',j-i)
-                              print(are_bonded(i, j, molecule_A, ff))
-                              print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+                            #  print(molecule_A)
+                            #  print('atomA:',atom_A)
+                            #  print('atomB:',atom_B)
+                            #  print(i,j)
+                            #  print('diff:',j-i)
+                            #  print(are_bonded(i, j, molecule_A, ff))
+                            #  print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
                               return(energy)
                         else:
                            energy = energy   
@@ -316,9 +316,9 @@ def Vdw_pot(input_data):
                            #print(LJ(sigma, epsilon, dist))
                         if dist < 0.8*0.47:
                            energy = math.inf
-                           print('Overlap')
-                           print(molecule_B)
-                           print(molecule_A)
+                         #  print('Overlap')
+                         #  print(molecule_B)
+                         #  print(molecule_A)
                            return(energy)
     return(energy)
 
