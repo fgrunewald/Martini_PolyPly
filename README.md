@@ -3,12 +3,15 @@
 # Please wait for release!
 
 ## Functionality 
-PolyPly can be used to **generate GROMACS itp files** of polymers  and **starting confomrations** for polymer systems in principle of any type of force-field (FF). It has mainly been developed and tested for [MARTINI polymers](http://www.cgmartini.nl/index.php/force-field-parameters/polymers). At the moment it only supports a limited number of GROMACS bonded interactions, which limits it's applicability to polymers, which use no other bonded interactions than those included. As time progresses they will be updated and completed. The tool can also be used to generate intial structure files for more or less complex systems. We aim to offer the functionality for creating melts, single chains in solvent and multiple chains in solvent. The tool is in principle also applicable for any other GROMACS based force-fields, but again it has mainly been tested and optimized for MARTINI polymers. Besides offering a partical tool for easy simulation of polymer systems within GROMACS, the aim is also to make MD simulations more reproducable by offering an easy to use robust tool.
+PolyPly can be used to **generate GROMACS itp files** of polymers from a monomer itp file and **produce polymer molecules** from topology files. In principle the program can be used with any type of force-field (FF) as long as the files are in GROMACS format. It has mainly been developed and tested for [MARTINI polymers](http://www.cgmartini.nl/index.php/force-field-parameters/polymers). At the moment it only supports a limited number of GROMACS bonded interactions, which limits it's applicability to polymer with these bonded interactions. As time progresses they will be updated and completed. The tool can also be used to **generate intial structure files for more or less complex systems**. At the moment it supports growing polymers on DOPE lipids to form for example PEGylated bilayers and into solvated systems of any kind. Read carefully the usage section, since the tool uses strict file formats. 
 
-## Usage
-### Itp file generation for simple polymer
+## Itp file generation
+To generate a polymer itp file the tool offers two options. Either polymers from the library (mostly MARTINI) can be generated or one can generate polymers from custom itp files. 
+
+#### from library
+To generate a polymer, which is part of the library simply execute the following command:
 ```
-polyply -itp [monomer.itp] -n_mon [number_of_repeat_units] -o [outname] 
+polyply -polymer [name of polymer] -n_mon [number of repeat units] -o [name of outfile] -name [name of polymer]
 ```
 #### Format monomer.itp
 The itp generation tool essentially takes a monomer itp file, which uses the standard GROMACS itp file format. The itp-file has to contain all bonded parameters of one repeat unit including those with the following repeat units, if there are any. Always make sure for a short chain that the output contains everything you would expect. Some example monomer.itp files can be found in the monomer_itps directory. **Feel free to propose new monomer itp files to be included in the monomer directory.**  
