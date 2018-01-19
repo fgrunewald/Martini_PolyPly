@@ -35,7 +35,7 @@ PolyPly also takes custom monomer itp files, as long as they use the standard GR
 polyply -itp [name of polymer itp file] -n_mon [number of repeat units] -o [name of outfile] -name [name of polymer]
 ```
 Note by supplying multiple files also custom block-copolymer can be generated. 
-### 2. Initial Strucutre generation
+## 2. Initial Strucutre generation
 PolyPly also offers the possibility to grow polymers into existing systems. To indicate that a structure needs to be generated supply the -grow flag with one of the system classifications defined as follows:
 
 option  | system
@@ -44,8 +44,9 @@ vac     | vacuum
 sol     | solution
 bilayer | PEGylated lipid
 
+Furthermore a full GROMACS topolgy file with all neccessary itp files need to be provided via the s option, as you would do for a grompp command. Note that the name has to be the exact same name as in the topology file. The topology file needs to contain all environment molecules plus the polymer. Furthermore the atom definitionis are read from the gro-file. Thus you'll need to provide a grow file with matching atom names. The program cannot do magic!
 ```
-polyply -grow [ vac, bilayer, sol] -s system.top -o final.gro -name  -n_chains 10<int<100
+polyply -grow [ vac, bilayer, sol] -s [topfile name] -o [outfile name] -name [name of polymer] -
 ```
 ## Authors
 
