@@ -39,7 +39,7 @@ Note by supplying multiple files also custom block-copolymer can be generated.
 PolyPly also offers the possibility to grow polymers into existing systems. To indicate that a structure needs to be generated supply the -grow flag with one of the system classifications defined as follows:
 
 option  | system
-----------------------------
+--------| ----------------
 vac     | vacuum
 sol     | solution
 bilayer | PEGylated lipid
