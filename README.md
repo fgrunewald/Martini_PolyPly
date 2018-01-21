@@ -11,7 +11,7 @@ To generate a polymer itp file the tool offers two options. Either polymers from
 #### a - from library
 To generate a polymer, which is part of the library simply execute the following command:
 ```
-polyply -polymer [name of polymer] -n_mon [number of repeat units] -o [name of outfile] -name [name of polymer]
+polyply -polymer [name of polymer] -n_mon [repeat units] -o [outfile] -name [outname of polymer]
 ```
 The 'n_mon' option sets the number of repeat units (i.e. n monomers) and the name option gives the possibility to give another than the default name to the polymer. The names of the polymers in the library can be found by executing the command:
 ```
@@ -32,21 +32,21 @@ The above command generates a block-copolymer itp for PS and PEO each block with
 #### c - custom itp files monomer.itp
 PolyPly also takes custom monomer itp files, as long as they use the standard GROMACS itp file format. The itp-file has to contain all bonded parameters of one repeat unit including those with the following repeat units, if there are any. Always make sure that the output contains everything you would expect. Some example monomer.itp files can be found in the monomer_itps directory. The only difference to the library command is, that the itp file name is supplied via the -itp option as shown in the following scheme:
 ```
-polyply -itp [name of polymer itp file] -n_mon [number of repeat units] -o [name of outfile] -name [name of polymer]
+polyply -itp [name of polymer itp file] -n_mon [repeat units] -o [name of outfile] -name [name of polymer]
 ```
 Note by supplying multiple files also custom block-copolymer can be generated. 
 ## 2. Initial Strucutre generation
-PolyPly also offers the possibility to grow polymers into existing systems. To indicate that a structure needs to be generated supply the -grow flag with one of the system classifications defined as follows:
+PolyPly also offers the possibility to grow polymers into existing systems. To indicate that a structure needs to be generated supply the -env flag with one of the system classifications defined as follows:
 
-option  | system
---------| ----------------
-vac     | vacuum
-sol     | solution
-bilayer | PEGylated lipid
+option  | result
+--------| ------------------------------------------------------------------------------------------
+vac     | single chain in vacuum
+sol     | single chain in solution supplied via '-sys' option
+bilayer | a PEGylated lipid is grown on a random DOPE lipid in a bilayer supplied by -sys option
 
-Furthermore a full GROMACS topolgy file with all neccessary itp files need to be provided via the s option, as you would do for a grompp command. Note that the name has to be the exact same name as in the topology file. The topology file needs to contain all environment molecules plus the polymer. Furthermore the atom definitionis are read from the gro-file. Thus you'll need to provide a grow file with matching atom names. The program cannot do magic!
+Furthermore a full GROMACS topolgy file with all neccessary itp files need to be provided via the s option, as you would do for a grompp command. Note that the name of the polymer needs to be provided via the '-name' option and has to be the exact same name as in the topology file. The topology file needs to contain all environment molecules plus the polymer. Furthermore the atom definitions are read from the gro-file. Thus you'll need to provide a '.gro' file with all matching atom names. The program cannot do magic!
 ```
-polyply -grow [ vac, bilayer, sol] -s [topfile name] -o [outfile name] -name [name of polymer] -
+polyply -env [ vac, bilayer, sol] -s [topfile] -o [outfile] -name [name of polymer] -sys [system structure file]
 ```
 ## Authors
 
