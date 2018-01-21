@@ -232,7 +232,7 @@ def generate_chains(ff, start, chain, mc_options, env_traj, constraints, sol):
     return(traj)
 
 def build_system(top_options, env_options, mc_options, outfile):
-    topfile, chain, conv = top_options
+    topfile = top_options
  
     size, nexcl = 0.43, 1
     box = np.array([10,10,10])
