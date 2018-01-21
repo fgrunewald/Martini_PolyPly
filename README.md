@@ -35,6 +35,10 @@ PolyPly also takes custom monomer itp files, as long as they use the standard GR
 polyply -itp [name of polymer itp file] -n_mon [repeat units] -o [name of outfile] -name [name of polymer]
 ```
 Note by supplying multiple files also custom block-copolymer can be generated. 
+
+#### d - adding endgroups 
+The program also contains an option to add endgroups to the itp-file. The itp of the endgroup has to be supplied via the '-endgroup' option. Note that you can specify two files. The first will be the endgroup at the beginning of the itp file and the second will be set at the end. If you only want to specify a special group at the end provide an empty file in the first place. 
+
 ## 2. Initial Strucutre generation
 PolyPly also offers the possibility to grow polymers into existing systems. To indicate that a structure needs to be generated supply the -env flag with one of the system classifications defined as follows:
 
