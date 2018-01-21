@@ -17,7 +17,7 @@ The 'n_mon' option sets the number of repeat units (i.e. n monomers) and the nam
 ```
 polyply -lib
 ```
-**Feel free to propose new monomer itp files to be included in the monomer directory.**  
+Feel free to propose new monomer itp files to be included in the monomer directory.
 #### b - generating block-copolymers
 The tool can also be used to generate a block-copolymers of a custom number of blocks. This can be done by supplying multiple names via the polymer directive and multiple numbers via the n_repeat diretive. For example to generate a block-copolymer of 100 repeat units of PS and 100 repeat units of PEO the input would be:
 ```
@@ -29,7 +29,7 @@ The above command generates a block-copolymer itp for PS and PEO each block with
 ; atom1  atom2    ref     fc
    100   101     0.33    7000
 ```
-#### c - custom itp files monomer.itp
+#### c - custom polymers itps 
 PolyPly also takes custom monomer itp files, as long as they use the standard GROMACS itp file format. The itp-file has to contain all bonded parameters of one repeat unit including those with the following repeat units, if there are any. Always make sure that the output contains everything you would expect. Some example monomer.itp files can be found in the monomer_itps directory. The only difference to the library command is, that the itp file name is supplied via the -itp option as shown in the following scheme:
 ```
 polyply -itp [name of polymer itp file] -n_mon [repeat units] -o [name of outfile] -name [name of polymer]
