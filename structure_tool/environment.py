@@ -14,27 +14,22 @@ from Martini_PolyPly.structure_tool.geometrical_functions import *
 from Martini_PolyPly.structure_tool.force_field_tools import *
 
 
-def create_environment(options):
-    env_type, sol, box, spacing, lipid_type, ratio = options 
-
-    if env_type in '[ bulk ]':
-       supp_traj = make_box_w_solvent(options)
+def import_environment(options):
+    env_type, sol, lipid_type, sysfile = options 
+    environment_coords, box = read_conf_file(sysfile, ".gro")
+ 
+    if env_type in '[ sol ]':
+         start = find_central_starting_point(environment_coords, sol)
 
     elif env_type in '[ bilayer ]':
-       if spacing != 0:
-           area_per_lipid = 0.8 # this should be made variable but on average 0.8 should be fine
-           z_dim = box[2]
-           xy_dim = (spacing**2.0 / area_per_lipid**2.0)**(0.5)
-           print('xy-dimension:',xy_dim)
-           n_lipids = int(xy_dim**2.0)
-           print("n-other lipids:",n_lipids-1)
-       else:
-           n_lipids = ratio + 1
-           xy_dim = box[0]
-           z_dim = box[2]
-       supp_traj = gen_bilayer(lipid_type, n_lipids, (xy_dim, xy_dim, z_dim))
-      
-    return(supp_traj)
+         #DOPE_new = reorder_lipid(bilayer_coords['DOPE'][0])
+         #environment_coords['DOPE'][0] = DOPE_new
+         start = bilayer_coords[lipidtype][0][-1]
+         constraints = [{'type':'dist-x-axis', 'tol':float(box[0])/2, 'ref':start[0]}, {'type':'dist-y-axis', 'tol':float(box[1])/2, 'ref':start[1]},  
+                        {'type':'dist-z-axis', 'tol':0, 'ref':start[2]}]
+
+    return(environment_coords, constraints, start, box)
+
 
 def reorder_lipid(lipid_coords):
     good_lipid = [0,0,0,0,0,0,0,0,0,0,0]
@@ -84,7 +79,3 @@ def gen_bilayer(lipid_type, n_lipids, dim):
     constraints = [{'type':'dist-x-axis', 'tol':float(box[0])/2, 'ref':head[0]}, {'type':'dist-y-axis', 'tol':float(box[1])/2, 'ref':head[1]},  
                    {'type':'dist-z-axis', 'tol':0, 'ref':head[2]}]
     return(bilayer_coords, constraints, head, box)
-
-def solvate(options):
-    solvated_box=0
-    return(solvated_box)

@@ -205,7 +205,8 @@ def metropolis_monte_carlo(ff, name, start, temp, n_repeat, max_steps, verbose, 
                    else:
                      print('+++++++++++++++++++++ FATAL ERROR ++++++++++++++++++++++++++++\n')
                      print('Exceeded maximum number of steps in the monte-carlo module.')
-                     print('If you know what you do set -maxconstraints to -1')
+                     print('If you know what you do set -maxsteps to -1')
+                     exit()
                 else:
                    if verbose:
                       print('rejected')         
@@ -233,27 +234,21 @@ def generate_chains(ff, start, chain, mc_options, env_traj, constraints, sol):
 
 def build_system(top_options, env_options, mc_options, outfile):
     topfile = top_options
- 
-    size, nexcl = 0.43, 1
-    box = np.array([10,10,10])
-    #print(env_options)
-    if env_options[0] in '[ vac ]':
+    temp, max_steps, verbose, name = mc_options
+    env_type, sol, lipid_type, sysfile = env_options 
+
+    if env_type in '[ vac ]':
+       box = np.array([10.0,10.0,10.0])
        env_traj = []
        ff, system = read_top(topfile)
-       traj = generate_chains(ff, np.array([0,0,0]), chain, mc_options, env_traj, [{'type':None}], None)
+       n_mon = int(len(ff[name]['atoms']))
+       traj = metropolis_monte_carlo(ff, name, start, temp, n_mon, max_steps, verbose, env_traj, [{'type':None}], None, 0)
 
-    elif env_options[0] in '[ bulk ]':
-       options = 0
-       print('Not active yet!')
-       exit()
-       env_traj, constraints = create_environment(env_type, options)
-       traj = generate_chains(ff, conf, step_length, nexcl, chain, mc_options, env_traj, None)
-
-    elif env_options[0] in '[ bilayer ]':
-       env_traj, constraints, head, box = create_environment(env_options)
-       print(head)
+    elif env_type in '[ sol, bilayer ]':
+       env_traj, constraints, head, box, offset = import_environment(env_options)
        ff, system = read_top(topfile)
-       traj = generate_chains(ff, head, env_options[0], mc_options, env_traj, constraints, 'W')
+       n_mon = int(len(ff[name]['atoms']))
+       traj = metropolis_monte_carlo(ff, name, head, temp, n_mon, max_steps, verbose, env_traj, constraints, sol, offset)
  
     write_gro_file(traj,outfile,ff, box)
     return(None)   
