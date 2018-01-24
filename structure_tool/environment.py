@@ -13,6 +13,15 @@ from Martini_PolyPly.structure_tool.analysis_funtions import *
 from Martini_PolyPly.structure_tool.geometrical_functions import *
 from Martini_PolyPly.structure_tool.force_field_tools import *
 
+def find_central_starting_point(coordinates, sol):
+    x_coords = [ atom[0] for mol in coordinates[sol] for atom in mol ]
+    y_coords = [ atom[1] for mol in coordinates[sol] for atom in mol ]
+    z_coords = [ atom[2] for mol in coordinates[sol] for atom in mol ]
+    point_A = np.array([max(x_coords), max(y_coords), max(z_coords)])
+    point_B = np.array([min(x_coords), min(y_coords), min(z_coords)])    
+    diagonal = point_A - point_B
+    starting_point = point_B + 0.5 * diagonal
+    return(starting_point)
 
 def import_environment(options):
     env_type, sol, lipid_type, sysfile = options 
@@ -20,6 +29,7 @@ def import_environment(options):
  
     if env_type in '[ sol ]':
          start = find_central_starting_point(environment_coords, sol)
+         constraints = [{'type':None}]
 
     elif env_type in '[ bilayer ]':
          #DOPE_new = reorder_lipid(bilayer_coords['DOPE'][0])

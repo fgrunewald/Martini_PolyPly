@@ -18,11 +18,12 @@ parser.add_argument('-p'       , metavar = 'topology file'      , dest = 'topfil
 parser.add_argument('-T'       , metavar = 'temperature'        , dest = 'temp'    , type = float , help = 'temperature of system', default=298.0) 
 parser.add_argument('-v'       , metavar = 'verbose'            , dest = 'v'       , type = bool  , help = 'be loud and noisy')
 parser.add_argument('-env'     , metavar = 'environmnet'        , dest = 'env'     , type = str   , help = 'type of environment to add to chain', default=None)
+parser.add_argument('-sys'     , metavar = 'system'             , dest = 'sys'     , type = str   , help = 'trajectory of environment',default=None)   
 parser.add_argument('-maxsteps', metavar = 'max MC steps'       , dest = 'maxsteps', type = int   , help = 'maximum number of MC steps befaure exit by error', default=5000)
 parser.add_argument('-links'   , metavar = 'linkfile'           , dest = 'linkfile', type = str   , help = 'file where the bonded links are specified.', default=None)
 parser.add_argument('-endgroup', metavar = 'endgroup itps'     , dest = 'endgroup', type = str   , help = 'itp files with endgroups', nargs='*' ,default=None)
 parser.add_argument('-lipid'   , metavar = 'lipid type'        , dest = 'lipid'   , type = str   , help = 'lipid type of the bilayer when env is bilayer')
-parser.add_argument('-box'     , metavar = 'dimensions of box' , dest = 'box'     , type = float , help = 'boxdimensions in nm for x, y, z', nargs=3)
+#parser.add_argument('-box'     , metavar = 'dimensions of box' , dest = 'box'     , type = float , help = 'boxdimensions in nm for x, y, z', nargs=3)
 parser.add_argument('-spacing' , metavar = 'spacing of PEL'    , dest = 'spacing' , type = float , help = 'spaceing between PEL in a bilayer', default=0 )
 parser.add_argument('-sol'     , metavar = 'solvent'           , dest = 'solvent' , type = str   , help = 'name of solvent for the polymer system', default=None)   
 parser.add_argument('-lib'     , action='store_true'  , help = 'show itp library')   
@@ -38,13 +39,11 @@ def resolve_name(names, path):
 
 def show_files(path):
     files = [ f for f in os.listdir(path) if len(f.split('.')) == 3] # if os.path.isfile(f)]
-    print(files)
     print('\nPolymer       ','ForceField')
     print('----------------------------')
     for f in files:
         print('{:<15s}{:<15s}'.format(f.split('.')[0], f.split('.')[1]))
-        #print(f)
-
+  
 def main():
  
    if not args.itpfiles == None:
@@ -56,7 +55,7 @@ def main():
       itp_tool(itp_files, args.linkfile ,args.mon, args.outfile, args.name, args.endgroup)
 
    elif not args.env == None:
-      env_options = (args.env, args.solvent, args.box, args.lipid)
+      env_options = (args.env, args.solvent, args.lipid, args.sys)
       top_options = (args.topfile)
       mc_options =  (args.temp, args.maxsteps, args.v, args.name)
       build_system(top_options, env_options, mc_options, args.outfile)

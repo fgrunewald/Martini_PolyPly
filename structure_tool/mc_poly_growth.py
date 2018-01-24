@@ -72,20 +72,15 @@ def take_step(vectors, step_length, item):
     return(new_item, index)
 
 def Hamiltonion(ff, traj, display):
-    #traj = traj.reshape(-1,3)
     bond, angle, dihedral = 0, 0, 0
-
+  
     for molecule, positions in traj.items():
       for coords in positions:
-        #print(ff[molecule])
         bond  += bonded_pot(ff[molecule], coords)
-        #print('get here')
         angle += angle_pot(ff[molecule], coords)
         dihedral += dihedral_pot(ff[molecule], coords)
-    
-    #print(ff['nonbond_params'])
+  
     vdw =  non_bond_interactions(ff, traj)
-    #print('returned')
     display=False
     if display:
        for term, name in zip([bond, angle, dihedral, vdw],['bonds', 'angle', 'dihedral', 'vdw']):
@@ -141,12 +136,11 @@ def determine_step_length(ff, count, traj, name, start, offset):
     return(step_length, ref_coord)
 
 
-def metropolis_monte_carlo(ff, name, start, temp, n_repeat, max_steps, verbose, env_traj, list_of_constraints, sol, offset):
+def metropolis_monte_carlo(ff, name, start, temp, n_repeat, max_steps, verbose, env_traj, list_of_constraints, sol, offset, lipid):
  
     try:
-        traj = {name:[env_traj['DOPE'][0]]}
-        del env_traj['DOPE'][0]
-        #print(traj)               
+        traj = {name:[env_traj[lipid][0]]}
+        del env_traj[lipid][0]               
     except (KeyError,TypeError):
         traj = {name:[start]}
  
@@ -155,6 +149,10 @@ def metropolis_monte_carlo(ff, name, start, temp, n_repeat, max_steps, verbose, 
     while count < n_repeat:
        print('~~~~~~~~~~~~~~~~',count,'~~~~~~~~~~~~~~')
        if count == 0:
+          if len(env_traj) != 0:
+             sol_traj_temp = remove_overlap(start, env_traj[sol], 0.47*0.8, sol)
+             traj.update({sol: sol_traj_temp})
+             [ traj.update({key:values}) for key, values in env_traj.items() if key != sol ]
           prev_E = 0
           rejected = 0
           count = count + 1
@@ -169,36 +167,31 @@ def metropolis_monte_carlo(ff, name, start, temp, n_repeat, max_steps, verbose, 
                       new_coord, index = take_step(vector_bundel, step_length, last_point)
                       if not is_overlap(new_coord, traj[name], 0.43*0.8,1):
                          break
-                      #else:
-                         #print('gp')
+
                # print(traj)
                 new_traj = {name:[np.append(traj[name],np.array([new_coord])).reshape(-1,3)]}
-                  
-
+                 
                 if len(env_traj) != 0:
                    sol_traj_temp = remove_overlap(new_coord, env_traj[sol], 0.47*0.8, sol)                    
                    new_traj.update({sol: sol_traj_temp})
                    [ new_traj.update({key:values}) for key, values in env_traj.items() if key != sol ]
-                
- 
+             
                 if constraints(new_coord, list_of_constraints):
                    total_E  = Hamiltonion(ff, new_traj, verbose)
-              #     print(new_traj)
+
                    if accaptable(total_E, temp, prev_E):
                      if verbose:
                         print('accapted')
                         print(total_E * len(new_traj))
                      prev_E = total_E
                      traj = new_traj
-               #      print(traj)
                      last_point = new_coord
-                  #   print(count)
                      count = count + 1
                      break
+
                    elif count < max_steps:
-                     #print('rejected')
-                     #exit()
                      if verbose:
+                        print(total_E)
                         print('rejected')         
                      rejected = rejected + 1
                      vector_bundel = np.delete(vector_bundel, index, axis=0)
@@ -236,19 +229,26 @@ def build_system(top_options, env_options, mc_options, outfile):
     topfile = top_options
     temp, max_steps, verbose, name = mc_options
     env_type, sol, lipid_type, sysfile = env_options 
+    ff, system = read_top(topfile)
+    ff = convert_constraints(ff)
 
     if env_type in '[ vac ]':
        box = np.array([10.0,10.0,10.0])
        env_traj = []
-       ff, system = read_top(topfile)
+       start=np.array([0,0,0])
        n_mon = int(len(ff[name]['atoms']))
-       traj = metropolis_monte_carlo(ff, name, start, temp, n_mon, max_steps, verbose, env_traj, [{'type':None}], None, 0)
+       traj = metropolis_monte_carlo(ff, name, start, temp, n_mon, max_steps, verbose, env_traj, [{'type':None}], None, 0, None)
 
     elif env_type in '[ sol, bilayer ]':
-       env_traj, constraints, head, box, offset = import_environment(env_options)
-       ff, system = read_top(topfile)
+       env_traj, constraints, head, box = import_environment(env_options)
+
+       if env_type == 'bilayer':
+          offset = len(env_traj[lipid_type][0])       
+       else:
+          offset = 0
+
        n_mon = int(len(ff[name]['atoms']))
-       traj = metropolis_monte_carlo(ff, name, head, temp, n_mon, max_steps, verbose, env_traj, constraints, sol, offset)
- 
+       traj = metropolis_monte_carlo(ff, name, head, temp, n_mon, max_steps, verbose, env_traj, constraints, sol, offset,lipid_type)
+    
     write_gro_file(traj,outfile,ff, box)
     return(None)   

@@ -14,6 +14,7 @@ from Martini_PolyPly.structure_tool.analysis_funtions import *
 from Martini_PolyPly.structure_tool.geometrical_functions import *
 from Martini_PolyPly.structure_tool.force_field_tools import *
 from multiprocessing import Pool
+import time
 
 global kBa
 kb = 1.38964852 * 10**(-23.0) *10**-3.0 # kJ/K
@@ -100,20 +101,11 @@ def read_itp(name):
     else:
        return(molecule_type,{'nexcl':nfl(nexcl), 'atoms':atoms, 'bonds':bonds, 'angles':angles, 'constraints':constraints, 'dih':dih})
    
-def convert_constraints(ff, STATUS):
-    # This is not really fast but mehh it works
-    # For very many molecules we should make this more efficent
-    if STATUS:
-       new_bonds=[]
-       new_bonds = [ {'pairs':[int(term['pairs'][0]), int(term['pairs'][1])], 'ref':term['ref'], 'k0': nfl(8000.0)} for molecule in ff for term in ff[molecule]['constraints'] ]
-       new_bonds =  ff['bonds'] + new_bonds
-       ff.update({'bonds':new_bonds})
-    else:
-       print("!!!!!!!!!!! WARNING !!!!!!!!!")
-       print("Constraints don't minimize that well!")
-       print("Your structure might be quite distorted!")
-       print("If you want to keep them constraints, use a different program.")
-       exit()
+def convert_constraints(ff):
+    new_bonds=[]
+    new_bonds = [ {'pairs':[int(term['pairs'][0]), int(term['pairs'][1])], 'ref':term['ref'], 'k0': nfl(10000.0)} for molecule in ff for term in ff[molecule]['constraints'] ]
+    new_bonds =  ff['bonds'] + new_bonds
+    ff.update({'bonds':new_bonds})
     return(ff)
 
 def write_gro_file(data, name, ff, box):
@@ -173,7 +165,7 @@ def read_conf_file(filename, file_type):
                      prev_molecule = molecule
                      atom_count = atom_count + 1
                   else:
-                     coords = [np.array([ coordinates[i] for i in np.arange(0,atom_count)])]
+                     coords = [np.array([coordinates[i]]) for i in np.arange(0,atom_count)]
                      try:
                          positions=traj[prev_molecule] + coords
                      except KeyError:
@@ -257,6 +249,7 @@ def partition(lst, n):
     return([lst[round(parts * i):round(parts * (i + 1))] for i in range(n)])
 
 def non_bond_interactions(ff, traj):
+    start = time.time()
     #print('------> computing non-bonded interactions')
     '''
     The outermost loop over molecules is computed in parallel. To do so we, however,
@@ -269,11 +262,14 @@ def non_bond_interactions(ff, traj):
     with  multiprocessing.Pool(4) as p:
           energy = p.map(Vdw_pot, data)
     energy = sum(energy)
+    #print('Total time spent in nonbonded:',time.time() - start)
+    #exit()
     return(energy)
 
 def Vdw_pot(input_data):
     ff, traj_part, traj = input_data
     energy=0
+    trying=0
     for coords_A in traj_part:   
           molecule_A = coords_A[0]
           pos_mol_A = coords_A[1]
@@ -282,8 +278,9 @@ def Vdw_pot(input_data):
              for molecule_B, coords_B in traj.items():
                for pos_mol_B in coords_B:
                   for j, point_B in enumerate(pos_mol_B):
-                    
+                     start = time.time()
                      dist = norm(point_A - point_B)
+                     trying = trying + (time.time()-start)
                      atom_A, atom_B = ff[molecule_A]['atoms'][i]['typ'], ff[molecule_B]['atoms'][j]['typ']
                      try:
                          epsilon = ff['nonbond_params'][(atom_A, atom_B)]['epsilon']
@@ -291,7 +288,6 @@ def Vdw_pot(input_data):
                      except KeyError:
                          epsilon = ff['nonbond_params'][(atom_B, atom_A)]['epsilon']
                          sigma = ff['nonbond_params'][(atom_B, atom_A)]['sigma']
-
                      if molecule_A == molecule_B:
                         if i-j != 0:
                           if not are_bonded(i, j, molecule_A, ff): #> ff[molecule_A]['nexcl']:
@@ -320,55 +316,6 @@ def Vdw_pot(input_data):
                          #  print(molecule_B)
                          #  print(molecule_A)
                            return(energy)
+    print('Spengt',trying,'seconds')
     return(energy)
 
-def Vdw_pot_old(input_data):
-    ff, traj = input_data
-    energy=0
-    print('Commence Computation of Nonbonded Interactions.')
-    for molecule_A, coords_A in traj.items():   
-       for pos_mol_A in coords_A:
-          for i, point_A in enumerate(pos_mol_A):
-             for molecule_B, coords_B in traj.items():
-               for pos_mol_B in coords_B:
-                  for j, point_B in enumerate(pos_mol_B):
-                    
-                     dist = norm(point_A - point_B)
-                     atom_A, atom_B = ff[molecule_A]['atoms'][i]['typ'], ff[molecule_B]['atoms'][j]['typ']
-                     try:
-                         epsilon = ff['nonbond_params'][(atom_A, atom_B)]['epsilon']
-                         sigma = ff['nonbond_params'][(atom_A, atom_B)]['sigma']
-                     except KeyError:
-                         epsilon = ff['nonbond_params'][(atom_B, atom_A)]['epsilon']
-                         sigma = ff['nonbond_params'][(atom_B, atom_A)]['sigma']
-
-                     if molecule_A == molecule_B:
-                        if i-j != 0:
-                          if not are_bonded(i, j, molecule_A, ff): #> ff[molecule_A]['nexcl']:
-                           energy = energy + LJ(sigma, epsilon, dist)                           
-                           if dist < 0.8*0.43:
-                              energy = math.inf
-                              print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
-                              print('Self-Overlap')
-                              print(molecule_A)
-                              print('atomA:',atom_A)
-                              print('atomB:',atom_B)
-                              print('index',i)
-                              print('diff:',j-i)
-                              print(are_bonded(i, j, molecule_A, ff))
-                              print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
-                              return(energy)
-                        else:
-                           energy = energy   
-                     else:
-                        energy = energy + LJ(sigma, epsilon, dist)
-                        #if dist < 0.5:
-                           #print(LJ(sigma, epsilon, dist))
-                        if dist < 0.8*0.47:
-                           energy = math.inf
-                           print('Overlap')
-                           print(molecule_B)
-                           print(molecule_A)
-                           return(energy)
-    print('Computed all Nonbonded Interactions')
-    return(energy)
