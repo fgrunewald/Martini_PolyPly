@@ -30,10 +30,10 @@ parser.add_argument('-lib'     , action='store_true'  , help = 'show itp library
 args = parser.parse_args()
 
 
-def resolve_name(names, path):
+def resolve_name(names, path,ff):
     paths = []
     for name in names:
-        full_name = path + 'monomer_itps/' + name + '.itp'
+        full_name = path + 'monomer_itps/' + name + '.' + ff + '.itp'
         paths += [ full_name ]
     return(paths)
 
@@ -51,7 +51,7 @@ def main():
 
    elif not args.r_itp_name == None:
       path = os.path.abspath(__file__).replace('polyply.py', '')
-      itp_files = resolve_name(args.r_itp_name, path)
+      itp_files = resolve_name(args.r_itp_name, path, 'martini')
       itp_tool(itp_files, args.linkfile ,args.mon, args.outfile, args.name, args.endgroup)
 
    elif not args.env == None:

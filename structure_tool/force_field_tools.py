@@ -100,12 +100,17 @@ def read_itp(name):
        return('nonbond_params', nonbond_params)
     else:
        return(molecule_type,{'nexcl':nfl(nexcl), 'atoms':atoms, 'bonds':bonds, 'angles':angles, 'constraints':constraints, 'dih':dih})
-   
+
 def convert_constraints(ff):
-    new_bonds=[]
-    new_bonds = [ {'pairs':[int(term['pairs'][0]), int(term['pairs'][1])], 'ref':term['ref'], 'k0': nfl(10000.0)} for molecule in ff for term in ff[molecule]['constraints'] ]
-    new_bonds =  ff['bonds'] + new_bonds
-    ff.update({'bonds':new_bonds})
+    print('++++++++++++++++++++++ Converting Constraints +++++++++++++++++++++++')
+    for molecule in ff:
+     if molecule != 'nonbond_params':
+      if len(ff[molecule]['constraints']) != 0:
+        new_bonds = []
+        #print(len(ff[molecule]['bonds']))
+        new_bonds = [ {'pairs':[int(term['pairs'][0]), int(term['pairs'][1])], 'ref':term['ref'], 'k0': nfl(9000.0)} for term in ff[molecule]['constraints'] ]
+        new_bonds =  ff[molecule]['bonds'] + new_bonds
+        ff[molecule].update({'bonds':new_bonds})
     return(ff)
 
 def write_gro_file(data, name, ff, box):
@@ -134,57 +139,7 @@ def write_log_file(infos, fomat_info):
     log_file.close()
     return(None)
 
-def read_conf_file(filename, file_type):
-    with open(filename) as f:
-        lines=f.readlines()
-        traj={}
-        count=0
-        atom_count=0
-        coordinates=np.zeros(((len(lines)-3),3))
-        index=0
-        if file_type in '[ .gro, gro]':
-           for line in lines:
-               if count == 0:
-                  title = line.replace('\n', '')
-                  print(title)
-                  count = count + 1
-               elif 1 < count < len(lines) - 1:
-                 # print(line.replace('\n', '').split())
-                  res_num_name, atom, a_index, x, y, z = line.replace('\n', '').split()
-                  point = np.array([x,y,z])
-                  molecule = ''.join([i for i in res_num_name if not i.isdigit()])
-                  index = ''.join([i for i in res_num_name if i.isdigit()])
 
-                  if count == 2:
-                     prev_molecule = molecule
-                     prev_index = index
-                    
-                  if index == prev_index:
-                     coordinates[atom_count] = point
-                     prev_index = index
-                     prev_molecule = molecule
-                     atom_count = atom_count + 1
-                  else:
-                     coords = [np.array([coordinates[i]]) for i in np.arange(0,atom_count)]
-                     try:
-                         positions=traj[prev_molecule] + coords
-                     except KeyError:
-                         positions = coords
-
-                     traj.update({prev_molecule:positions})
-                     prev_index=index
-                     prev_molecule=molecule
-                     coordinates[0] = point
-                     atom_count = 1
-              
-                  count = count + 1
-               elif count == 1:
-                  nlines = int(line.replace('\n', '').split()[0]) + 3
-                  count = count + 1  
-               elif count == nlines - 1:
-                  box = line.replace('\n', '').split()
-                  count = count + 1
-    return(traj, box)
 
 
 def pot_I( val ,k0, ref):
@@ -262,8 +217,6 @@ def non_bond_interactions(ff, traj):
     with  multiprocessing.Pool(4) as p:
           energy = p.map(Vdw_pot, data)
     energy = sum(energy)
-    #print('Total time spent in nonbonded:',time.time() - start)
-    #exit()
     return(energy)
 
 def Vdw_pot(input_data):
@@ -292,11 +245,11 @@ def Vdw_pot(input_data):
                         if i-j != 0:
                           if not are_bonded(i, j, molecule_A, ff): #> ff[molecule_A]['nexcl']:
                            energy = energy + LJ(sigma, epsilon, dist)                           
-                           if dist < 0.8*0.43:
+                           if dist < 0.75*0.43:
                               energy = math.inf
                             #  print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
                               print('Self-Overlap')
-                            #  print(molecule_A)
+                              print(dist)
                             #  print('atomA:',atom_A)
                             #  print('atomB:',atom_B)
                             #  print(i,j)
@@ -310,12 +263,12 @@ def Vdw_pot(input_data):
                         energy = energy + LJ(sigma, epsilon, dist)
                         #if dist < 0.5:
                            #print(LJ(sigma, epsilon, dist))
-                        if dist < 0.8*0.47:
+                        if dist < 0.75*0.47:
                            energy = math.inf
                          #  print('Overlap')
                          #  print(molecule_B)
                          #  print(molecule_A)
                            return(energy)
-    print('Spengt',trying,'seconds')
+   # print('Spengt',trying,'seconds')
     return(energy)
 

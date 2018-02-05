@@ -13,6 +13,61 @@ from Martini_PolyPly.structure_tool.analysis_funtions import *
 from Martini_PolyPly.structure_tool.geometrical_functions import *
 from Martini_PolyPly.structure_tool.force_field_tools import *
 
+
+def read_conf_file(filename, file_type):
+    with open(filename) as f:
+        lines=f.readlines()
+        traj={}
+        count=0
+        atom_count=0
+        coordinates=np.zeros(((len(lines)-3),3))
+        index=0
+        positions=[]
+        if file_type in '[ .gro, gro]':
+           for line in lines:
+               if count == 0:
+                  title = line.replace('\n', '')
+                  print(title)
+                  count = count + 1
+               elif 1 < count < len(lines) - 1:
+                 # print(line.replace('\n', '').split())
+                  res_num_name, atom, a_index, x, y, z = line.replace('\n', '').split()
+                  point = np.array([x,y,z])
+                  molecule = ''.join([i for i in res_num_name if not i.isdigit()])
+                  index = ''.join([i for i in res_num_name if i.isdigit()])
+
+                  if count == 2:
+                     prev_molecule = molecule
+                     prev_index = index
+                    
+                  if index == prev_index:
+                     coordinates[atom_count] = point
+                     prev_index = index
+                     prev_molecule = molecule
+                     atom_count = atom_count + 1
+                  else:
+                     coords = [np.array([coordinates[i] for i in np.arange(0,atom_count)])]
+                     try:
+                         positions=traj[prev_molecule] + coords
+                     except KeyError:
+                         positions = coords
+
+                     traj.update({prev_molecule:positions})
+                     prev_index=index
+                     prev_molecule=molecule
+                     coordinates[0] = point
+                     atom_count = 1
+              
+                  count = count + 1
+               elif count == 1:
+                  nlines = int(line.replace('\n', '').split()[0]) + 3
+                  count = count + 1  
+               elif count == nlines - 1:
+                  box = line.replace('\n', '').split()
+                  count = count + 1
+    return(traj, box)
+
+
 def find_central_starting_point(coordinates, sol):
     x_coords = [ atom[0] for mol in coordinates[sol] for atom in mol ]
     y_coords = [ atom[1] for mol in coordinates[sol] for atom in mol ]
@@ -32,9 +87,7 @@ def import_environment(options):
          constraints = [{'type':None}]
 
     elif env_type in '[ bilayer ]':
-         #DOPE_new = reorder_lipid(bilayer_coords['DOPE'][0])
-         #environment_coords['DOPE'][0] = DOPE_new
-         start = bilayer_coords[lipidtype][0][-1]
+         start = environment_coords[lipid_type][0][-1]
          constraints = [{'type':'dist-x-axis', 'tol':float(box[0])/2, 'ref':start[0]}, {'type':'dist-y-axis', 'tol':float(box[1])/2, 'ref':start[1]},  
                         {'type':'dist-z-axis', 'tol':0, 'ref':start[2]}]
 
