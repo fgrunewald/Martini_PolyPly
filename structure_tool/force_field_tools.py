@@ -4,6 +4,7 @@ import argparse
 import itertools
 import numpy as np
 import scipy.optimize as opt
+import scipy 
 from numpy import sqrt, pi, cos, sin, dot, cross, arccos, degrees
 from numpy import float as nfl
 from numpy.linalg import norm
@@ -15,6 +16,7 @@ from Martini_PolyPly.structure_tool.geometrical_functions import *
 from Martini_PolyPly.structure_tool.force_field_tools import *
 from multiprocessing import Pool
 import time
+import scipy.spatial
 
 global kBa
 kb = 1.38964852 * 10**(-23.0) *10**-3.0 # kJ/K
@@ -203,14 +205,24 @@ def partition(lst, n):
     parts = len(lst) / n
     return([lst[round(parts * i):round(parts * (i + 1))] for i in range(n)])
 
+def compute_dist(flat_traj, traj, cut_off):
+    a = scipy.spatial.cKDTree(flat_traj,100)
+    for molecule, pos in traj.items():
+        pos = np.concatenate(pos,axis=0)
+        mol_tree = scipy.spatial.cKDTree(pos,1000)
+        sparse_matrix = scipy.spatial.cKDTree.sparse_distance_matrix(mol_tree,a,cut_off)
+        print(sparse_matrix)
+    exit()
+    return(sparse_matrix)
+
 def non_bond_interactions(ff, traj):
     start = time.time()
-    #print('------> computing non-bonded interactions')
     '''
     The outermost loop over molecules is computed in parallel. To do so we, however,
     have to flaten the traj, which for not so long trajs is OK, as long as they can
     fit in the RAM.
     '''
+
     flat_traj = [ [ molecule, pos ]  for molecule, pos_mols in traj.items() for pos in pos_mols ]
     partitioned_data = partition(flat_traj, 4)
     data = [ (ff, part, traj) for part in partitioned_data ]
