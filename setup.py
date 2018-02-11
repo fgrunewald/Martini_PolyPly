@@ -6,6 +6,7 @@ setup(
     author='Fabian Grünewald',
     author_email='f.grunewald@student.rug.nl',
     packages=find_packages(),
+    include_package_data=True,
     scripts=['bin/polyply', ],
     url='https://github.com/fgrunewald/Martini_PolyPly',
     license='GPLv3',
