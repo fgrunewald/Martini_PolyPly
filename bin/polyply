@@ -1,11 +1,13 @@
+#!/usr/bin/env python
+
 import argparse
 import os
-from Martini_PolyPly.itp_tool.itp_I import *
-#from Martini_PolyPly.monomer_itps.resolve_name import *
-from Martini_PolyPly.structure_tool.mc_poly_growth import *
-from Martini_PolyPly.structure_tool.analysis_funtions import *
-from Martini_PolyPly.structure_tool.geometrical_functions import *
-from Martini_PolyPly.structure_tool.force_field_tools import *
+from polyply.itp_tool.itp_I import *
+#from polyply.monomer_itps.resolve_name import *
+from polyply.structure_tool.mc_poly_growth import *
+from polyply.structure_tool.analysis_funtions import *
+from polyply.structure_tool.geometrical_functions import *
+from polyply.structure_tool.force_field_tools import *
 
 
 parser = argparse.ArgumentParser(description=' ')
