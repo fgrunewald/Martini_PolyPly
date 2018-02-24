@@ -1,4 +1,4 @@
-from Martini_PolyPly.itp_tool.itp_I import *
+from polyply.itp_tool.itp_I import *
 
 ref=read_itp("PS100_Amap.itp")
 new=read_itp("test_PS.itp")

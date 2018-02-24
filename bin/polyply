@@ -1,11 +1,14 @@
+#!/usr/bin/env python
+
 import argparse
 import os
-from Martini_PolyPly.itp_tool.itp_I import *
-#from Martini_PolyPly.monomer_itps.resolve_name import *
-from Martini_PolyPly.structure_tool.mc_poly_growth import *
-from Martini_PolyPly.structure_tool.analysis_funtions import *
-from Martini_PolyPly.structure_tool.geometrical_functions import *
-from Martini_PolyPly.structure_tool.force_field_tools import *
+from polyply.itp_tool.itp_I import *
+#from polyply.monomer_itps.resolve_name import *
+from polyply.structure_tool.mc_poly_growth import *
+from polyply.structure_tool.analysis_funtions import *
+from polyply.structure_tool.geometrical_functions import *
+from polyply.structure_tool.force_field_tools import *
+from polyply import DATA_PATH
 
 
 parser = argparse.ArgumentParser(description=' ')
@@ -33,7 +36,8 @@ args = parser.parse_args()
 def resolve_name(names, path,ff):
     paths = []
     for name in names:
-        full_name = path + 'monomer_itps/' + name + '.' + ff + '.itp'
+        basename = '{}.{}.itp'.format(name, ff)
+        full_name = os.path.join(path, 'monomer_itps',  basename)
         paths += [ full_name ]
     return(paths)
 
@@ -50,8 +54,7 @@ def main():
       itp_tool(args.itpfiles, args.linkfile ,args.mon, args.outfile, args.name, args.endgroup)
 
    elif not args.r_itp_name == None:
-      path = os.path.abspath(__file__).replace('polyply.py', '')
-      itp_files = resolve_name(args.r_itp_name, path, 'martini')
+      itp_files = resolve_name(args.r_itp_name, DATA_PATH, 'martini')
       itp_tool(itp_files, args.linkfile ,args.mon, args.outfile, args.name, args.endgroup)
 
    elif not args.env == None:
@@ -61,8 +64,7 @@ def main():
       build_system(top_options, env_options, mc_options, args.outfile)
 
    elif args.lib:
-      path = os.path.abspath(__file__).replace('polyply.py', '')
-      path = path + 'monomer_itps'           
+      path = os.path.join(DATA_PATH, 'monomer_itps')
       show_files(path)
    else:
       print('Please specify either -itp or -sys option.')

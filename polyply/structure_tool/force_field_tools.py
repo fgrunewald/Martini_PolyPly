@@ -10,10 +10,10 @@ from numpy import float as nfl
 from numpy.linalg import norm
 from string import digits
 import multiprocessing
-#from Martini_PolyPly.structure_tool.mc_poly_growth import *
-from Martini_PolyPly.structure_tool.analysis_funtions import *
-from Martini_PolyPly.structure_tool.geometrical_functions import *
-from Martini_PolyPly.structure_tool.force_field_tools import *
+#from polyply.structure_tool.mc_poly_growth import *
+from polyply.structure_tool.analysis_funtions import *
+from polyply.structure_tool.geometrical_functions import *
+from polyply.structure_tool.force_field_tools import *
 from multiprocessing import Pool
 import time
 import scipy.spatial
