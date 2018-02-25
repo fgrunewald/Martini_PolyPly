@@ -4,6 +4,7 @@ import argparse
 import itertools
 import numpy as np
 import scipy.optimize as opt
+import scipy.spatial
 from numpy import sqrt, pi, cos, sin, dot, cross, arccos, degrees
 from numpy import float as nfl
 from numpy.linalg import norm
@@ -132,24 +133,8 @@ def write_gro_file(data, name, ff, box):
     out_file.close()
     return(None)
 
-def write_log_file(infos, fomat_info):
-    log_file = open('logfile.log', 'w')
-    for line in infos:
-        log_file.write(format_info.format(info))
-    log_file.close()
-    return(None)
-
-
-
-
 def pot_I( val ,k0, ref):
-    return(0.5 * k0 * (val-ref)**2.0)
-
-def LJ(C6, C12, r):
-  #  print(sig)
- #   print(eps)
-    #return(4.0 * eps * ( (sig/r)**12.0 - (sig/r)**6.0))
-    return( (C12/r**12.0 - C6/r**6.0) )    
+    return(0.5 * k0 * (val-ref)**2.0)   
 
 def proper_dih(dih, k0, ref, n):
     return( k0 * (1 + cos(n * np.radians(dih) - np.radians(ref))))
@@ -177,8 +162,6 @@ def dihedral_pot(ff, traj):
     return(sum([proper_dih(ang, term['k0'], term['ref'], term['n']) for term, ang in zip(ff['dih'], dih_ang)]))
 
 def are_bonded(atom_A,atom_B,molecule_A,ff):
-    atom_A = atom_A + 1
-    atom_B = atom_B + 1
     if len(ff[molecule_A]['bonds']) > 1:
       for bond in ff[molecule_A]['bonds']:
         index_A, index_B = bond['pairs'][0], bond['pairs'][1]
@@ -198,77 +181,57 @@ def are_bonded(atom_A,atom_B,molecule_A,ff):
     else:
       return(False)
 
+def coulomb(ca, cb, dist,eps):
+    return(1/(4*np.pi*eps)*(ca*cb)/dist**2.0)
 
-def partition(lst, n):
-    parts = len(lst) / n
-    return([lst[round(parts * i):round(parts * (i + 1))] for i in range(n)])
+def LJ(A, B, r, form):
+    #print('go here')
+    if form == 'C6C12':
+       #print(A/r**12.0 - B/r**6.0)
+       return( A/r**12.0 - B/r**6.0 )
+    elif form == 'sigeps':
+       return(4.0 * B * ( (A/r)**12.0 - (A/r)**6.0) )
 
-def non_bond_interactions(ff, traj):
-    start = time.time()
-    #print('------> computing non-bonded interactions')
-    '''
-    The outermost loop over molecules is computed in parallel. To do so we, however,
-    have to flaten the traj, which for not so long trajs is OK, as long as they can
-    fit in the RAM.
-    '''
-    flat_traj = [ [ molecule, pos ]  for molecule, pos_mols in traj.items() for pos in pos_mols ]
-    partitioned_data = partition(flat_traj, 4)
-    data = [ (ff, part, traj) for part in partitioned_data ]
-    with  multiprocessing.Pool(4) as p:
-          energy = p.map(Vdw_pot, data)
-    energy = sum(energy)
-    return(energy)
+def nonbonded_potential(dist_mat, ff, softness, eps, form, verbose):
+    energy = 0
+    e_pot=0
+    verbose=True
+   # print(len(dist_mat))
+   
+    for key, dist in dist_mat.items():
+        #print(key)
+        atom_A, atom_B = ff[key[0]]['atoms'][key[2]]['typ'], ff[key[3]]['atoms'][key[5]]['typ']
+        charge_A, charge_B = ff[key[0]]['atoms'][key[2]]['charge'], ff[key[3]]['atoms'][key[5]]['charge']
 
-def Vdw_pot(input_data):
-    ff, traj_part, traj = input_data
-    energy=0
-    trying=0
-    for coords_A in traj_part:   
-          molecule_A = coords_A[0]
-          pos_mol_A = coords_A[1]
-       #   print(coords_A)
-          for i, point_A in enumerate(pos_mol_A):
-             for molecule_B, coords_B in traj.items():
-               for pos_mol_B in coords_B:
-                  for j, point_B in enumerate(pos_mol_B):
-                     start = time.time()
-                     dist = norm(point_A - point_B)
-                     trying = trying + (time.time()-start)
-                     atom_A, atom_B = ff[molecule_A]['atoms'][i]['typ'], ff[molecule_B]['atoms'][j]['typ']
-                     try:
-                         epsilon = ff['nonbond_params'][(atom_A, atom_B)]['epsilon']
-                         sigma = ff['nonbond_params'][(atom_A, atom_B)]['sigma']
-                     except KeyError:
-                         epsilon = ff['nonbond_params'][(atom_B, atom_A)]['epsilon']
-                         sigma = ff['nonbond_params'][(atom_B, atom_A)]['sigma']
-                     if molecule_A == molecule_B:
-                        if i-j != 0:
-                          if not are_bonded(i, j, molecule_A, ff): #> ff[molecule_A]['nexcl']:
-                           energy = energy + LJ(sigma, epsilon, dist)                           
-                           if dist < 0.75*0.43:
-                              energy = math.inf
-                            #  print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
-                              print('Self-Overlap')
-                              print(dist)
-                            #  print('atomA:',atom_A)
-                            #  print('atomB:',atom_B)
-                            #  print(i,j)
-                            #  print('diff:',j-i)
-                            #  print(are_bonded(i, j, molecule_A, ff))
-                            #  print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
-                              return(energy)
-                        else:
-                           energy = energy   
-                     else:
-                        energy = energy + LJ(sigma, epsilon, dist)
-                        #if dist < 0.5:
-                           #print(LJ(sigma, epsilon, dist))
-                        if dist < 0.75*0.47:
-                           energy = math.inf
-                         #  print('Overlap')
-                         #  print(molecule_B)
-                         #  print(molecule_A)
-                           return(energy)
-   # print('Spengt',trying,'seconds')
-    return(energy)
+        try:
+            coef_A = ff['nonbond_params'][(atom_A, atom_B)]['epsilon']
+            coef_B = ff['nonbond_params'][(atom_A, atom_B)]['sigma']
+        except KeyError:
+            coef_A = ff['nonbond_params'][(atom_B, atom_A)]['epsilon']
+            coef_B = ff['nonbond_params'][(atom_B, atom_A)]['sigma']
 
+        if form == 'C6C12':
+           sigma = (coef_A/coef_B)**(1/6)
+        else:
+           sigma = coef_B
+       
+        if key[0] == key[3] and key[1] == key[4]:
+           if not are_bonded(key[2]+1, key[5]+1, key[0], ff):
+              if dist > sigma * softness:
+                 energy = energy + LJ(coef_A, coef_B, dist, form)
+              else:
+                 if verbose:
+                    print('A-self-overlap')
+                 return(math.inf, math.inf)
+           #else:
+              #print('are bonded')
+        else:
+           if dist > sigma * softness:
+                 energy = energy + LJ(coef_A, coef_B, dist, form)
+           else:
+              if verbose:
+                 print('A-self-overlap')
+              return(math.inf, math.inf)  
+        e_pot = e_pot+ coulomb(charge_A, charge_B, dist, eps)
+        
+    return(energy, e_pot)
