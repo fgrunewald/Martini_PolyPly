@@ -76,7 +76,7 @@ def take_step(vectors, step_length, item):
     new_item = item + vectors[index] * step_length
     return(new_item, index)
 
-def Hamiltonion(ff, traj, display):
+def Hamiltonion(ff, traj, dist_mat, display, eps, cut_off, form, softness):
     bond, angle, dihedral = 0, 0, 0
     for molecule, positions in traj.items():
       for coords in positions:
@@ -84,14 +84,15 @@ def Hamiltonion(ff, traj, display):
         angle += angle_pot(ff[molecule], coords)
         dihedral += dihedral_pot(ff[molecule], coords)
   
-    vdw =  non_bond_interactions(ff, traj)
-    #print(vdw)
-    display=False
+    if len(dist_mat) != 0:
+       vdw, coulomb = nonbonded_potential(dist_mat, ff, softness, eps, form, display)
+    else:
+       vdw, coulomb = 0, 0
     if display:
-       for term, name in zip([bond, angle, dihedral, vdw],['bonds', 'angle', 'dihedral', 'vdw']):
+       for term, name in zip([bond, angle, dihedral, vdw, coulomb],['bonds', 'angle', 'dihedral', 'vdw','coulomb']):
            print(name, term)
 
-    return(bond + angle + dihedral + vdw)
+    return(bond + angle + dihedral + vdw + coulomb)
 
 def is_in_pair_a(pair, value): 
     if value == pair[0] and value > pair[1]:
@@ -140,8 +141,38 @@ def determine_step_length(ff, count, traj, name, start, offset):
           index = count - 1
     return(step_length, ref_coord, bonds_a)
 
+def construct_dist_mat(traj, cut_off, start=False):
+    traj_dists = {}
+    if start:
+       start = time.time()
+       flat_traj_A = np.concatenate([ pos  for molecule, pos_mols in traj.items() for pos in pos_mols ])
+       flat_traj_B = np.concatenate([ pos  for molecule, pos_mols in traj.items() for pos in pos_mols ])
+       mol_ids_A = [ index for molecule, pos_mols in traj.items() for index, pos in enumerate(pos_mols) for atom in pos ]
+       mol_ids_B = [ index for molecule, pos_mols in traj.items() for index, pos in enumerate(pos_mols) for atom in pos ]
+       traj_info_A = [ [molecule, len(pos), n ] for molecule, pos_mols in traj.items() for pos in pos_mols for n, atom in enumerate(pos) ]
+       traj_info_B = [ [molecule, len(pos), n ] for molecule, pos_mols in traj.items() for pos in pos_mols for n, atom in enumerate(pos) ]
+       mol_length = traj_info_A[0][1]
+       atom_count = 0
+       mol_count = 0
+       count=0
+       for info, atom in zip(traj_info_A[:-1], flat_traj_A[:-1]):
+           flat_traj_B = np.delete(flat_traj_B,0,axis=0)
+           del traj_info_B[0]
+           del mol_ids_B[0]
+           traj_tree = scipy.spatial.ckdtree.cKDTree(flat_traj_B)
+           ref_tree = scipy.spatial.ckdtree.cKDTree(atom.reshape(1,3))
+           dist_mat = ref_tree.sparse_distance_matrix(traj_tree,cut_off)
+           [ traj_dists.update({(info[0], mol_ids_A[count], atom_count, traj_info_B[key[1]][0], mol_ids_B[key[1]] , traj_info_B[key[1]][2]):dist}) for key, dist in dist_mat.items()] #if dist != 0]
 
-def metropolis_monte_carlo(ff, name, start, temp, n_repeat, max_steps, verbose, env_traj, list_of_constraints, sol, offset, lipid):
+           if atom_count < mol_length - 1:
+              atom_count = atom_count + 1
+           else:
+              mol_length = traj_info_A[count+1][1]
+              atom_count = 0
+           count = count + 1
+    return(traj_dists)
+
+def metropolis_monte_carlo(ff, name, start, temp, n_repeat, max_steps, verbose, env_traj, list_of_constraints, sol, offset, lipid, cut_off, eps, form, softness):
     
     try:
         traj = {name:[env_traj[lipid][0]]}
@@ -152,11 +183,13 @@ def metropolis_monte_carlo(ff, name, start, temp, n_repeat, max_steps, verbose, 
     if len(env_traj) != 0:
        [ traj.update({key:values}) for key, values in env_traj.items() if key != sol ]
        count = 0
-     
+
+    dist_mat = construct_dist_mat(traj, cut_off, start=True)
+    
     if offset == 0:
        count = 1
 
-    prev_E = Hamiltonion(ff, traj, verbose)
+    prev_E = Hamiltonion(ff, traj, dist_mat, verbose, eps, cut_off, form, softness)
     rejected=0
 
     print('\n+++++++++++++++ STARTING MONTE CARLO MODULE ++++++++++++++\n')
@@ -174,9 +207,11 @@ def metropolis_monte_carlo(ff, name, start, temp, n_repeat, max_steps, verbose, 
                    sol_traj_temp = remove_overlap(new_coord, env_traj[sol], 0.43*0.80, sol)                    
                    new_traj.update({sol: sol_traj_temp})
                    [ new_traj.update({key:values}) for key, values in env_traj.items() if key != sol ]
-             
+          
+                dist_mat = construct_dist_mat(new_traj, cut_off, start=True)
+              
                 if constraints(new_coord, list_of_constraints):
-                   total_E  = Hamiltonion(ff, new_traj, verbose)
+                   total_E  = Hamiltonion(ff, new_traj, dist_mat, verbose, eps, cut_off, form, softness)
 
                    if accaptable(total_E, temp, prev_E):
                      if verbose:
@@ -207,13 +242,19 @@ def metropolis_monte_carlo(ff, name, start, temp, n_repeat, max_steps, verbose, 
                    vector_bundel = np.delete(vector_bundel, index, axis=0)
 
     print('++++++++++++++++ RESULTS FORM MONTE CARLO MODULE ++++++++++++++\n')
-    print('Total Energy:', Hamiltonion(ff, new_traj, verbose))
+    print('Total Energy:', Hamiltonion(ff, traj, dist_mat, True, eps, cut_off, form, softness))
     #print('Radius of Gyration:', radius_of_gyr(traj))
     print('Number of rejected MC steps:', rejected)       
     return(traj)
 
 
 def build_system(top_options, env_options, mc_options, outfile):
+    # some magic numbers which should go to input level at some point
+    cut_off = 1.1
+    softness = 0.75
+    eps = 15
+    form='C6C12'
+    verbose=True
     topfile = top_options
     temp, max_steps, verbose, name = mc_options
     env_type, sol, lipid_type, sysfile = env_options 
@@ -224,7 +265,7 @@ def build_system(top_options, env_options, mc_options, outfile):
        env_traj = []
        start=np.array([0,0,0])
        n_mon = int(len(ff[name]['atoms'])) 
-       traj = metropolis_monte_carlo(ff, name, start, temp, n_mon, max_steps, verbose, env_traj, [{'type':None}], None, 0, None)
+       traj = metropolis_monte_carlo(ff, name, start, temp, n_mon, max_steps, verbose, env_traj, [{'type':None}], None, 0, None,  cut_off, eps, form, softness)
 
     elif env_type in '[ sol, bilayer ]':
        env_traj, constraints, head, box = import_environment(env_options)
@@ -235,7 +276,7 @@ def build_system(top_options, env_options, mc_options, outfile):
           offset = 0
        
        n_mon = int(len(ff[name]['atoms'])) - offset
-       traj = metropolis_monte_carlo(ff, name, head, temp, n_mon, max_steps, verbose, env_traj, constraints, sol, offset,lipid_type)
+       traj = metropolis_monte_carlo(ff, name, head, temp, n_mon, max_steps, verbose, env_traj, constraints, sol, offset,lipid_type, cut_off, eps, form, softness)
     
     write_gro_file(traj,outfile,ff, box)
     return(None)   
