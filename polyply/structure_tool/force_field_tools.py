@@ -5,17 +5,19 @@ import itertools
 import numpy as np
 import scipy.optimize as opt
 import scipy.spatial
+import scipy 
 from numpy import sqrt, pi, cos, sin, dot, cross, arccos, degrees
 from numpy import float as nfl
 from numpy.linalg import norm
 from string import digits
 import multiprocessing
-#from Martini_PolyPly.structure_tool.mc_poly_growth import *
-from Martini_PolyPly.structure_tool.analysis_funtions import *
-from Martini_PolyPly.structure_tool.geometrical_functions import *
-from Martini_PolyPly.structure_tool.force_field_tools import *
+#from polyply.structure_tool.mc_poly_growth import *
+from polyply.structure_tool.analysis_funtions import *
+from polyply.structure_tool.geometrical_functions import *
+from polyply.structure_tool.force_field_tools import *
 from multiprocessing import Pool
 import time
+import scipy.spatial
 
 global kBa
 kb = 1.38964852 * 10**(-23.0) *10**-3.0 # kJ/K
@@ -181,6 +183,7 @@ def are_bonded(atom_A,atom_B,molecule_A,ff):
     else:
       return(False)
 
+<<<<<<< HEAD:structure_tool/force_field_tools.py
 def coulomb(ca, cb, dist,eps):
     return(1/(4*np.pi*eps)*(ca*cb)/dist**2.0)
 
