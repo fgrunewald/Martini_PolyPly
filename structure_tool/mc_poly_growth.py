@@ -250,7 +250,7 @@ def metropolis_monte_carlo(ff, name, start, temp, n_repeat, max_steps, verbose, 
 
 def build_system(top_options, env_options, mc_options, outfile):
     # some magic numbers which should go to input level at some point
-    cut_off = 11
+    cut_off = 1.1
     softness = 0.75
     eps = 15
     form='C6C12'
