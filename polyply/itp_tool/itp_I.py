@@ -33,7 +33,7 @@ settings ={
               ('angles',10):[3, 4, 5],
               ('constraints', 1):[2,3],
               ('dihedrals', 1):[4,5,6,7],
-              ('dihedrals',2):[4,5],
+              ('dihedrals',2):[4,5,6],
               ('dihedrals',11):[4,5,6,7,8,9],
               ('dihedrals', 3):[4,5,6,7,8,9,10],
               ('dihedrals',9):[4,5,6,7],
