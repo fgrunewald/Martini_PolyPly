@@ -183,7 +183,6 @@ def are_bonded(atom_A,atom_B,molecule_A,ff):
     else:
       return(False)
 
-<<<<<<< HEAD:structure_tool/force_field_tools.py
 def coulomb(ca, cb, dist,eps):
     return(1/(4*np.pi*eps)*(ca*cb)/dist**2.0)
 
