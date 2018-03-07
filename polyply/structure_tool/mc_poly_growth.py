@@ -248,18 +248,21 @@ def metropolis_monte_carlo(ff, name, start, temp, n_repeat, max_steps, verbose, 
     return(traj)
 
 
-def build_system(top_options, env_options, mc_options, outfile):
+def build_system(top_options, env_options, mc_options, outfile, magic_numbers):
     # some magic numbers which should go to input level at some point
-    cut_off = 1.1
-    softness = 0.75
-    eps = 15
-    form='C6C12'
-    verbose=True
+    cut_off, softness, eps , form, verbose = magic_numbers
     topfile = top_options
     temp, max_steps, verbose, name = mc_options
     env_type, sol, lipid_type, sysfile = env_options 
     ff, system = read_top(topfile)
     ff = convert_constraints(ff)
+
+    # determine the shape of the nonboned potential
+    if int(ff['defaults'][0]) == 1:
+       form='C6C12'
+    else:
+       form='sigeps'
+
     if env_type in '[ vac ]':
        box = np.array([10.0,10.0,10.0])
        env_traj = []
