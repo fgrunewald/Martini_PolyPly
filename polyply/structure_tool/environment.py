@@ -31,7 +31,13 @@ def read_conf_file(filename, file_type):
                   count = count + 1
                elif 1 < count < len(lines) - 1:
                  # print(line.replace('\n', '').split())
-                  res_num_name, atom, a_index, x, y, z = line.replace('\n', '').split()
+                  index = line.replace('\n', '')[0:5].strip() 
+                  molecule = line.replace('\n', '')[5:10].strip()
+                  atom = line.replace('\n', '')[10:15].strip()
+                  a_index = line.replace('\n', '')[15:20].strip()
+                  x = line.replace('\n', '')[20:28].strip()
+                  y = line.replace('\n', '')[28:36].strip()
+                  z = line.replace('\n', '')[36:44].strip()
                   point = np.array([x,y,z])
                   molecule = ''.join([i for i in res_num_name if not i.isdigit()])
                   index = ''.join([i for i in res_num_name if i.isdigit()])
