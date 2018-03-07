@@ -98,7 +98,14 @@ def read_itp(name):
               elif section in '[ constraints ]':
                   A, B, f, ref = line.replace('\n', '').split()
                   constraints.append({'pairs':[A, B], 'f':nfl(f), 'ref':nfl(ref)})
-  
+              elif section in '[ defaults ]':
+                  LJ = int(line.replace('\n', '').split()[0])
+                  if LJ == 1:
+                     form='C6C12'
+                  else:
+                     form='sigeps'
+                  nonbond_params.update({'functype': form})
+ 
     if len(nonbond_params) != 0:
        return('nonbond_params', nonbond_params)
     else:

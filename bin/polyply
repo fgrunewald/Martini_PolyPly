@@ -60,11 +60,11 @@ def main():
       itp_tool(itp_files, args.linkfile ,args.mon, args.outfile, args.name, args.endgroup)
 
    elif not args.env == None:
-      magic_numbers = (args.cut_off, args.softness, args.eps , args.verbose)
+      magic_numbers = (args.cut_off, args.softness, args.eps , args.v)
       env_options = (args.env, args.solvent, args.lipid, args.sys)
       top_options = (args.topfile)
       mc_options =  (args.temp, args.maxsteps, args.v, args.name)
-      build_system(top_options, env_options, mc_options, args.outfile)
+      build_system(top_options, env_options, mc_options, args.outfile, magic_numbers)
 
    elif args.lib:
       path = os.path.join(DATA_PATH, 'monomer_itps')

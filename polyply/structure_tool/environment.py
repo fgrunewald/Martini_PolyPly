@@ -39,8 +39,8 @@ def read_conf_file(filename, file_type):
                   y = line.replace('\n', '')[28:36].strip()
                   z = line.replace('\n', '')[36:44].strip()
                   point = np.array([x,y,z])
-                  molecule = ''.join([i for i in res_num_name if not i.isdigit()])
-                  index = ''.join([i for i in res_num_name if i.isdigit()])
+                  #molecule = ''.join([i for i in res_num_name if not i.isdigit()])
+                  #index = ''.join([i for i in res_num_name if i.isdigit()])
 
                   if count == 2:
                      prev_molecule = molecule
