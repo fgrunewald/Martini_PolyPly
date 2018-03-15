@@ -256,14 +256,14 @@ def build_system(top_options, env_options, mc_options, outfile, magic_numbers):
     env_type, sol, lipid_type, sysfile = env_options 
     ff, system = read_top(topfile)
     ff = convert_constraints(ff)
-    
+    print('hello')
     try:
        form = ff['nonbond_params']['functype']
     except KeyError:
        print("+++++++++++++++++++ FATAL ERROR ++++++++++++++++++++++++++")
        print("The type from of the LJ potential is not defined in your topfile.")
        exit()
-
+    
     if env_type in '[ vac ]':
        box = np.array([10.0,10.0,10.0])
        env_traj = []

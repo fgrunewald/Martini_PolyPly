@@ -27,7 +27,7 @@ def read_conf_file(filename, file_type):
            for line in lines:
                if count == 0:
                   title = line.replace('\n', '')
-                  print(title)
+                  #print(title)
                   count = count + 1
                elif 1 < count < len(lines) - 1:
                  # print(line.replace('\n', '').split())

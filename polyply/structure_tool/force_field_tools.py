@@ -36,20 +36,21 @@ def read_top(name):
            elif not any([ word in ';' for word in line.split()]):
               if any([ word in '[ [ ]' for word in line.split()]):
                  section = line.replace('\n', '').split()[1]
-                 print(section)
+                 #print(section)
               elif section in '[ molecules ]':
                  name, n_mol = line.replace('\n', '').split()
                  system.update({name: int(n_mol)})
               elif section in '[ System ]':
-                 print('Reading in', line)  
+                 q=1
+                 #print('Reading in', line)  
               elif any([ word in '#include' for word in line.split()]):
                  itpfiles += [line.replace('\n', ' ').replace('\"', ' ').split()[1]]
-                 print(line)
+                 #print(line)
 
     for itp in itpfiles:
         name, parameters =  read_itp(itp)
         ff.update({name: parameters})
-       
+    print(ff)      
     return(ff, system)
 
 def read_itp(name):
@@ -57,14 +58,14 @@ def read_itp(name):
     ff = {}
     molecules, atoms, bonds, angles, dih, constraints, virtual_sitsn = [], [], [], [], [], [], []
     nonbond_params = {}
-    section = 'moleculetype'
+    section = 'random'
     empty=0
     with open(name) as f:
          lines=f.readlines()
          for line in lines:
            if len(line.replace('\n', '').split()) == 0:
               empty = empty +  1
-           elif not any([ word in ';' for word in line.split()]):
+           elif not any([ line[i] in ';' for i in np.arange(0,len(line))]):
  
               if any([ word in '[ [ ]' for word in line.split()]):
                  section = line.replace('\n', '').split()[1]
@@ -189,6 +190,31 @@ def are_bonded(atom_A,atom_B,molecule_A,ff):
            return(False)
     else:
       return(False)
+
+def construct_bonded_exclusions(ff, nexcl):
+    bonded_lists = {}
+    for molecule in ff.items() if molecule != 'nonbonded_params':
+        mol_graph = construct_mol_graph(molecule['bonds'])
+        bonded_list = []
+        for atom in molecule['atoms']:
+            bonded_list += [(atom['n'], neighborhood(mol_graph, atom['n'], nexcl)]
+        bonded_lists.update({molecule:bonded_list})
+    return(bonded_lists)
+
+def construct_mol_graph(bonds):
+    G = nx.Graph()
+    edges = [ (entry['pairs'][0], entry['pairs'][1]) ]
+    G.add_edges_from(edges)
+    return(G)
+
+def neighborhood(G, node, n):
+    '''
+     Adobted from: https://stackoverflow.com/questions/22742754/finding-the-n-degree-neighborhood-of-a-node
+    '''
+    path_lengths = nx.single_source_dijkstra_path_length(G, node)
+    neighbours=[ node for node, length in path_lengths.items() if length <= n]
+    return(neighbours)
+
 
 def coulomb(ca, cb, dist,eps):
     return(1/(4*np.pi*eps)*(ca*cb)/dist**2.0)
