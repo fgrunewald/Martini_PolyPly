@@ -191,9 +191,11 @@ def are_bonded(atom_A,atom_B,molecule_A,ff):
     else:
       return(False)
 
+'''
+
 def construct_bonded_exclusions(ff, nexcl):
     bonded_lists = {}
-    for molecule in ff.items() if molecule != 'nonbonded_params':
+   for molecule in ff.items() if molecule != 'nonbonded_params':
         mol_graph = construct_mol_graph(molecule['bonds'])
         bonded_list = []
         for atom in molecule['atoms']:
@@ -208,13 +210,13 @@ def construct_mol_graph(bonds):
     return(G)
 
 def neighborhood(G, node, n):
-    '''
+    
      Adobted from: https://stackoverflow.com/questions/22742754/finding-the-n-degree-neighborhood-of-a-node
-    '''
+    
     path_lengths = nx.single_source_dijkstra_path_length(G, node)
     neighbours=[ node for node, length in path_lengths.items() if length <= n]
     return(neighbours)
-
+'''
 
 def coulomb(ca, cb, dist,eps):
     return(1/(4*np.pi*eps)*(ca*cb)/dist**2.0)
