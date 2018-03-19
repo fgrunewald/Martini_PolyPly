@@ -50,7 +50,7 @@ def read_top(name):
     for itp in itpfiles:
         name, parameters =  read_itp(itp)
         ff.update({name: parameters})
-    print(ff)      
+    #print(ff)      
     return(ff, system)
 
 def read_itp(name):

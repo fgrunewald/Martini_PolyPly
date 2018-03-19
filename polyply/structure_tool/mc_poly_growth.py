@@ -256,7 +256,7 @@ def build_system(top_options, env_options, mc_options, outfile, magic_numbers):
     env_type, sol, lipid_type, sysfile = env_options 
     ff, system = read_top(topfile)
     ff = convert_constraints(ff)
-    print('hello')
+    #print('hello')
     try:
        form = ff['nonbond_params']['functype']
     except KeyError:
