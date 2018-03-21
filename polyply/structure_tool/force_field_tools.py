@@ -93,9 +93,15 @@ def read_itp(name):
                   angles.append({'pairs': [int(A), int(B), int(C)], 'k0':nfl(k0), 'ref':nfl(ref)})
   
               elif section in '[ dihedrals ]':
-                  A, B, C, D, f, ref, k0, n = line.replace('\n', '').split()
-                  dih.append({'pairs':[int(A),int(B),int(C), int(D)], 'k0':nfl(k0), 'f':nfl(f), 'n':nfl(n), 'ref':nfl(ref)})
-  
+                  if line.split()[4] == str(1) or line.split()[4] == str(9):
+                     A, B, C, D, f, ref, k0, n = line.replace('\n', '').split()
+                     dih.append({'pairs':[int(A),int(B),int(C), int(D)], 'k0':nfl(k0), 'f':nfl(f), 'n':nfl(n), 'ref':nfl(ref)})
+                  elif line.split()[4] == str(2):
+                     A, B, C, D, f, ref, k0 = line.replace('\n', '').split()
+                     dih.append({'pairs':[int(A),int(B),int(C), int(D)], 'k0':nfl(k0), 'f':nfl(f), 'n':0, 'ref':nfl(ref)})
+                  else:
+                     print("Error Unkown dihedral")
+     
               elif section in '[ constraints ]':
                   A, B, f, ref = line.replace('\n', '').split()
                   constraints.append({'pairs':[A, B], 'f':nfl(f), 'ref':nfl(ref)})
@@ -146,8 +152,11 @@ def write_gro_file(data, name, ff, box):
 def pot_I( val ,k0, ref):
     return(0.5 * k0 * (val-ref)**2.0)   
 
-def proper_dih(dih, k0, ref, n):
-    return( k0 * (1 + cos(n * np.radians(dih) - np.radians(ref))))
+def proper_dih(dih, k0, ref, n, f):
+    if f == 1 or f == 9:
+       return( k0 * (1 + cos(n * np.radians(dih) - np.radians(ref))))
+    elif f == 2:
+       return(0.5 * k0 * (dih - ref)**2.0 )
 
 def legal(term, traj):
     status_A = all( [index <= len(traj) for index in term['pairs']])
@@ -169,7 +178,9 @@ def angle_pot(ff, traj):
 
 def dihedral_pot(ff, traj):
     dih_ang = [dih(traj[(t['pairs'][0] - 1)], traj[(t['pairs'][1] - 1)], traj[(t['pairs'][2] - 1)], traj[(t['pairs'][3] -1)]) for t in ff['dih'] if legal(t, traj)]
-    return(sum([proper_dih(ang, term['k0'], term['ref'], term['n']) for term, ang in zip(ff['dih'], dih_ang)]))
+  #  print("dih")
+  #  print(dih_ang)
+    return(sum([proper_dih(ang, term['k0'], term['ref'], term['n'], term['f']) for term, ang in zip(ff['dih'], dih_ang)]))
 
 def are_bonded(atom_A,atom_B,molecule_A,ff):
     if len(ff[molecule_A]['bonds']) > 1:
