@@ -1,10 +1,7 @@
-import random
-import math
 import argparse
-import itertools
+import random
 import numpy as np
 import scipy.optimize as opt
-import multiprocessing
 import tqdm
 from numpy import sqrt, pi, cos, sin, dot, cross, arccos, degrees
 from numpy import float as nfl
@@ -147,7 +144,7 @@ def determine_step_length(ff, count, traj, name, start, offset):
 def construct_dist_mat(traj, cut_off, start=False):
     traj_dists = {}
     if start:
-       start = time.time()
+     
        flat_traj_A = np.concatenate([ pos  for molecule, pos_mols in traj.items() for pos in pos_mols ])
        flat_traj_B = np.concatenate([ pos  for molecule, pos_mols in traj.items() for pos in pos_mols ])
        mol_ids_A = [ index for molecule, pos_mols in traj.items() for index, pos in enumerate(pos_mols) for atom in pos ]

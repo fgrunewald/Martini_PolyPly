@@ -12,5 +12,5 @@ setup(
     license='GPLv3',
     description='Tool for generating MARTINI Polymer itps and structures',
     long_description=open('README.md').read(),
-    install_requires=['numpy', 'scipy'],
+    install_requires=['numpy', 'scipy','networkx','tqdm'],
 )

@@ -1,8 +1,5 @@
 import subprocess
-import random
-import math
 import argparse
-import itertools
 import numpy as np
 import scipy.optimize as opt
 from numpy import sqrt, pi, cos, sin, dot, cross, arccos, degrees

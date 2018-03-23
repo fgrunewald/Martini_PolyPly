@@ -1,7 +1,5 @@
-import random
 import math
 import argparse
-import itertools
 import numpy as np
 import scipy.optimize as opt
 import scipy.spatial
@@ -10,13 +8,10 @@ from numpy import sqrt, pi, cos, sin, dot, cross, arccos, degrees
 from numpy import float as nfl
 from numpy.linalg import norm
 from string import digits
-import multiprocessing
-#from polyply.structure_tool.mc_poly_growth import *
 from polyply.structure_tool.analysis_funtions import *
 from polyply.structure_tool.geometrical_functions import *
 from polyply.structure_tool.force_field_tools import *
 from multiprocessing import Pool
-import time
 import scipy.spatial
 import networkx as nx
 from tqdm import tqdm
