@@ -19,6 +19,7 @@ from multiprocessing import Pool
 import time
 import scipy.spatial
 import networkx as nx
+from tqdm import tqdm
 
 global kBa
 kb = 1.38964852 * 10**(-23.0) *10**-3.0 # kJ/K
@@ -29,7 +30,7 @@ def construct_bonded_exclusions(ff):
     for molecule, params in ff.items():
      
       if molecule != 'nonbond_params':
-        print(molecule)
+ #       print(molecule)
         mol_graph = construct_mol_graph(params['bonds'])
         bonded_list = {}
 
@@ -87,7 +88,7 @@ def read_top(name):
     ff = convert_constraints(ff)
     ff = construct_bonded_exclusions(ff)
     print('finished reading force-field')
-    print(ff)
+#    print(ff)
     return(ff, system)
 
 def strip_comments(line):
@@ -97,8 +98,8 @@ def strip_comments(line):
     word = 'random'
     while True:
           if count < len(line):
-             print(count)
-             print(len(line))
+   #          print(count)
+  #           print(len(line))
              word = line[count]
              if word not in '[ ; ]':
                 word = line[count]
@@ -120,7 +121,7 @@ def read_itp(name):
     with open(name) as f:
          lines=f.readlines()
          for line in lines:
-           print(line)
+ #          print(line)
            if len(line.replace('\n', '').split()) == 0:
               empty = empty +  1
            elif not line[0] in ';':
@@ -280,7 +281,7 @@ def LJ(A, B, r, form):
 def nonbonded_potential(dist_mat, ff, softness, eps, form, verbose):
     energy = 0
     e_pot=0
-    verbose=True
+   # verbose=True
    # print(len(dist_mat))
    
     for key, dist in dist_mat.items():

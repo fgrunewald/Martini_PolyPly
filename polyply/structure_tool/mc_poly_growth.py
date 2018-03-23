@@ -5,6 +5,7 @@ import itertools
 import numpy as np
 import scipy.optimize as opt
 import multiprocessing
+import tqdm
 from numpy import sqrt, pi, cos, sin, dot, cross, arccos, degrees
 from numpy import float as nfl
 from numpy.linalg import norm
@@ -195,8 +196,9 @@ def metropolis_monte_carlo(ff, name, start, temp, n_repeat, max_steps, verbose, 
     rejected=0
 
     print('\n+++++++++++++++ STARTING MONTE CARLO MODULE ++++++++++++++\n')
+    pbar = tqdm(total = n_repeat)
     while count < n_repeat:
-          print('~~~~~~~~~~~~~~~~',count,'~~~~~~~~~~~~~~')
+          #print('~~~~~~~~~~~~~~~~',count,'~~~~~~~~~~~~~~')
           step_length, ref_coord, bonded = determine_step_length(ff, count, traj[name][0], name, start, offset)
           last_point = ref_coord
           subcount=0     
@@ -223,6 +225,7 @@ def metropolis_monte_carlo(ff, name, start, temp, n_repeat, max_steps, verbose, 
                      traj = new_traj
                      last_point = new_coord
                      count = count + 1
+                     pbar.update(1)
                      break
 
                    elif subcount < max_steps:
@@ -242,7 +245,7 @@ def metropolis_monte_carlo(ff, name, start, temp, n_repeat, max_steps, verbose, 
                       print('rejected')         
                    rejected = rejected + 1
                    vector_bundel = np.delete(vector_bundel, index, axis=0)
-
+    pbar.close()
     print('++++++++++++++++ RESULTS FORM MONTE CARLO MODULE ++++++++++++++\n')
     print('Total Energy:', Hamiltonion(ff, traj, dist_mat, True, eps, cut_off, form, softness))
     #print('Radius of Gyration:', radius_of_gyr(traj))
