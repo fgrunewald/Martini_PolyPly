@@ -18,9 +18,43 @@ from polyply.structure_tool.force_field_tools import *
 from multiprocessing import Pool
 import time
 import scipy.spatial
+import networkx as nx
 
 global kBa
 kb = 1.38964852 * 10**(-23.0) *10**-3.0 # kJ/K
+
+
+def construct_bonded_exclusions(ff):
+    bonded_lists={}
+    for molecule, params in ff.items():
+     
+      if molecule != 'nonbond_params':
+        print(molecule)
+        mol_graph = construct_mol_graph(params['bonds'])
+        bonded_list = {}
+
+        for atom in params['atoms']:
+            bonded_list.update({atom['n']: neighborhood(mol_graph, atom['n'], params['nexcl'])})
+        bonded_lists.update({molecule:bonded_list})
+
+    for molecule, bond_list in bonded_lists.items():
+       params = ff[molecule]
+       params.update({'bond_excl':bond_list})
+       ff.update({molecule:params})
+    return(ff)
+  
+def construct_mol_graph(bonds):
+    G = nx.Graph()
+    edges = [ (entry['pairs'][0], entry['pairs'][1]) for entry in bonds]
+    G.add_edges_from(edges)
+    return(G)
+
+def neighborhood(G, node, n):
+#     Adobted from: https://stackoverflow.com/questions/22742754/finding-the-n-degree-neighborhood-of-a-node    
+    path_lengths = nx.single_source_dijkstra_path_length(G, node)
+    neighbours=[ node for node, length in path_lengths.items() if length <= n]
+    return(neighbours)
+
 
 def read_top(name):
     itpfiles =  []
@@ -33,25 +67,48 @@ def read_top(name):
            #print(line)
            if len(line.replace('\n', '').split()) == 0:
               empty = empty +  1
-           elif not any([ word in ';' for word in line.split()]):
-              if any([ word in '[ [ ]' for word in line.split()]):
-                 section = line.replace('\n', '').split()[1]
+           if any([ word in '[ [ ]' for word in line.split()]):
+              section = line.replace('\n', '').split()[1]
                  #print(section)
-              elif section in '[ molecules ]':
-                 name, n_mol = line.replace('\n', '').split()
-                 system.update({name: int(n_mol)})
-              elif section in '[ System ]':
-                 q=1
-                 #print('Reading in', line)  
-              elif any([ word in '#include' for word in line.split()]):
-                 itpfiles += [line.replace('\n', ' ').replace('\"', ' ').split()[1]]
-                 #print(line)
+           elif section in '[ molecules ]':
+                name, n_mol = line.replace('\n', '').split()[0:2]
+                system.update({name: int(n_mol)})
+           elif section in '[ System ]':
+                q=1
+                #print('Reading in', line)  
+           elif any([ word in '#include' for word in line.split()]):
+                itpfiles += [line.replace('\n', ' ').replace('\"', ' ').split()[1]]
+                #print(line)
 
     for itp in itpfiles:
         name, parameters =  read_itp(itp)
         ff.update({name: parameters})
-    #print(ff)      
+
+    ff = convert_constraints(ff)
+    ff = construct_bonded_exclusions(ff)
+    print('finished reading force-field')
+    print(ff)
     return(ff, system)
+
+def strip_comments(line):
+    line = line.replace('\n', ' ').split()
+    clean_line = []
+    count = 0
+    word = 'random'
+    while True:
+          if count < len(line):
+             print(count)
+             print(len(line))
+             word = line[count]
+             if word not in '[ ; ]':
+                word = line[count]
+                clean_line += [word]
+                count = count + 1 
+             else:
+               break
+          else:
+            break
+    return(clean_line)
 
 def read_itp(name):
     print('Reading',name)
@@ -63,55 +120,59 @@ def read_itp(name):
     with open(name) as f:
          lines=f.readlines()
          for line in lines:
+           print(line)
            if len(line.replace('\n', '').split()) == 0:
               empty = empty +  1
-           elif not any([ line[i] in ';' for i in np.arange(0,len(line))]):
- 
-              if any([ word in '[ [ ]' for word in line.split()]):
-                 section = line.replace('\n', '').split()[1]
- 
-              elif section in '[ moleculetype ]':
- #                  print(line)
-                   name, nexcl = line.replace('\n', '').split()
-                   molecules.append({'name':name,'nexcl':nfl(nexcl)})
-                   molecule_type = name
-                    
-              elif section in '[ atoms ]':
-                  n, typ, resnr, res, atom, cgnr, charge, mass = line.replace('\n', '').split()
-                  atoms.append({'n': int(n), 'typ':typ ,'atom':atom, 'charge':nfl(charge)})
- 
-              elif section in '[ nonbond_params ]':
-                  atom1, atom2, f, sigma, epsilon = line.replace('\n', '').split()
-                  nonbond_params.update({(atom1, atom2): {'sigma':nfl(sigma), 'epsilon':nfl(epsilon)}})
- 
-              elif section in '[ bonds ]':
-                  A, B, f, ref, k0 = line.replace('\n', '').split()
-                  bonds.append({'pairs':[int(A),int(B)], 'k0':nfl(k0), 'ref':nfl(ref)})
- 
-              elif section in '[ angles ]':
-                  A, B, C, f, ref, k0 = line.replace('\n', '').split()
-                  angles.append({'pairs': [int(A), int(B), int(C)], 'k0':nfl(k0), 'ref':nfl(ref)})
-  
-              elif section in '[ dihedrals ]':
-                  if line.split()[4] == str(1) or line.split()[4] == str(9):
-                     A, B, C, D, f, ref, k0, n = line.replace('\n', '').split()
-                     dih.append({'pairs':[int(A),int(B),int(C), int(D)], 'k0':nfl(k0), 'f':nfl(f), 'n':nfl(n), 'ref':nfl(ref)})
-                  elif line.split()[4] == str(2):
-                     A, B, C, D, f, ref, k0 = line.replace('\n', '').split()
-                     dih.append({'pairs':[int(A),int(B),int(C), int(D)], 'k0':nfl(k0), 'f':nfl(f), 'n':0, 'ref':nfl(ref)})
-                  else:
-                     print("Error Unkown dihedral")
-     
-              elif section in '[ constraints ]':
-                  A, B, f, ref = line.replace('\n', '').split()
-                  constraints.append({'pairs':[A, B], 'f':nfl(f), 'ref':nfl(ref)})
-              elif section in '[ defaults ]':
-                  LJ = int(line.replace('\n', '').split()[0])
-                  if LJ == 1:
-                     form='C6C12'
-                  else:
-                     form='sigeps'
-                  nonbond_params.update({'functype': form})
+           elif not line[0] in ';':
+                if any([ word in '[ [ ]' for word in line.split()]):
+                   section = line.replace('\n', '').split()[1]
+                
+                elif section in '[ moleculetype ]':
+                     name, nexcl = line.replace('\n', '').split()[0:2]
+                     molecules.append({'name':name,'nexcl':nfl(nexcl)})
+                     molecule_type = name
+
+                elif section in '[ atomtypes ]':
+                     atom = line.replace('\n', '').split()[0]
+                     sigma, epsilon = strip_comments(line)[-2:]
+                     nonbond_params.update({(atom, atom): {'sigma':nfl(sigma), 'epsilon':nfl(epsilon)}})
+                      
+                elif section in '[ atoms ]':
+                    n, typ, resnr, res, atom, cgnr, charge, mass = line.replace('\n', '').split()[0:8]
+                    atoms.append({'n': int(n), 'typ':typ ,'atom':atom, 'charge':nfl(charge)})
+                
+                elif section in '[ nonbond_params ]':
+                    atom1, atom2, f, sigma, epsilon = line.replace('\n', '').split()[0:5]
+                    nonbond_params.update({(atom1, atom2): {'sigma':nfl(sigma), 'epsilon':nfl(epsilon)}})
+                
+                elif section in '[ bonds ]':
+                    A, B, f, ref, k0 = line.replace('\n', '').split()[0:5]
+                    bonds.append({'pairs':[int(A),int(B)], 'k0':nfl(k0), 'ref':nfl(ref)})
+                
+                elif section in '[ angles ]':
+                    A, B, C, f, ref, k0 = line.replace('\n', '').split()[0:7]
+                    angles.append({'pairs': [int(A), int(B), int(C)], 'k0':nfl(k0), 'ref':nfl(ref)})
+                
+                elif section in '[ dihedrals ]':
+                    if line.split()[4] == str(1) or line.split()[4] == str(9):
+                       A, B, C, D, f, ref, k0, n = line.replace('\n', '').split()[0:8]
+                       dih.append({'pairs':[int(A),int(B),int(C), int(D)], 'k0':nfl(k0), 'f':nfl(f), 'n':nfl(n), 'ref':nfl(ref)})
+                    elif line.split()[4] == str(2):
+                       A, B, C, D, f, ref, k0 = line.replace('\n', '').split()[0:7]
+                       dih.append({'pairs':[int(A),int(B),int(C), int(D)], 'k0':nfl(k0), 'f':nfl(f), 'n':0, 'ref':nfl(ref)})
+                    else:
+                       print("Error Unkown dihedral")
+                
+                elif section in '[ constraints ]':
+                    A, B, f, ref = line.replace('\n', '').split()[0:4]
+                    constraints.append({'pairs':[A, B], 'f':nfl(f), 'ref':nfl(ref)})
+                elif section in '[ defaults ]':
+                    LJ = int(line.replace('\n', '').split()[0])
+                    if LJ == 1:
+                       form='C6C12'
+                    else:
+                       form='sigeps'
+                    nonbond_params.update({'functype': form})
  
     if len(nonbond_params) != 0:
        return('nonbond_params', nonbond_params)
@@ -182,52 +243,28 @@ def dihedral_pot(ff, traj):
   #  print(dih_ang)
     return(sum([proper_dih(ang, term['k0'], term['ref'], term['n'], term['f']) for term, ang in zip(ff['dih'], dih_ang)]))
 
-def are_bonded(atom_A,atom_B,molecule_A,ff):
-    if len(ff[molecule_A]['bonds']) > 1:
-      for bond in ff[molecule_A]['bonds']:
-        index_A, index_B = bond['pairs'][0], bond['pairs'][1]
-        #print(molecule_A)
+#def are_bonded(atom_A,atom_B,molecule_A,ff):
+#    if len(ff[molecule_A]['bonds']) > 1:
+#      for bond in ff[molecule_A]['bonds']:
+#        index_A, index_B = bond['pairs'][0], bond['pairs'][1]
+#        #print(molecule_A)
         #print(index_A, index_B)
         #print(atom_A, atom_B)
-        if index_A == atom_A and index_B == atom_B:
+#        if index_A == atom_A and index_B == atom_B:
            #print(molecule_A)
            #print( index_A == atom_A )
            #print(  index_B == atom_B)
            #exit()
-           return(True)
-        elif index_A == atom_B and index_B == atom_A:
-           return(True)
-      else:
-           return(False)
-    else:
-      return(False)
+#           return(True)
+#        elif index_A == atom_B and index_B == atom_A:
+#           return(True)
+#      else:
+#           return(False)
+#    else:
+#      return(False)
 
-'''
-
-def construct_bonded_exclusions(ff, nexcl):
-    bonded_lists = {}
-   for molecule in ff.items() if molecule != 'nonbonded_params':
-        mol_graph = construct_mol_graph(molecule['bonds'])
-        bonded_list = []
-        for atom in molecule['atoms']:
-            bonded_list += [(atom['n'], neighborhood(mol_graph, atom['n'], nexcl)]
-        bonded_lists.update({molecule:bonded_list})
-    return(bonded_lists)
-
-def construct_mol_graph(bonds):
-    G = nx.Graph()
-    edges = [ (entry['pairs'][0], entry['pairs'][1]) ]
-    G.add_edges_from(edges)
-    return(G)
-
-def neighborhood(G, node, n):
-    
-     Adobted from: https://stackoverflow.com/questions/22742754/finding-the-n-degree-neighborhood-of-a-node
-    
-    path_lengths = nx.single_source_dijkstra_path_length(G, node)
-    neighbours=[ node for node, length in path_lengths.items() if length <= n]
-    return(neighbours)
-'''
+def are_bonded(atom_A, atom_B, molecule, ff):
+    return(any([ atom_B == atom for atom in ff[molecule]['bond_excl'][atom_A]]))
 
 def coulomb(ca, cb, dist,eps):
     return(1/(4*np.pi*eps)*(ca*cb)/dist**2.0)
@@ -271,8 +308,8 @@ def nonbonded_potential(dist_mat, ff, softness, eps, form, verbose):
                  if verbose:
                     print('A-self-overlap')
                  return(math.inf, math.inf)
-           #else:
-              #print('are bonded')
+ #          else:
+  #            print('are bonded')
         else:
            if dist > sigma * softness:
                  energy = energy + LJ(coef_A, coef_B, dist, form)

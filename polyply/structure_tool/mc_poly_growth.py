@@ -76,6 +76,8 @@ def take_step(vectors, step_length, item):
     new_item = item + vectors[index] * step_length
     return(new_item, index)
 
+
+
 def Hamiltonion(ff, traj, dist_mat, display, eps, cut_off, form, softness):
     bond, angle, dihedral = 0, 0, 0
     for molecule, positions in traj.items():
@@ -255,8 +257,7 @@ def build_system(top_options, env_options, mc_options, outfile, magic_numbers):
     temp, max_steps, verbose, name = mc_options
     env_type, sol, lipid_type, sysfile = env_options 
     ff, system = read_top(topfile)
-    ff = convert_constraints(ff)
-    #print('hello')
+ 
     try:
        form = ff['nonbond_params']['functype']
     except KeyError:
