@@ -35,7 +35,7 @@ def remove_overlap(new_point, traj, tol, sol):
           if norm(point - new_point) < tol:
              del traj[index]
              count = count + 1
-    print('Removed', count, 'atoms')
+ #   print('Removed', count, 'atoms')
     return(traj)
 
 def is_overlap(new_point, traj, tol, bonds, current):

@@ -24,7 +24,7 @@ def construct_bonded_exclusions(ff):
     bonded_lists={}
     for molecule, params in ff.items():
      
-      if molecule != 'nonbond_params':
+      if molecule != 'nonbond_params' and len(params['bonds']) != 0:
  #       print(molecule)
         mol_graph = construct_mol_graph(params['bonds'])
         bonded_list = {}
@@ -32,7 +32,8 @@ def construct_bonded_exclusions(ff):
         for atom in params['atoms']:
             bonded_list.update({atom['n']: neighborhood(mol_graph, atom['n'], params['nexcl'])})
         bonded_lists.update({molecule:bonded_list})
-
+      else:
+        bonded_lists.update({molecule:[]})
     for molecule, bond_list in bonded_lists.items():
        params = ff[molecule]
        params.update({'bond_excl':bond_list})
