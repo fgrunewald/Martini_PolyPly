@@ -89,9 +89,13 @@ def Hamiltonion(ff, traj, dist_mat, display, eps, cut_off, form, softness):
     else:
        vdw, coulomb = 0, 0
     if display:
+       print()
+       print('{:<10s}{:<10s}'.format('Term','Energy (kJ/mol)'))
+       print('{0:-^25}'.format(' '))
        for term, name in zip([bond, angle, dihedral, vdw, coulomb],['bonds', 'angle', 'dihedral', 'vdw','coulomb']):
-           print(name, term)
+           print('{:<10s}{:<10.5E}'.format(name, term))
 
+       print()
     return(bond + angle + dihedral + vdw + coulomb)
 
 def is_in_pair_a(pair, value): 
@@ -191,8 +195,8 @@ def metropolis_monte_carlo(ff, name, start, temp, n_repeat, max_steps, verbose, 
 
     prev_E = Hamiltonion(ff, traj, dist_mat, verbose, eps, cut_off, form, softness)
     rejected=0
-
-    print('\n+++++++++++++++ STARTING MONTE CARLO MODULE ++++++++++++++\n')
+    print()
+    print('{0:+^120}'.format(' starting monte carlo structure generation '))
     pbar = tqdm(total = n_repeat)
     while count < n_repeat:
           #print('~~~~~~~~~~~~~~~~',count,'~~~~~~~~~~~~~~')
@@ -233,7 +237,7 @@ def metropolis_monte_carlo(ff, name, start, temp, n_repeat, max_steps, verbose, 
                      subcount = subcount + 1
                      vector_bundel = np.delete(vector_bundel, index, axis=0)
                    else:
-                     print('+++++++++++++++++++++ FATAL ERROR ++++++++++++++++++++++++++++\n')
+                     print('{0:+^80}'.format(' Fatal Error '))
                      print('Exceeded maximum number of steps in the monte-carlo module.')
                      print('If you know what you do set -maxsteps to -1')
                      return(traj)
@@ -243,7 +247,8 @@ def metropolis_monte_carlo(ff, name, start, temp, n_repeat, max_steps, verbose, 
                    rejected = rejected + 1
                    vector_bundel = np.delete(vector_bundel, index, axis=0)
     pbar.close()
-    print('++++++++++++++++ RESULTS FORM MONTE CARLO MODULE ++++++++++++++\n')
+    print()
+    print('{0:+^120}'.format(' results from monte-carlo simulation '))
     print('Total Energy:', Hamiltonion(ff, traj, dist_mat, True, eps, cut_off, form, softness))
     #print('Radius of Gyration:', radius_of_gyr(traj))
     print('Number of rejected MC steps:', rejected)       
@@ -261,7 +266,8 @@ def build_system(top_options, env_options, mc_options, outfile, magic_numbers):
     try:
        form = ff['nonbond_params']['functype']
     except KeyError:
-       print("+++++++++++++++++++ FATAL ERROR ++++++++++++++++++++++++++")
+       print()
+       print('{0:+^120}'.format('Fatal Error'))
        print("The type from of the LJ potential is not defined in your topfile.")
        exit()
     

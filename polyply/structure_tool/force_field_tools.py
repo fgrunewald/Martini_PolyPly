@@ -58,6 +58,8 @@ def read_top(name):
     system, ff = {}, {}
     empty = 0
     section = 'Random'
+    print()
+    print('{0:+^120}'.format(' reading force-field '))
     with open(name) as f:
          lines = f.readlines()
          for line in lines:
@@ -83,7 +85,7 @@ def read_top(name):
 
     ff = convert_constraints(ff)
     ff = construct_bonded_exclusions(ff)
-    print('finished reading force-field')
+ #   print('finished reading force-field')
 #    print(ff)
     return(ff, system)
 
@@ -177,10 +179,10 @@ def read_itp(name):
        return(molecule_type,{'nexcl':nfl(nexcl), 'atoms':atoms, 'bonds':bonds, 'angles':angles, 'constraints':constraints, 'dih':dih})
 
 def convert_constraints(ff):
-    print('++++++++++++++++++++++ Converting Constraints +++++++++++++++++++++++')
     for molecule in ff:
      if molecule != 'nonbond_params':
       if len(ff[molecule]['constraints']) != 0:
+        print('converting constraints to bonds')
         new_bonds = []
         #print(len(ff[molecule]['bonds']))
         new_bonds = [ {'pairs':[int(term['pairs'][0]), int(term['pairs'][1])], 'ref':term['ref'], 'k0': nfl(9000.0)} for term in ff[molecule]['constraints'] ]
