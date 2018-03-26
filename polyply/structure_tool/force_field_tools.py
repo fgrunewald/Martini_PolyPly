@@ -61,21 +61,21 @@ def read_top(name):
     with open(name) as f:
          lines = f.readlines()
          for line in lines:
-           #print(line)
-           if len(line.replace('\n', '').split()) == 0:
-              empty = empty +  1
-           if any([ word in '[ [ ]' for word in line.split()]):
-              section = line.replace('\n', '').split()[1]
-                 #print(section)
-           elif section in '[ molecules ]':
-                name, n_mol = line.replace('\n', '').split()[0:2]
-                system.update({name: int(n_mol)})
-           elif section in '[ System ]':
-                q=1
-                #print('Reading in', line)  
-           elif any([ word in '#include' for word in line.split()]):
-                itpfiles += [line.replace('\n', ' ').replace('\"', ' ').split()[1]]
-                #print(line)
+           if not line[0] in ';':
+             if len(line.replace('\n', '').split()) == 0:
+                empty = empty +  1
+             if any([ word in '[ [ ]' for word in line.split()]):
+                section = line.replace('\n', '').split()[1]
+                   #print(section)
+             elif section in '[ molecules ]':
+                  name, n_mol = strip_comments(line)[0:2] 
+                  system.update({name: int(n_mol)})
+             elif section in '[ System ]':
+                  q=1
+                  #print('Reading in', line)  
+             elif any([ word in '#include' for word in line.split()]):
+                  itpfiles += [line.replace('\n', ' ').replace('\"', ' ').split()[1]]
+                  #print(line)
 
     for itp in itpfiles:
         name, parameters =  read_itp(itp)
