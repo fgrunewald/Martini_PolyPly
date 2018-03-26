@@ -16,7 +16,7 @@ parser.add_argument('-itp'     , metavar = 'itps of blocks'     , dest = 'itpfil
 parser.add_argument('-n_mon'   , metavar = 'length of blocks'   , dest = 'mon'     , type = int   , help = 'number of monomers per blocks', nargs = '*')
 parser.add_argument('-polymer' , metavar = 'itp from monomers'  , dest = 'r_itp_name', type = str   , help = 'use itps in default repository', nargs='*')
 parser.add_argument('-name'    , metavar = 'name of molecule'   , dest = 'name'    , type = str   , help = 'name of the new polymer molecule', default='polymer')
-parser.add_argument('-o'       , metavar = 'name of outfile'    , dest = 'outfile' , type = str   , help = 'name of the output file', default='out.gro')
+parser.add_argument('-o'       , metavar = 'name of outfile'    , dest = 'outfile' , type = str   , help = 'name of the output file', default='outfile')
 parser.add_argument('-p'       , metavar = 'topology file'      , dest = 'topfile' , type = str   , help = 'name of system topology file')
 parser.add_argument('-T'       , metavar = 'temperature'        , dest = 'temp'    , type = float , help = 'temperature of system', default=298.0) 
 parser.add_argument('-v'       , action='store_true'  , help = 'be loud and noisy')
