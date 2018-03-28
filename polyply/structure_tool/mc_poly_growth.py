@@ -143,6 +143,7 @@ def determine_step_length(ff, count, traj, name, start, offset):
           step_length = bonds_b[0]['ref']
           ref_coord = traj[count - 1 ]
           index = count - 1
+ 
     return(step_length, ref_coord, bonds_a)
 
 def construct_dist_mat(traj, cut_off, start=False):
@@ -195,7 +196,7 @@ def metropolis_monte_carlo(ff, name, start, temp, n_repeat, max_steps, verbose, 
 
     prev_E = Hamiltonion(ff, traj, dist_mat, verbose, eps, cut_off, form, softness)
     rejected=0
-    print()
+    print(prev_E)
     print('{0:+^120}'.format(' starting monte carlo structure generation '))
     pbar = tqdm(total = n_repeat)
     while count < n_repeat:
