@@ -272,7 +272,7 @@ def build_system(top_options, env_options, mc_options, outfile, magic_numbers):
        print("The type from of the LJ potential is not defined in your topfile.")
        exit()
     
-    if env_type in '[ vac ]':
+    if env_type in '[ vac, melt ]':
        box = np.array([10.0,10.0,10.0])
        env_traj = []
        start=np.array([0,0,0])

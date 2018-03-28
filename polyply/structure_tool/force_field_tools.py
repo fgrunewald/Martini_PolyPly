@@ -63,7 +63,7 @@ def read_top(name):
     with open(name) as f:
          lines = f.readlines()
          for line in lines:
-           if not line[0] in ';':
+           if not line[0] in ';' and not len(line.replace('\n', '').split()) == 0:
              if len(line.replace('\n', '').split()) == 0:
                 empty = empty +  1
              if any([ word in '[ [ ]' for word in line.split()]):
