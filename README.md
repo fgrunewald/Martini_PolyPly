@@ -50,7 +50,7 @@ bilayer | a PEGylated lipid is grown on a random DOPE lipid in a bilayer supplie
 
 Furthermore a full GROMACS topolgy file with all neccessary itp files need to be provided via the s option, as you would do for a grompp command. Note that the name of the polymer needs to be provided via the '-name' option and has to be the exact same name as in the topology file. The topology file needs to contain all environment molecules plus the polymer. Furthermore the atom definitions are read from the gro-file. Thus you'll need to provide a '.gro' file with all matching atom names. The program cannot do magic!
 ```
-polyply -env [ vac, bilayer, sol] -s [topfile] -o [outfile] -name [name of polymer] -sys [system structure file]
+polyply -env [ vac, bilayer, sol] -p [topfile] -o [outfile] -name [name of polymer] -sys [system structure file]
 ```
 ## Authors
 
