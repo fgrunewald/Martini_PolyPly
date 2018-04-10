@@ -220,7 +220,7 @@ def convert_constraints(ff):
         print('converting constraints to bonds')
         new_bonds = []
         #print(len(ff[molecule]['bonds']))
-        new_bonds = [ {'pairs':[int(term['pairs'][0]), int(term['pairs'][1])], 'ref':term['ref'], 'k0': nfl(9000.0)} for term in ff[molecule]['constraints'] ]
+        new_bonds = [ {'pairs':[int(term['pairs'][0]), int(term['pairs'][1])], 'ref':term['ref'], 'k0': nfl(9000.0),'f':1} for term in ff[molecule]['constraints'] ]
         new_bonds =  ff[molecule]['bonds'] + new_bonds
         ff[molecule].update({'bonds':new_bonds})
     return(ff)
@@ -264,6 +264,8 @@ def ang_pot(val,k0,ref,f):
        return(0.5 * k0 * (val-ref)**2.0)
     elif f == 2:
        return(0.5 * k0 * (cos(val)-cos(ref))**2.0)
+    elif f == 10:
+       return(0.5 * k0 * (cos(val)-cos(ref))**2.0/sin(val)**2.0)
 
 def legal(term, traj):
     status_A = all( [index <= len(traj) for index in term['pairs']])
