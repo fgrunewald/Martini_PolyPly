@@ -1,5 +1,6 @@
 import numpy as np
 from tqdm import tqdm
+import scipy.spatial
 
 class trajectory:
       '''
@@ -89,9 +90,10 @@ class trajectory:
               mol_counts.update({mol_name:len(positions)})
           return(mol_counts)
 
- #     def concatenate(self):
- #        positions = np.concatenate([ pos  for molecule, pos_mols in self.mol_pos.items() for pos in pos_mols]
- #        mol_types = [ (molecule, atom) for molecule, atoms in self.mol_types.items() for atom in atoms ]
+      def concatenate(self):
+          flat_positions = np.concatenate([ pos  for molecule, pos_mols in self.mol_pos.items() for pos in pos_mols])
+          flat_atom_types = [ (molecule, atom) for molecule, atoms in self.atom_types.items() for atom in atoms ]
+          return(flat_positions, flat_atom_types)
 
       @classmethod
       def from_gro_file(cls, name, ff=None):
@@ -133,7 +135,7 @@ class trajectory:
                 print("Not implemtenred")
              # else we read the res_name as the molecule name 
              else:
-                mol_name = res_name
+                mol_name = "PSPEO"
                 temp_traj.add_atom(mol_name, point, res_index-1, ff=None, atom_index=None)
 
           return(temp_traj)
