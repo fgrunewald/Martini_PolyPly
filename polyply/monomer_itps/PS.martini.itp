@@ -12,7 +12,7 @@
 ; IMPORTANT NOTE: when using this topology, please used the modified martini_v2.1_PS.itp file
 ;                 downloadable from the Example Applications page.
 [ moleculetype ]
-PS 3
+PS 1
 ;
 [ atoms ]
 ;  nr    type       resnr  residu    atom    cgnr        charge    mass 
@@ -41,4 +41,21 @@ PS 3
    4     5     7    1   136.000000  100.000000
    1     4     5    1   120.000000   25.000000
    4     5     8    1    52.000000  550.000000
-
+[ exclusions ]
+1 2
+1 3
+1 4
+1 5
+1 6 
+1 7
+1 8
+2 3
+2 4
+2 5
+3 5
+3 4
+4 5
+4 6
+4 7
+4 8
+4 9

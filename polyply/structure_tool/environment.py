@@ -24,7 +24,7 @@ def read_conf_file(filename, file_type):
            for line in lines:
                if count == 0:
                   title = line.replace('\n', '')
-                  #print(title)
+                 # print(title)
                   count = count + 1
                elif 1 < count < len(lines) - 1:
                  # print(line.replace('\n', '').split())
@@ -38,7 +38,7 @@ def read_conf_file(filename, file_type):
                   point = np.array([x,y,z])
                   #molecule = ''.join([i for i in res_num_name if not i.isdigit()])
                   #index = ''.join([i for i in res_num_name if i.isdigit()])
-
+                  #print(molecule)
                   if count == 2:
                      prev_molecule = molecule
                      prev_index = index
@@ -60,6 +60,7 @@ def read_conf_file(filename, file_type):
                      prev_molecule=molecule
                      coordinates[0] = point
                      atom_count = 1
+                
               
                   count = count + 1
                elif count == 1:

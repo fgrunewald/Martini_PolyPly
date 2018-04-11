@@ -21,7 +21,7 @@ centers = {   'moleculetype': [],
               ('dihedrals', 3): [0,1,2,3],
               ('dihedrals', 2):[0,1,2,3],
               ('pairs',1):[0,1],
-              'exclusions': [0,1,2,3],
+              'exclusions': [0, 1],
               ('virtual_sitesn',2): [0,2,3,4]}
 settings ={
               'moleculetype':[0,1],
@@ -77,7 +77,7 @@ format_outfile={
                 'atoms': '{:<5d} {:<5s} {:<1s} {:<5s} {:<3s} {:<1d} {:<8s} {:<3s}{}',
                 ('constraints',1): '{:<5d} {:<5d} {:<2s}{:<8s}{}','[': '{:<1s}{:<10s}{:<1s}{}',
                 'moleculetype':'{:<5s} {:<1s}{}', 
-                'exclusions': '{:<5d} {:<5d} {:<5d} {:<5d}{}',
+                'exclusions': '{:<5d} {:<5d} {}',
                 ('virtual_sitesn',2):'{:<5d} {:<1s} {:<5d} {:<5d} {:<5d} {}',
                 ('pairs',1):'{:<5d} {:<5d} {:<2s} {}'}
 
@@ -172,7 +172,7 @@ def read_itp(name):
        
 def write_itp(text, outname):
     out_file = open(outname, 'w')
-    for key in ['moleculetype', 'atoms', 'exclusions']:
+    for key in ['moleculetype', 'atoms']:
       if key in text:
         out_file.write('{:<1s}{:^18s}{:>1s}{}'.format('[',key,']','\n'))
         for line in text[key]:
@@ -185,6 +185,14 @@ def write_itp(text, outname):
            for line in text[key]:
                line.append('\n')
                out_file.write(str(format_outfile[(key, int(line[function[key]]))]).format(*line))
+    
+    if 'exclusions' in text:
+        out_file.write('{:<1s}{:^18s}{:>1s}{}'.format('[', 'exclusions',']','\n'))
+        for line in text['exclusions']:
+            line.append('\n')
+            out_file.write(str(format_outfile['exclusions']).format(*line))
+
+
 
 # The sole purpose of this function is to convert
 # the centers to ints. So this can for sure be 
