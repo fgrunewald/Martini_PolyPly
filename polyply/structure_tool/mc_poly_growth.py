@@ -13,6 +13,7 @@ from polyply.structure_tool.analysis_funtions import *
 from polyply.structure_tool.geometrical_functions import *
 from polyply.structure_tool.force_field_tools import *
 from polyply.structure_tool.environment import *
+from polyply.classes import topology
 
 
 def accaptable(E, temp, prev_E):
@@ -256,7 +257,7 @@ def build_system(top_options, env_options, mc_options, outfile, magic_numbers):
     env_type, sol, lipid_type, sysfile = env_options 
     ff, system = read_top(topfile)
     ff = convert_constraints(ff)
-    
+    print(classes.topology)
     try:
        form = ff['nonbond_params']['functype']
     except KeyError:
