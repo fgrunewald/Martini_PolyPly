@@ -128,8 +128,6 @@ class term_instance:
       @classmethod
       def from_line(cls, line, term_name, term_format):
           try:
-             print(term_format.identifier)
-             print(line)
              term_type = line[term_format.identifier]
           except TypeError:
              term_type = term_format.identifier
@@ -162,12 +160,12 @@ class molecule(top_base):
           self.name = name
 
       def add_potential_term(self, name, line, term_format):
-          print(name)
+ 
           if name in locals():
-             self.name.append(term_instance.from_line(line, name, term_format))
+             getattr(self,name).append(term_instance.from_line(line, name, term_format))
           else:
-             self.name = []
-             self.name.append(term_instance.from_line(line, name, term_format))   
+             setattr(self,name,[])
+             getattr(self,name).append(term_instance.from_line(line, name, term_format))   
 
       def bonded_exclusions(self):
           # We only construct these once
@@ -192,13 +190,11 @@ class molecule(top_base):
       @classmethod
       def from_gromacs_lines(cls, lines, topology_format,end):
           keywords = ['atoms','bonds','angles','dihedrals','constraints'] + [end]
-          mol = cls(lines[1][1])
+          mol = cls(lines[1][0])
           indices =  cls.get_indices(lines,keywords)
-          for i, index in enumerate(indices):
+          for i, index in enumerate(indices[:-1]):
               for line in lines[index[0]+2:indices[i+1][0]]:
-                  print(line)
                   mol.add_potential_term(index[1], line, topology_format.format[index[1]])
-
           mol.bonded_exclusions
           return(mol)
 
@@ -219,19 +215,11 @@ class topology(top_base):
           self.defaults = {}
 
       def add_nonmol_params(self, lines, topology_format):
-          #print(lines)
           term_name = lines[0][0]
-          specification = {}
+          setattr(self,term_name,{})
           for line in lines[1:-1]:
-              print(line)
               term = term_instance.from_line(line, term_name, topology_format.format[term_name])   
-             # print(term.centers)    
-              specification.update({term.centers:term})
-          self.term_name = specification
-
-#      @staticmethod
-#      def get_indices(lines, keywords):
-#          return([(index, word) for index, line in enumerate(lines) for word in line if word in keywords ])
+              getattr(self,term_name).update({term.centers:term})
 
       @classmethod
       def from_gromacs_topfile(cls, topol_file_name, topology_format):
@@ -291,13 +279,13 @@ class topology(top_base):
           ### End from backwards.py 
           #############################################
 
-          top_sections = '[defaults, molecules, nonbond_params, moleculetype, bondtypes, constrainttypes, angletypes, dihedraltypes, pairtypes ]'
+          top_sections = '[EOF, defaults, molecules, nonbond_params, moleculetype, bondtypes, constrainttypes, angletypes, dihedraltypes, pairtypes ]'
           lines = [ line for line in reciter(topol_file_name) if len(line) != 0]
           sys_index = topology.get_indices(lines, ['system'])[0][0]
           sys_name = lines[sys_index+1]
           top = topology(sys_name)
           indices = topology.get_indices(lines, top_sections)
-
+          
           for i, index in enumerate(indices):
               # we now load the topology accoding to the section in the GROMACS format     
           
@@ -306,7 +294,7 @@ class topology(top_base):
                    top.molecules.update({mol.name:mol})
 
               elif index[1]  == 'molecules':
-                   for line in lines[index:indices[j+1]]:
+                   for line in lines[index[0]+1:indices[i+1][0]]:
                         try:
                            n_mol = top.composition[line[0]] + int(line[1])
                            top.composition.update({line[0]:n_mol})
@@ -321,3 +309,4 @@ class topology(top_base):
              
               else:
                    pass
+          return(top)
