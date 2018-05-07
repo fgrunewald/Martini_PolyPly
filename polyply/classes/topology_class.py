@@ -111,6 +111,7 @@ class topology_format:
 class term_instance:
       '''
       These classes are initialized with specific class variables depeding on the MD program.
+      This will be our eierlegende Woll-milch-sau (ELWMS) object
       '''
 
       def __init__(self, centers, term_type, params, potential):
@@ -160,13 +161,13 @@ class molecule(top_base):
           self.name = name
 
       def add_potential_term(self, name, line, term_format):
- 
-          if name in locals():
+          print(name)
+          try:
              getattr(self,name).append(term_instance.from_line(line, name, term_format))
-          else:
+          except AttributeError:
              setattr(self,name,[])
              getattr(self,name).append(term_instance.from_line(line, name, term_format))   
-
+ 
       def bonded_exclusions(self):
           # We only construct these once
           if self.exclusions not in locals():
@@ -189,7 +190,7 @@ class molecule(top_base):
 
       @classmethod
       def from_gromacs_lines(cls, lines, topology_format,end):
-          keywords = ['atoms','bonds','angles','dihedrals','constraints'] + [end]
+          keywords = ['atoms','bonds','angles','dihedrals','constraints','virtualsides'] + [end]
           mol = cls(lines[1][0])
           indices =  cls.get_indices(lines,keywords)
           for i, index in enumerate(indices[:-1]):
