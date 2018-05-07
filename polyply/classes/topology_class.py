@@ -118,7 +118,7 @@ class term_instance:
       #    self.term_type     = term_type
           self.centers       = centers
           self.function_type = term_type
-          self.paramters     = params
+          self.parameters     = params
           self.potential     = potential
 
       def move(self, increment):
@@ -161,7 +161,7 @@ class molecule(top_base):
           self.name = name
 
       def add_potential_term(self, name, line, term_format):
-          print(name)
+ #         print(name)
           try:
              getattr(self,name).append(term_instance.from_line(line, name, term_format))
           except AttributeError:
@@ -194,7 +194,7 @@ class molecule(top_base):
           mol = cls(lines[1][0])
           indices =  cls.get_indices(lines,keywords)
           for i, index in enumerate(indices[:-1]):
-              for line in lines[index[0]+2:indices[i+1][0]]:
+              for line in lines[index[0]+1:indices[i+1][0]]:
                   mol.add_potential_term(index[1], line, topology_format.format[index[1]])
           mol.bonded_exclusions
           return(mol)
@@ -208,7 +208,7 @@ class topology(top_base):
       def __init__(self, name):
 
           self.name = name
-          self.composition = {}
+          self.composition = []
           self.molecules = {}
           self.nonbondparams = {}
           self.nonbondparams_14 = {}
@@ -296,11 +296,7 @@ class topology(top_base):
 
               elif index[1]  == 'molecules':
                    for line in lines[index[0]+1:indices[i+1][0]]:
-                        try:
-                           n_mol = top.composition[line[0]] + int(line[1])
-                           top.composition.update({line[0]:n_mol})
-                        except KeyError:
-                           top.composition.update({line[0]:int(line[1])})
+                       top.composition.append((line[0],int(line[1])))
 
               elif index[1] == 'defaults':
                    top.defaults.update({'LJ':lines[index[0]+1][1]})

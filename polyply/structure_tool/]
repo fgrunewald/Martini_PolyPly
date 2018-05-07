@@ -30,6 +30,18 @@ def accaptable(E, temp, prev_E):
        else:
           return(False)
 
+def remove_overlap(new_point, traj, tol, sol):
+    count=0
+    #print(len(traj))
+    for index, coords in enumerate(traj):
+        for point in coords:
+       #   print(norm(point-new_point))
+          if norm(point - new_point) < tol:
+             del traj[index]
+             count = count + 1
+    print('Removed', count, 'atoms')
+    return(traj)
+
 def is_overlap(new_point, traj, tol, bonds, current):
     bonds = [ index - 1 for pair in bonds for index in pair['pairs'] if index != current + 1 ]
     for index, coords in enumerate(traj):
@@ -66,17 +78,101 @@ def take_step(vectors, step_length, item):
     new_item = item + vectors[index] * step_length
     return(new_item, index)
 
-def Hamiltonion(top, traj, display, softness, eps):
-    bond, angle, dihedral = bonded_potential(traj, top)
-    vdw, coulomb = nonbonded_potential(traj, top, softness, eps, display)
- 
+def Hamiltonion(ff, traj, dist_mat, display, eps, cut_off, form, softness):
+    bond, angle, dihedral = 0, 0, 0
+    for molecule, positions in traj.items():
+      for coords in positions:
+        bond  += bonded_pot(ff[molecule], coords)
+        angle += angle_pot(ff[molecule], coords)
+        dihedral += dihedral_pot(ff[molecule], coords)
+  
+    if len(dist_mat) != 0:
+       vdw, coulomb = nonbonded_potential(dist_mat, ff, softness, eps, form, display)
+    else:
+       vdw, coulomb = 0, 0
     if display:
        for term, name in zip([bond, angle, dihedral, vdw, coulomb],['bonds', 'angle', 'dihedral', 'vdw','coulomb']):
            print(name, term)
 
     return(bond + angle + dihedral + vdw + coulomb)
 
+def is_in_pair_a(pair, value): 
+    if value == pair[0] and value > pair[1]:
+       return(True)
+    elif value == pair[1] and value > pair[0]:
+       return(True)    
+    else:
+       return(False)
 
+def is_in_pair_b(pair, value):
+    #print(pair) 
+    #print(value)
+    if value == pair[0]:
+       return(True)
+    elif value == pair[1]:
+       return(True)    
+    else:
+       return(False)
+
+def is_in_pair_c(pair, n):
+    #print(pair)
+    for i in np.arange(0,n,1):
+        if i == pair[0]:
+           return(True)
+        elif i == pair[1]:
+           return(True)    
+    else:
+       return(False)
+
+def determine_step_length(ff, count, traj, name, start, offset):
+    count = count + offset
+    current_atom = ff[name]['atoms'][count]['n']
+    prev_atom = ff[name]['atoms'][count - 1 ]['n']
+  
+    bonds_a = [ bond  for bond in ff[name]['bonds'] if is_in_pair_a(bond['pairs'], current_atom)]
+    bonds_b = [bond for bond in bonds_a if is_in_pair_b(bond['pairs'], prev_atom)]
+  
+    if len(bonds_b) == 0:
+          bonds_c = [ bond for bond in bonds_a if is_in_pair_c(bond['pairs'], len(traj))]
+          index = [n for n in bonds_c[0]['pairs'] if n != (count+1) ][0] -1 
+          ref_coord = traj[index]
+          step_length = bonds_c[0]['ref']
+    else:
+          step_length = bonds_b[0]['ref']
+          ref_coord = traj[count - 1 ]
+          index = count - 1
+    return(step_length, ref_coord, bonds_a)
+
+def construct_dist_mat(traj, cut_off, start=False):
+    traj_dists = {}
+    if start:
+       start = time.time()
+       flat_traj_A = np.concatenate([ pos  for molecule, pos_mols in traj.items() for pos in pos_mols ])
+       flat_traj_B = np.concatenate([ pos  for molecule, pos_mols in traj.items() for pos in pos_mols ])
+       mol_ids_A = [ index for molecule, pos_mols in traj.items() for index, pos in enumerate(pos_mols) for atom in pos ]
+       mol_ids_B = [ index for molecule, pos_mols in traj.items() for index, pos in enumerate(pos_mols) for atom in pos ]
+       traj_info_A = [ [molecule, len(pos), n ] for molecule, pos_mols in traj.items() for pos in pos_mols for n, atom in enumerate(pos) ]
+       traj_info_B = [ [molecule, len(pos), n ] for molecule, pos_mols in traj.items() for pos in pos_mols for n, atom in enumerate(pos) ]
+       mol_length = traj_info_A[0][1]
+       atom_count = 0
+       mol_count = 0
+       count=0
+       for info, atom in zip(traj_info_A[:-1], flat_traj_A[:-1]):
+           flat_traj_B = np.delete(flat_traj_B,0,axis=0)
+           del traj_info_B[0]
+           del mol_ids_B[0]
+           traj_tree = scipy.spatial.ckdtree.cKDTree(flat_traj_B)
+           ref_tree = scipy.spatial.ckdtree.cKDTree(atom.reshape(1,3))
+           dist_mat = ref_tree.sparse_distance_matrix(traj_tree,cut_off)
+           [ traj_dists.update({(info[0], mol_ids_A[count], atom_count, traj_info_B[key[1]][0], mol_ids_B[key[1]] , traj_info_B[key[1]][2]):dist}) for key, dist in dist_mat.items()] #if dist != 0]
+
+           if atom_count < mol_length - 1:
+              atom_count = atom_count + 1
+           else:
+              mol_length = traj_info_A[count+1][1]
+              atom_count = 0
+           count = count + 1
+    return(traj_dists)
 
 def find_central_starting_point(coordinates, sol):
     x_coords = [ atom[0] for sol_name in sol for mol in coordinates[sol_name] for atom in mol ]
@@ -88,9 +184,9 @@ def find_central_starting_point(coordinates, sol):
     starting_point = point_B + 0.5 * diagonal
     return(starting_point)
 
-def metropolis_monte_carlo(top, name, traj, start,temp, max_steps, verbose, list_of_constraints, sol, cut_off, eps, softness):
+def metropolis_monte_carlo(top, name, start, temp, n_repeat, max_steps, verbose, env_traj, list_of_constraints, sol, offset, lipid, cut_off, eps, form, softness):
  
-###### 1. Check if it is a restart 
+    # 1. Check if it is a restart 
          #    -> set the number of iterations n_repeat
          #    -> set the last point 
 
@@ -107,22 +203,14 @@ def metropolis_monte_carlo(top, name, traj, start,temp, max_steps, verbose, list
        last_point = np.array([0,0,0])
        n_repeat = len(top.molecules[name].atoms)
 
-###### 2. Construct the inital distance matrix of the entire box       
+        
   
-    traj.distance_matrix(cut_off)
-    if verbose:
-       print('computed ',len(traj.dist_matrix),'distance pairs'.)
-
-
-###### 3. Compute the intial energy
-
-    prev_E = Hamiltonion(top, traj, verbose, softness, eps)
+    dist_mat = construct_dist_mat(traj, cut_off, start=True)
   
-
-###### 4. loop over n_repeats
-
+    prev_E = Hamiltonion(ff, traj, dist_mat, verbose, eps, cut_off, form, softness)
+  
     rejected=0
-    exit()
+
     print('\n+++++++++++++++ STARTING MONTE CARLO MODULE ++++++++++++++\n')
     while count < n_repeat:
           print('~~~~~~~~~~~~~~~~',count,'~~~~~~~~~~~~~~')
@@ -193,9 +281,9 @@ def build_system(top_options, env_options, mc_options, outfile, magic_numbers):
        traj = trajectory.from_gro_file(sysfile,top)
     else:
        traj = trajectory(name)  
-       traj.add_molecule(name, positions=np.array([0,0,0]), top=top)
+       traj.add_molecule(self, name, positions=np.array([0,0,0]), top=top)
    
-    traj = metropolis_monte_carlo(top, name, traj, start, temp, max_steps, verbose, [{'type':None}],  None,  cut_off, eps, softness)
+    traj = metropolis_monte_carlo(ff, name, start, temp, n_mon, max_steps, verbose, env_traj, [{'type':None}], None, 0, None,  cut_off, eps, form, softness)
   
     write_gro_file(traj,outfile,ff, box)
     return(None)   

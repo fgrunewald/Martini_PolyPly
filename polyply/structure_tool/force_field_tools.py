@@ -201,14 +201,12 @@ def LJ(A, B, r, form):
     elif form == 'sigeps':
        return(4.0 * B * ( (A/r)**12.0 - (A/r)**6.0) )
 
-def nonbonded_potential(dist_mat, ff, softness, eps, form, verbose):
-    energy = 0
-    e_pot=0
-    verbose=True
-   # print(len(dist_mat))
+def nonbonded_potential(top, dist_mat, softness, eps, verbose):
+    coul_e = 0
+    lj_e   = 0
    
     for key, dist in dist_mat.items():
-        #print(key)
+        print(key)
         atom_A, atom_B = ff[key[0]]['atoms'][key[2]]['typ'], ff[key[3]]['atoms'][key[5]]['typ']
         charge_A, charge_B = ff[key[0]]['atoms'][key[2]]['charge'], ff[key[3]]['atoms'][key[5]]['charge']
 

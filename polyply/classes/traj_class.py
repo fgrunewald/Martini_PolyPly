@@ -6,104 +6,47 @@ class trajectory:
       '''
       An instance of the trajectory class stores the positions and topology information of the molecules 
       in the form of:
-   
-      self.mol_pos contains a list of molecules each in turn with a numpy array of atoms
-      self.mol_types contains a list of lists of atom-types, each list corresponds to one numpy array in self.mol_pos
-      
-      There are several ways to construct a trajectory:
-
-      by adding molecules using add_molecule
-      by adding atoms using add_atom
-      by reading from a structure file in which case the molecules = residues unless topology information
-      is provided 
       '''
 
       def __init__(self, box=np.array([10.0,10.0,10.0])):
-          self.box       = box
-          self.mol_pos   = {}
-          self.atom_types = {}
-          self.n_atoms   = {}
-          self.n_mols    = {}
+          self.box        = box
+          self.positions  = []
+          self.atom_info  = []
+          self.n_atoms    = {}
+          self.dist_matrix = []
 
-      def add_molecule(self, mol_name, positions=None, ff=None):
-          types = []
-
-          if len(positions) == 0:
-             positions = np.array([])
-    
-          if ff != None:
-             for index, position in enumerate(positions):
-                 atom_type = ff[mol_name]['atoms'][index]['typ']
-                 types += [atom_type]
-
-          try:
-              self.mol_pos[mol_name] += [positions.reshape(-1,3)]
-              self.atom_types[mol_name] += [types]
-
-          except KeyError:
-              self.mol_pos.update({mol_name: [positions.reshape(-1,3)]})
-              self.atom_types.update({mol_name: [types]})
-
-          self.n_atoms = self.count_atoms(self.n_atoms, self.mol_pos)
-          self.n_mols  = self.count_mols(self.n_mols, self.mol_pos)
-
-      def add_atom(self, mol_name, positions, mol_index, ff=None, atom_index=None):
- 
-          if ff != None:
-             atom_type = ff[mol_name]['atoms'][atom_index]['typ']
-          else:
-             atom_type = None
-
-          try:
-              self.mol_pos[mol_name][mol_index] = np.append(self.mol_pos[mol_name][mol_index], positions.reshape(-1,3), axis=0)
-              self.atom_types[mol_name][mol_index] += [atom_type]
-
-          except KeyError:
-              self.add_molecule(mol_name, positions)
-              
-          except IndexError:
-              self.mol_pos[mol_name].append(positions)
-              self.atom_types[mol_name] += [[atom_type]]
-
-          self.n_atoms = self.count_atoms(self.n_atoms, self.mol_pos)
-          self.n_mols  = self.count_mols(self.n_mols, self.mol_pos)
+      def add_atom(self, mol_name, mol_index, mol_atom_index,position, top):
+          atom_type = top.molecules[mol_name].atoms[mol_atom_index].parameters[0]
+          self.positions.append(position)
+          self.atom_info.append((mol_name, mol_index, atom_type, mol_atom_index))
 
       def remove_molecule(self, mol_name, index):
           try:
-             self.n_atoms = self.n_atoms - len(self.mol_pos[mol_name][index])
-             n = self.n_mols[mol_name] - 1
-             self.n_mols.update({mol_name:n})
-
-             del self.mol_pos[mol_name][index]
-             del self.atom_types[mol_name][index]
+             for i, atom in enumerate(self.atoms):
+                 if atom[1] == index:
+                    del self.atoms[i]
 
           except (KeyError, IndexError):
              print("WARNING: Tried to delete molecule from trajectory but no molecule found.\n Will continue anyways.")
 
-      def count_atoms(self, atom_counts, mol_pos):
-          for mol_name, positions in mol_pos.items():
-              atom_counts.update({mol_name:len(positions[0])})
-          return(atom_counts)
-
-      def count_mols(self, mol_counts, mol_pos):
-          for mol_name, positions in mol_pos.items():
-              mol_counts.update({mol_name:len(positions)})
-          return(mol_counts)
-
-      def concatenate(self):
-          flat_positions = np.concatenate([ pos  for molecule, pos_mols in self.mol_pos.items() for pos in pos_mols])
-          flat_atom_types = [ (molecule, atom) for molecule, atoms in self.atom_types.items() for atom in atoms ]
-          return(flat_positions, flat_atom_types)
-
       @classmethod
-      def from_gro_file(cls, name, ff=None):
+      def from_gro_file(cls, name, top=None):
           lines = open(name).readlines()
 
           temp_traj = cls(lines[-1])
           big_res = False
-          big_atoms = False         
- 
-          for line in tqdm(lines[2:-1]):
+          big_atoms = False    
+
+          if top != None:
+            molecule_list = [ ]
+            atom_list = []
+            for molname, amount in top.composition:
+                for i in np.arange(0,amount,1):
+                    for atom in top.molecules[molname].atoms:
+                        molecule_list.append((molname,i))
+                        atom_list.append(int(atom.centers[0]))
+
+          for line in lines[2:-1]:
              res_index = int(line.replace('\n', '')[0:5].strip())
              res_name = line.replace('\n', '')[5:10].strip()
              atom_name = line.replace('\n', '')[10:15].strip()
@@ -131,8 +74,12 @@ class trajectory:
                 atom_count = atom_index
                   
              # if a topology is supplied, the types and resnames are matched to the topology
-             if ff != None:
-                print("Not implemtenred")
+             if top != None:
+                mol_name   = molecule_list[atom_index-1][0]
+                mol_index  = molecule_list[atom_index-1][1]
+                mol_atom_index = atom_list[atom_index]
+                temp_traj.add_atom(molname, mol_index, mol_atom_index, point,  top)
+     
              # else we read the res_name as the molecule name 
              else:
                 mol_name = "PSPEO"
@@ -140,3 +87,31 @@ class trajectory:
 
           return(temp_traj)
 
+      def distance_matrix(self,cut_off):
+          
+          traj_B = np.asarray(self.positions).reshape(-1,3)  
+          info_B = self.atom_info
+
+          for atom_A, info_A in zip(self.positions,self.atom_info):
+              traj_B = np.delete(traj_B,0,axis=0)
+              del info_B[0]
+
+              traj_tree = scipy.spatial.ckdtree.cKDTree(traj_B)
+              ref_tree  = scipy.spatial.ckdtree.cKDTree(atom_A.reshape(1,3))
+              dist_mat  = ref_tree.sparse_distance_matrix(traj_tree,cut_off)
+              dist_list = [ (dist,info_A, info_B[key[1]]) for key, dist in dist_mat.items() ]                  
+   
+              self.dist_matrix.append(dist_list)         
+ 
+      def add_atom_dist_matrix(self, new_atom, cut_off, mol_name, mol_index, atom_type, mol_atom_index):
+          ref_tree = scipy.spatial.ckdtree.cKDTree(new_atom.reshape(1,3))
+          traj_tree = scipy.spatial.ckdtree.cKDTree(self.positions)
+          dist_mat = ref_tree.sparse_distance_matrix(traj_tree,cut_off)
+          dist_list = [ (dist,(mol_name, mol_index, atom_type, mol_atom_index), self.atom_info[key[1]]) for key, dist in dist_mat.items() ]         
+          self.dist_matrix.append(dist_list)
+
+      def del_atom_dist_matrix(index):
+              try:
+                  del self.elemets[index]
+              except IndexError:
+                  print("WARNING: could not remove atom_pair!")
