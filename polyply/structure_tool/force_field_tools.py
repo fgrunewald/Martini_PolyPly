@@ -18,110 +18,11 @@ from polyply.structure_tool.force_field_tools import *
 from multiprocessing import Pool
 import time
 import scipy.spatial
+import polyply.classes.potentials as potentials
 
 global kBa
 kb = 1.38964852 * 10**(-23.0) *10**-3.0 # kJ/K
 
-def read_top(name):
-    itpfiles =  []
-    system, ff = {}, {}
-    empty = 0
-    section = 'Random'
-    with open(name) as f:
-         lines = f.readlines()
-         for line in lines:
-           #print(line)
-           if len(line.replace('\n', '').split()) == 0:
-              empty = empty +  1
-           elif not any([ word in ';' for word in line.split()]):
-              if any([ word in '[ [ ]' for word in line.split()]):
-                 section = line.replace('\n', '').split()[1]
-                 print(section)
-              elif section in '[ molecules ]':
-                 name, n_mol = line.replace('\n', '').split()
-                 system.update({name: int(n_mol)})
-              elif section in '[ System ]':
-                 print('Reading in', line)  
-              elif any([ word in '#include' for word in line.split()]):
-                 itpfiles += [line.replace('\n', ' ').replace('\"', ' ').split()[1]]
-                 print(line)
-
-    for itp in itpfiles:
-        name, parameters =  read_itp(itp)
-        ff.update({name: parameters})
-       
-    return(ff, system)
-
-def read_itp(name):
-    print('Reading',name)
-    ff = {}
-    molecules, atoms, bonds, angles, dih, constraints, virtual_sitsn = [], [], [], [], [], [], []
-    nonbond_params = {}
-    section = 'moleculetype'
-    empty=0
-    with open(name) as f:
-         lines=f.readlines()
-         for line in lines:
-           if len(line.replace('\n', '').split()) == 0:
-              empty = empty +  1
-           elif not any([ word in ';' for word in line.split()]):
- 
-              if any([ word in '[ [ ]' for word in line.split()]):
-                 section = line.replace('\n', '').split()[1]
- 
-              elif section in '[ moleculetype ]':
- #                  print(line)
-                   name, nexcl = line.replace('\n', '').split()
-                   molecules.append({'name':name,'nexcl':nfl(nexcl)})
-                   molecule_type = name
-                    
-              elif section in '[ atoms ]':
-                  n, typ, resnr, res, atom, cgnr, charge, mass = line.replace('\n', '').split()
-                  atoms.append({'n': int(n), 'typ':typ ,'atom':atom, 'charge':nfl(charge)})
- 
-              elif section in '[ nonbond_params ]':
-                  atom1, atom2, f, sigma, epsilon = line.replace('\n', '').split()
-                  nonbond_params.update({(atom1, atom2): {'sigma':nfl(sigma), 'epsilon':nfl(epsilon)}})
- 
-              elif section in '[ bonds ]':
-                  A, B, f, ref, k0 = line.replace('\n', '').split()
-                  bonds.append({'pairs':[int(A),int(B)], 'k0':nfl(k0), 'ref':nfl(ref)})
- 
-              elif section in '[ angles ]':
-                  A, B, C, f, ref, k0 = line.replace('\n', '').split()
-                  angles.append({'pairs': [int(A), int(B), int(C)], 'k0':nfl(k0), 'ref':nfl(ref)})
-  
-              elif section in '[ dihedrals ]':
-                  A, B, C, D, f, ref, k0, n = line.replace('\n', '').split()
-                  dih.append({'pairs':[int(A),int(B),int(C), int(D)], 'k0':nfl(k0), 'f':nfl(f), 'n':nfl(n), 'ref':nfl(ref)})
-  
-              elif section in '[ constraints ]':
-                  A, B, f, ref = line.replace('\n', '').split()
-                  constraints.append({'pairs':[A, B], 'f':nfl(f), 'ref':nfl(ref)})
-              elif section in '[ defaults ]':
-                  LJ = int(line.replace('\n', '').split()[0])
-                  if LJ == 1:
-                     form='C6C12'
-                  else:
-                     form='sigeps'
-                  nonbond_params.update({'functype': form})
- 
-    if len(nonbond_params) != 0:
-       return('nonbond_params', nonbond_params)
-    else:
-       return(molecule_type,{'nexcl':nfl(nexcl), 'atoms':atoms, 'bonds':bonds, 'angles':angles, 'constraints':constraints, 'dih':dih})
-
-def convert_constraints(ff):
-    print('++++++++++++++++++++++ Converting Constraints +++++++++++++++++++++++')
-    for molecule in ff:
-     if molecule != 'nonbond_params':
-      if len(ff[molecule]['constraints']) != 0:
-        new_bonds = []
-        #print(len(ff[molecule]['bonds']))
-        new_bonds = [ {'pairs':[int(term['pairs'][0]), int(term['pairs'][1])], 'ref':term['ref'], 'k0': nfl(9000.0)} for term in ff[molecule]['constraints'] ]
-        new_bonds =  ff[molecule]['bonds'] + new_bonds
-        ff[molecule].update({'bonds':new_bonds})
-    return(ff)
 
 def write_gro_file(data, name, ff, box):
     n = sum([ len(coords) for resname, list_of_coords in data.items() for coords in list_of_coords ])
@@ -142,103 +43,111 @@ def write_gro_file(data, name, ff, box):
     out_file.close()
     return(None)
 
-def pot_I( val ,k0, ref):
-    return(0.5 * k0 * (val-ref)**2.0)   
 
-def proper_dih(dih, k0, ref, n):
-    return( k0 * (1 + cos(n * np.radians(dih) - np.radians(ref))))
+def bonded_interactions(top, traj):
+    energy = 0
+    atom_count = 0
+    for i, mol in enumerate(top.composition):
+        term_names = [a for a in dir(top.molecules[mol]) if not a.startswith('__') and not callable(getattr(top.molecules[mol],a))]
+        for term_name in term_names:
+            if term_name != 'atoms':
+               term = getattr(top.molecules[mol],term_name)
+               # get indices and let term select and compute all require geomtries
+               pos_indices = np.arange(atom_count, atom_count + len(top.molecules[mol].atoms),1)
+               atom_count += len(top.molecules[mol].atoms)
+            try:
+               energy += getattr(potential,term.potential)(term,traj[pos_indices])
+            except IndexError:
+               pass
+    return(energy)
+           
+def lookup_interaction_parameters(top, atom_A, atom_B, key):
 
-def legal(term, traj):
-    status_A = all( [index <= len(traj) for index in term['pairs']])
-    if status_A:
-       coords = [traj[i - 1] for i in term['pairs']]
-       #print(coords)
-       status_B = all([any(coord != np.array([0,0,0])) for coord in coords])
-       return(status_B)
-    else:
-       return(status_A)
+      try:
+          coefs = getattr(top,key)[(atom_A, atom_B)].parameters
+          pot_form = getattr(top,key)[(atom_A, atom_B)].potential 
 
-def bonded_pot(ff, traj):
-    bond_pairs = [ norm(traj[(term['pairs'][0] - 1)] - traj[(term['pairs'][1] - 1)]) for term in ff['bonds'] if legal(term, traj)]
-    return(sum([pot_I(dist, term['k0'], term['ref']) for term, dist in zip(ff['bonds'], bond_pairs)]))
+      except KeyError:
+          coefs = getattr(top,key)[(atom_B, atom_A)].parameters
+          pot_form = getattr(top,key)[(atom_B, atom_A)].potential
 
-def angle_pot(ff, traj):
-    angles =  [ angle(traj[(term['pairs'][0] - 1)], traj[(term['pairs'][1] - 1)], traj[(term['pairs'][2] - 1)]) for term in ff['angles'] if legal(term, traj) ]
-    return(sum([pot_I(np.radians(ang),term['k0'], np.radians(term['ref'])) for term, ang in zip(ff['angles'], angles)]))
+      coef_A, coef_B = coefs
 
-def dihedral_pot(ff, traj):
-    dih_ang = [dih(traj[(t['pairs'][0] - 1)], traj[(t['pairs'][1] - 1)], traj[(t['pairs'][2] - 1)], traj[(t['pairs'][3] -1)]) for t in ff['dih'] if legal(t, traj)]
-    return(sum([proper_dih(ang, term['k0'], term['ref'], term['n']) for term, ang in zip(ff['dih'], dih_ang)]))
-
-def are_bonded(atom_A,atom_B,molecule_A,ff):
-    if len(ff[molecule_A]['bonds']) > 1:
-      for bond in ff[molecule_A]['bonds']:
-        index_A, index_B = bond['pairs'][0], bond['pairs'][1]
-        #print(molecule_A)
-        #print(index_A, index_B)
-        #print(atom_A, atom_B)
-        if index_A == atom_A and index_B == atom_B:
-           #print(molecule_A)
-           #print( index_A == atom_A )
-           #print(  index_B == atom_B)
-           #exit()
-           return(True)
-        elif index_A == atom_B and index_B == atom_A:
-           return(True)
+      if top.defaults['LJ'] != 2:
+         if float(coef_A) != 0:
+            sigma = (float(coef_B)/float(coef_A))**(1/6)
+         else:
+            sigma = 0
       else:
-           return(False)
-    else:
-      return(False)
-
-def coulomb(ca, cb, dist,eps):
-    return(1/(4*np.pi*eps)*(ca*cb)/dist**2.0)
-
-def LJ(A, B, r, form):
-    #print('go here')
-    if form == 'C6C12':
-       #print(A/r**12.0 - B/r**6.0)
-       return( A/r**12.0 - B/r**6.0 )
-    elif form == 'sigeps':
-       return(4.0 * B * ( (A/r)**12.0 - (A/r)**6.0) )
-
-def nonbonded_potential(top, dist_mat, softness, eps, verbose):
-    coul_e = 0
-    lj_e   = 0
+         sigma = coef_B
    
-    for key, dist in dist_mat.items():
-        print(key)
-        atom_A, atom_B = ff[key[0]]['atoms'][key[2]]['typ'], ff[key[3]]['atoms'][key[5]]['typ']
-        charge_A, charge_B = ff[key[0]]['atoms'][key[2]]['charge'], ff[key[3]]['atoms'][key[5]]['charge']
+      return(coefs, sigma, pot_form)
 
-        try:
-            coef_A = ff['nonbond_params'][(atom_A, atom_B)]['epsilon']
-            coef_B = ff['nonbond_params'][(atom_A, atom_B)]['sigma']
-        except KeyError:
-            coef_A = ff['nonbond_params'][(atom_B, atom_A)]['epsilon']
-            coef_B = ff['nonbond_params'][(atom_B, atom_A)]['sigma']
+def are_bonded_exception(atom_A, atom_B, molecule, top, key):
+    # Note that lists i.e. molecule.bonds are 0 indexed while 
+    # the exclusions are indexed starting with 1 as they 
+    # are derived from the bond centers which start at 1
+#    print(getattr(top.molecules[molecule],key))
+    return(any([ atom_B+1 == atom for atom in getattr(top.molecules[molecule],key)[str(atom_A+1)] ]))
 
-        if form == 'C6C12':
-           sigma = (coef_A/coef_B)**(1/6)
-        else:
-           sigma = coef_B
-       
-        if key[0] == key[3] and key[1] == key[4]:
-           if not are_bonded(key[2]+1, key[5]+1, key[0], ff):
+def nonbonded_potential(dist_matrix, top, softness, eps, verbose):
+    LJ_energy = 0
+    COUL_energy=0
+ 
+    if verbose:
+       print("using a softness of",softness)
+
+    for item in dist_matrix:
+        
+        mol_name_A, mol_index_A, atom_type_A, atom_index_A = item[1]
+        mol_name_B, mol_index_B, atom_type_B, atom_index_B = item[2]
+        dist = item[0]
+         
+        charges = [top.molecules[mol_name_A].atoms[atom_index_A].parameters[4],
+                   top.molecules[mol_name_B].atoms[atom_index_B].parameters[4]]
+
+        coefs, sigma, pot_form = lookup_interaction_parameters(top, atom_type_A, atom_type_B, 'nonbond_params')
+        pot_form_COUL = 'Coul'
+
+        if mol_name_A == mol_name_B and mol_index_A == mol_index_B:
+           if not are_bonded_exception(atom_index_A, atom_index_B, mol_name_A, top,'excl_list'):
+
               if dist > sigma * softness:
-                 energy = energy + LJ(coef_A, coef_B, dist, form)
+                 LJ_energy   = LJ_energy   + getattr(potentials,pot_form)(coefs, dist,top.defaults['LJ'])
+                 COUL_energy = COUL_energy + getattr(potentials,pot_form_COUL)(charges, dist, eps)
+
               else:
                  if verbose:
-                    print('A-self-overlap')
+                    print('A-self-overlap-A')
                  return(math.inf, math.inf)
-           #else:
-              #print('are bonded')
-        else:
+           elif are_bonded_exception(atom_index_A, atom_index_B, mol_name_A, top,'excl_list'):
+                LJ_energy = LJ_energy + 0
+                COUL_energy = COUL_energy + 0
+
+           elif are_bonded_exception(atom_index_A, atom_index_B, mol_name_A, top,'excl_14_list'):
+                try:
+                   coefs, sigma, pot_form = lookup_interaction_parameters(top, atom_type_A, atom_type_B, 'nonbond_14_pairs')
+                except AttributeError:
+                   if verbose:
+                      print('No 1-4 interactions found')
+
+                if dist > sigma * softness: 
+                   LJ_energy = LJ_energy + getattr(potentials,pot_form)(coefs, dist,top.defaults['LJ'])
+                   COUL_energy = COUL_energy + getattr(potentials,pot_form_COUL)(charges, dist, eps)
+                else:
+                   if verbose:
+                      print('A-self-overlap-B')
+                   return(math.inf, math.inf)
+        else: 
+
            if dist > sigma * softness:
-                 energy = energy + LJ(coef_A, coef_B, dist, form)
+              LJ_energy   = LJ_energy   + getattr(potentials,pot_form)(coefs, dist, top.defaults['LJ'])
+              COUL_energy = COUL_energy + getattr(potentials,pot_form_COUL)(charges, dist, eps)
+
            else:
               if verbose:
-                 print('A-self-overlap')
+                 print(sigma)
+                 print('A-self-overlap-B')
               return(math.inf, math.inf)  
-        e_pot = e_pot+ coulomb(charge_A, charge_B, dist, eps)
         
-    return(energy, e_pot)
+    return(LJ_energy, COUL_energy)

@@ -16,6 +16,8 @@ class trajectory:
           self.dist_matrix = []
 
       def add_atom(self, mol_name, mol_index, mol_atom_index,position, top):
+          #print(mol_name)
+          #print(len(top.molecules[mol_name].atoms))
           atom_type = top.molecules[mol_name].atoms[mol_atom_index].parameters[0]
           self.positions.append(position)
           self.atom_info.append((mol_name, mol_index, atom_type, mol_atom_index))
@@ -44,7 +46,8 @@ class trajectory:
                 for i in np.arange(0,amount,1):
                     for atom in top.molecules[molname].atoms:
                         molecule_list.append((molname,i))
-                        atom_list.append(int(atom.centers[0]))
+                        #print(int(atom.centers[0])-1)
+                        atom_list.append(int(atom.centers[0])-1)
 
           for line in lines[2:-1]:
              res_index = int(line.replace('\n', '')[0:5].strip())
@@ -75,11 +78,15 @@ class trajectory:
                   
              # if a topology is supplied, the types and resnames are matched to the topology
              if top != None:
-                mol_name   = molecule_list[atom_index-1][0]
-                mol_index  = molecule_list[atom_index-1][1]
-                mol_atom_index = atom_list[atom_index]
-                temp_traj.add_atom(molname, mol_index, mol_atom_index, point,  top)
-     
+                try:
+                     mol_name   = molecule_list[atom_index-1][0]
+                     mol_index  = molecule_list[atom_index-1][1]
+                     mol_atom_index = atom_list[atom_index-1]
+                     temp_traj.add_atom(mol_name, mol_index, mol_atom_index, point,  top)
+                except IndexError:
+                     print("FATAL ERROR")
+                     print("Topology does not match coordinates!")    
+
              # else we read the res_name as the molecule name 
              else:
                 mol_name = "PSPEO"
@@ -101,14 +108,16 @@ class trajectory:
               dist_mat  = ref_tree.sparse_distance_matrix(traj_tree,cut_off)
               dist_list = [ (dist,info_A, info_B[key[1]]) for key, dist in dist_mat.items() ]                  
    
-              self.dist_matrix.append(dist_list)         
+              self.dist_matrix =  self.dist_matrix + dist_list      
  
       def add_atom_dist_matrix(self, new_atom, cut_off, mol_name, mol_index, atom_type, mol_atom_index):
           ref_tree = scipy.spatial.ckdtree.cKDTree(new_atom.reshape(1,3))
           traj_tree = scipy.spatial.ckdtree.cKDTree(self.positions)
           dist_mat = ref_tree.sparse_distance_matrix(traj_tree,cut_off)
-          dist_list = [ (dist,(mol_name, mol_index, atom_type, mol_atom_index), self.atom_info[key[1]]) for key, dist in dist_mat.items() ]         
-          self.dist_matrix.append(dist_list)
+          dist_list = [ (dist,(mol_name, mol_index, atom_type, mol_atom_index), self.atom_info[key[1]]) for key, dist in dist_mat.items() ]        
+
+          self.dist_matrix =  self.dist_matrix + dist_list        
+
 
       def del_atom_dist_matrix(index):
               try:

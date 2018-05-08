@@ -4,6 +4,8 @@
 #                                                                                                         #
 ###########################################################################################################
 
+import networkx as nx
+
 def strip_comments(line):
      line = line.replace('\n', ' ').split()
      clean_line = []
@@ -154,11 +156,10 @@ class molecule(top_base):
        For the different MD codes we use alternative constructors in form of 
        of class methods. 
       '''
-      def __init__(self, name):
+      def __init__(self, name, excl):
           # a molecule needs to have at least a list of atoms and bonds and a name
-          self.atoms = []
-          self.bonds = []
           self.name = name
+          self.excl = int(excl)
 
       def add_potential_term(self, name, line, term_format):
  #         print(name)
@@ -168,35 +169,52 @@ class molecule(top_base):
              setattr(self,name,[])
              getattr(self,name).append(term_instance.from_line(line, name, term_format))   
  
+      def construct_mol_graph(self):
+          G = nx.Graph()
+          edges = [ (int(entry.centers[0]), int(entry.centers[1])) for entry in self.bonds]
+          G.add_edges_from(edges)
+          return(G)
+
+      def neighborhood(self, node, n):
+          G = self.mol_graph
+          # Adobted from: https://stackoverflow.com/questions/22742754/finding-the-n-degree-neighborhood-of-a-node    
+          path_lengths = nx.single_source_dijkstra_path_length(G, node)
+          neighbours=[ node for node, length in path_lengths.items() if length <= n]
+          return(neighbours)
+ 
       def bonded_exclusions(self):
-          # We only construct these once
-          if self.exclusions not in locals():
-             self.mol_graph =  construct_mol_graph(self.bonds)
-             self.exclusinos = {}
-             for atom in self.atoms:
-                 exclusions.update({atom.centers: neighborhood(self.mol_graph, atom['n'], params['nexcl'])})
-
-          def construct_mol_graph(bonds):
-              G = nx.Graph()
-              edges = [ (entry['pairs'][0], entry['pairs'][1]) for entry in bonds]
-              G.add_edges_from(edges)
-              return(G)
-
-          def neighborhood(G, node, n):
-              # Adobted from: https://stackoverflow.com/questions/22742754/finding-the-n-degree-neighborhood-of-a-node    
-              path_lengths = nx.single_source_dijkstra_path_length(G, node)
-              neighbours=[ node for node, length in path_lengths.items() if length <= n]
-              return(neighbours)
+       
+          self.mol_graph =  self.construct_mol_graph()
+          self.excl_list = {}
+          self.excl_14_list = {}
+       
+          for atom in self.atoms:
+                 self.excl_list.update({atom.centers[0]: self.neighborhood(int(atom.centers[0]), self.excl )})
+                 self.excl_14_list.update({atom.centers[0]: self.neighborhood(int(atom.centers[0]),3)})
+    
+      def convert_constraints(self):
+          new_bonds = []
+          try:
+             new_bonds = [ term_instance(term.centers, '1', term.parameters, 'Harmonic')  for term in self.constraints ]
+          except AttributeError:
+             return
+          try:
+             self.bonds += new_bonds
+             return
+          except AttributeError:
+             setattr(self,'bonds',new_bonds)
+             return
 
       @classmethod
       def from_gromacs_lines(cls, lines, topology_format,end):
           keywords = ['atoms','bonds','angles','dihedrals','constraints','virtualsides'] + [end]
-          mol = cls(lines[1][0])
+          mol = cls(lines[1][0], lines[1][1])
           indices =  cls.get_indices(lines,keywords)
           for i, index in enumerate(indices[:-1]):
               for line in lines[index[0]+1:indices[i+1][0]]:
                   mol.add_potential_term(index[1], line, topology_format.format[index[1]])
-          mol.bonded_exclusions
+          mol.convert_constraints()
+          mol.bonded_exclusions()
           return(mol)
 
       @classmethod
@@ -299,7 +317,7 @@ class topology(top_base):
                        top.composition.append((line[0],int(line[1])))
 
               elif index[1] == 'defaults':
-                   top.defaults.update({'LJ':lines[index[0]+1][1]})
+                   top.defaults.update({'LJ':lines[index[0]+1][1],'COUL':lines[index[0]+1][0]})
 
               elif index[1] != 'EOF' and index[1] != 'system':
                    top.add_nonmol_params(lines[index[0]:indices[i+1][0]],topology_format)

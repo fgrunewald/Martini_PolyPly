@@ -15,7 +15,26 @@ from polyply.structure_tool.force_field_tools import *
 from polyply.structure_tool.environment import *
 from polyply.classes.topology_class import *
 from polyply.classes.traj_class import *
+from polyply.classes.topology_class import *
+from polyply.classes.traj_class import *
+from polyply.classes.potentials import *
 
+#######################################################################################################
+#
+#                       Functions for the pseudo Monte-Carlo Method
+#
+#######################################################################################################
+
+
+def find_central_starting_point(coordinates, sol):
+    x_coords = [ atom[0] for sol_name in sol for mol in coordinates[sol_name] for atom in mol ]
+    y_coords = [ atom[1] for sol_name in sol for mol in coordinates[sol_name] for atom in mol ]
+    z_coords = [ atom[2] for sol_name in sol for mol in coordinates[sol_name] for atom in mol ]
+    point_A = np.array([max(x_coords), max(y_coords), max(z_coords)])
+    point_B = np.array([min(x_coords), min(y_coords), min(z_coords)])
+    diagonal = point_A - point_B
+    starting_point = point_B + 0.5 * diagonal
+    return(starting_point)
 
 def accaptable(E, temp, prev_E):
     if E == math.inf:
@@ -67,26 +86,24 @@ def take_step(vectors, step_length, item):
     return(new_item, index)
 
 def Hamiltonion(top, traj, display, softness, eps):
-    bond, angle, dihedral = bonded_potential(traj, top)
-    vdw, coulomb = nonbonded_potential(traj, top, softness, eps, display)
- 
-    if display:
-       for term, name in zip([bond, angle, dihedral, vdw, coulomb],['bonds', 'angle', 'dihedral', 'vdw','coulomb']):
-           print(name, term)
+    #bond, angle, dihedral = bonded_potential(traj, top)
+    vdw, coulomb = nonbonded_potential(traj.dist_matrix, top, softness, eps, display)
+    print(vdw, coulomb)
+    #if display:
+    #   for term, name in zip([bond, angle, dihedral, vdw, coulomb],['bonds', 'angle', 'dihedral', 'vdw','coulomb']):
+    #       print(name, term)
 
     return(bond + angle + dihedral + vdw + coulomb)
 
 
 
-def find_central_starting_point(coordinates, sol):
-    x_coords = [ atom[0] for sol_name in sol for mol in coordinates[sol_name] for atom in mol ]
-    y_coords = [ atom[1] for sol_name in sol for mol in coordinates[sol_name] for atom in mol ]
-    z_coords = [ atom[2] for sol_name in sol for mol in coordinates[sol_name] for atom in mol ]
-    point_A = np.array([max(x_coords), max(y_coords), max(z_coords)])
-    point_B = np.array([min(x_coords), min(y_coords), min(z_coords)])
-    diagonal = point_A - point_B
-    starting_point = point_B + 0.5 * diagonal
-    return(starting_point)
+##############################################################################################################################
+#
+#                                             The pseudo Monte-Carlo Method
+#
+##############################################################################################################################
+
+
 
 def metropolis_monte_carlo(top, name, traj, start,temp, max_steps, verbose, list_of_constraints, sol, cut_off, eps, softness):
  
@@ -111,7 +128,7 @@ def metropolis_monte_carlo(top, name, traj, start,temp, max_steps, verbose, list
   
     traj.distance_matrix(cut_off)
     if verbose:
-       print('computed ',len(traj.dist_matrix),'distance pairs'.)
+       print('computed ',len(traj.dist_matrix),'distance pairs.')
 
 
 ###### 3. Compute the intial energy
@@ -188,7 +205,7 @@ def build_system(top_options, env_options, mc_options, outfile, magic_numbers):
 
     top_format = topology_format('gromacs','topology_format.txt')
     top = topology.from_gromacs_topfile(topfile,top_format)
-   
+
     if sysfile != None:
        traj = trajectory.from_gro_file(sysfile,top)
     else:
