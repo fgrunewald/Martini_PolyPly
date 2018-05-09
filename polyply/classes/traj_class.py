@@ -1,6 +1,7 @@
 import numpy as np
 from tqdm import tqdm
-import scipy.spatial
+#import scipy.spatiala
+from cellgrid import capped_distance_array
 
 class trajectory:
       '''
@@ -15,12 +16,12 @@ class trajectory:
           self.n_atoms    = {}
           self.dist_matrix = []
 
-      def add_atom(self, mol_name, mol_index, mol_atom_index,position, top):
-          #print(mol_name)
-          #print(len(top.molecules[mol_name].atoms))
-          atom_type = top.molecules[mol_name].atoms[mol_atom_index].parameters[0]
+      def add_atom(self, mol_name, mol_index, mol_atom_index,position,atom_index, top):
+ #         print(mol_name)
+          #print(top.molecules[mol_name].atoms[mol_atom_index-1].parameters[0])
+          atom_type = top.molecules[mol_name].atoms[mol_atom_index-1].parameters[0]
           self.positions.append(position)
-          self.atom_info.append((mol_name, mol_index, atom_type, mol_atom_index))
+          self.atom_info.append((mol_name, mol_index, atom_type, mol_atom_index,atom_index))
 
       def remove_molecule(self, mol_name, index):
           try:
@@ -34,21 +35,22 @@ class trajectory:
       @classmethod
       def from_gro_file(cls, name, top=None):
           lines = open(name).readlines()
-
-          temp_traj = cls(lines[-1])
+          box = np.array([float(lines[-1].split()[0]), float(lines[-1].split()[1]), float(lines[-1].split()[2])])
+          temp_traj = cls(box)
           big_res = False
           big_atoms = False    
 
           if top != None:
             molecule_list = [ ]
             atom_list = []
+        
             for molname, amount in top.composition:
                 for i in np.arange(0,amount,1):
                     for atom in top.molecules[molname].atoms:
                         molecule_list.append((molname,i))
                         #print(int(atom.centers[0])-1)
-                        atom_list.append(int(atom.centers[0])-1)
-
+                        atom_list.append(int(atom.centers[0]))
+        
           for line in lines[2:-1]:
              res_index = int(line.replace('\n', '')[0:5].strip())
              res_name = line.replace('\n', '')[5:10].strip()
@@ -82,34 +84,40 @@ class trajectory:
                      mol_name   = molecule_list[atom_index-1][0]
                      mol_index  = molecule_list[atom_index-1][1]
                      mol_atom_index = atom_list[atom_index-1]
-                     temp_traj.add_atom(mol_name, mol_index, mol_atom_index, point,  top)
+                     temp_traj.add_atom(mol_name, mol_index, mol_atom_index, point,atom_index,top)
                 except IndexError:
                      print("FATAL ERROR")
-                     print("Topology does not match coordinates!")    
-
+                     print("Check your topology and gro file format!")    
+                     exit()
              # else we read the res_name as the molecule name 
              else:
                 mol_name = "PSPEO"
                 temp_traj.add_atom(mol_name, point, res_index-1, ff=None, atom_index=None)
-
-          return(temp_traj)
+          temp_traj.positions = np.asarray(temp_traj.positions).reshape(-1,3)
+          return(temp_traj) 
 
       def distance_matrix(self,cut_off):
-          
-          traj_B = np.asarray(self.positions).reshape(-1,3)  
-          info_B = self.atom_info
+          traj_B=[]
+          info_B=[]
+          traj_B[:] = [ atom for atom in self.positions[:] ]
+          info_B[:] = [ atom for atom in self.atom_info[:] ]
 
-          for atom_A, info_A in zip(self.positions,self.atom_info):
-              traj_B = np.delete(traj_B,0,axis=0)
-              del info_B[0]
+          self.dist_matrix=[]
 
-              traj_tree = scipy.spatial.ckdtree.cKDTree(traj_B)
-              ref_tree  = scipy.spatial.ckdtree.cKDTree(atom_A.reshape(1,3))
-              dist_mat  = ref_tree.sparse_distance_matrix(traj_tree,cut_off)
-              dist_list = [ (dist,info_A, info_B[key[1]]) for key, dist in dist_mat.items() ]                  
-   
+          # This somewhat absurd loop structure is required to avoid calculating the distance pairs squared! 
+          # One element is enough
+
+          for atom_A, info_A in tqdm(zip(self.positions,self.atom_info)):
+              traj_B[:] = [ atom for atom in traj_B[1:] ]
+              info_B[:] = [ atom for atom in info_B[1:] ]
+              ref_array = np.asarray(traj_B).reshape(-1,3)    
+              distances = capped_distance_array(atom_A.reshape(-1,3),ref_array, cut_off, self.box)
+              dist_list = [ (dist,info_A, info_B[key[1]]) for key, dist in zip(distances[0],distances[1]) if dist < cut_off and dist != 0.0] 
               self.dist_matrix =  self.dist_matrix + dist_list      
- 
+
+          #for item in self.dist_matrix:
+          #    print(item)
+
       def add_atom_dist_matrix(self, new_atom, cut_off, mol_name, mol_index, atom_type, mol_atom_index):
           ref_tree = scipy.spatial.ckdtree.cKDTree(new_atom.reshape(1,3))
           traj_tree = scipy.spatial.ckdtree.cKDTree(self.positions)

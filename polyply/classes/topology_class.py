@@ -183,14 +183,17 @@ class molecule(top_base):
           return(neighbours)
  
       def bonded_exclusions(self):
+          try:
+             self.mol_graph =  self.construct_mol_graph()
+             self.excl_list = {}
+             self.excl_14_list = {}
        
-          self.mol_graph =  self.construct_mol_graph()
-          self.excl_list = {}
-          self.excl_14_list = {}
-       
-          for atom in self.atoms:
-                 self.excl_list.update({atom.centers[0]: self.neighborhood(int(atom.centers[0]), self.excl )})
-                 self.excl_14_list.update({atom.centers[0]: self.neighborhood(int(atom.centers[0]),3)})
+             for atom in self.atoms:
+                 self.excl_list.update({atom.centers[0]: self.neighborhood(int(atom.centers[0]), self.excl)})
+                 self.excl_14_list.update({atom.centers[0]: self.neighborhood(int(atom.centers[0]),4)})
+          except AttributeError:
+             self.excl_list={}
+             self.excl_14_list = {}
     
       def convert_constraints(self):
           new_bonds = []

@@ -67,7 +67,7 @@ def CBT(term, positions):
 
 def LJ(coefs, dist, form):
     if int(form) == 1:
-       return(float(coefs[0])/dist**12.0 - float(coefs[1])/dist**6.0)        
+       return(float(coefs[1])/dist**12.0 - float(coefs[0])/dist**6.0)        
     elif int(form) == 2:
        return(4*float(coefs[0])*((float(coef[1])/dist)**12.0-(float(coef[1])/dist)**6.0))
     else:
