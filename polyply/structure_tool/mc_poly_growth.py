@@ -85,15 +85,16 @@ def take_step(vectors, step_length, item):
     new_item = item + vectors[index] * step_length
     return(new_item, index)
 
-def Hamiltonion(top, traj, display, softness, eps):
-    #bond, angle, dihedral = bonded_potential(traj, top)
+def Hamiltonion(top, traj, display, softness, eps,sol):
+    
+    bonded_energies= bonded_potential(traj, top, [sol])
     vdw, coulomb = nonbonded_potential(traj.dist_matrix, top, softness, eps, display)
-    print(vdw, coulomb)
-    #if display:
-    #   for term, name in zip([bond, angle, dihedral, vdw, coulomb],['bonds', 'angle', 'dihedral', 'vdw','coulomb']):
-    #       print(name, term)
+    dispaly=True
+    if display:
+       for item in bonded_energies:
+           print(item)
 
-    return(bond + angle + dihedral + vdw + coulomb)
+    return(vdw + coulomb)
 
 
 
@@ -133,7 +134,7 @@ def metropolis_monte_carlo(top, name, traj, start,temp, max_steps, verbose, list
 
 ###### 3. Compute the intial energy
 
-    prev_E = Hamiltonion(top, traj, verbose, softness, eps)
+    prev_E = Hamiltonion(top, traj, verbose, softness, eps,sol)
   
 
 ###### 4. loop over n_repeats

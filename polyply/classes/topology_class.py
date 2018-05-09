@@ -194,11 +194,11 @@ class molecule(top_base):
           except AttributeError:
              self.excl_list={}
              self.excl_14_list = {}
-    
+ 
       def convert_constraints(self):
           new_bonds = []
           try:
-             new_bonds = [ term_instance(term.centers, '1', term.parameters, 'Harmonic')  for term in self.constraints ]
+             new_bonds = [ term_instance(term.centers, '1', [term.parameters[0], 9000], 'SimpleHarmonic')  for term in self.constraints ]
           except AttributeError:
              return
           try:
@@ -207,6 +207,19 @@ class molecule(top_base):
           except AttributeError:
              setattr(self,'bonds',new_bonds)
              return
+
+#      def convert_constraints(self):
+#          new_bonds = []
+#          try:
+#             new_bonds = [ term_instance(term.centers, '1', [term.paramters , 9000 ], 'SimpleHarmonic')  for term in self.constraints ]
+#          except AttributeError:
+#             return
+#          try:
+#             self.bonds += new_bonds
+#             return
+#          except AttributeError:
+#             setattr(self,'bonds',new_bonds)
+#             return
 
       @classmethod
       def from_gromacs_lines(cls, lines, topology_format,end):

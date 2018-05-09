@@ -34,19 +34,27 @@ def norm_sphere():
 # Bonded Potentials
 #####################################
 
-def Harmon(term, positions):
-    dist = positions[term.centers[0]] - positions[term.centers[1]]
-    energy = 0.5 * term.params[0] * (dist-term.params[1])**2.0
+def select_positions(traj, atom_indices, centers):
+    indices = [ atom_indices[i] for i in centers  ]
+    return([np.array(traj.positions[j]) for j in indices])
+
+def SimpleHarmonic(term, traj, atom_indices, centers):
+    positions = select_positions(traj, atom_indices, centers)
+    dist = np.linalg.norm(positions[0] - positions[1])
+    energy = 0.5 * float(term.parameters[1]) * (dist-float(term.parameters[0]))**2.0
     return(energy)
 
-def HarmonSq(term,positions):
-    dist = positions[term.centers[0]] - positions[term.centers[1]]
-    energy = 0.5 * term.params[0] * (dist**2.0-term.params[1]**2.0)**2.0
+def SimpleHarmonicSquared(term, traj, atom_indices, centers):
+    positions = select_positions(traj, atom_indices, centers)
+    dist = positions[0] - positions[1]
+    energy = 0.5 * float(term.parameters[1]) * (dist**2.0-float(term.parameters[0])**2.0)**2.0
     return(energy)   
 
-def HarmonCosAng(term, position):
-    dist = positions[term.centers[0]] - positions[term.centers[1]]
-    energy = 0.5 * term.params[0] * (dist-term.params[1])**2.0
+def HarmonicAngle(term, traj, atom_indices, centers):
+    positions = select_positions(traj, atom_indices, centers)
+    ang = angle(positions[0],positions[1],positions[2])
+    print(ang )
+    energy = 0.5 * float(term.parameters[1]) * (np.radians(ang)-np.radians(float(term.parameters[0])))**2.0
     return(energy)
 
 def HarmonSqCosAng(term, positions):

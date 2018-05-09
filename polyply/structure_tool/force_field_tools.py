@@ -44,22 +44,25 @@ def write_gro_file(data, name, ff, box):
     return(None)
 
 
-def bonded_interactions(top, traj):
-    energy = 0
+def bonded_potential(traj,top,excluded=[None]):
+    energies = []
     atom_count = 0
-    for i, mol in enumerate(top.composition):
-        term_names = [a for a in dir(top.molecules[mol]) if not a.startswith('__') and not callable(getattr(top.molecules[mol],a))]
-        for term_name in term_names:
-            if term_name != 'atoms':
-               term = getattr(top.molecules[mol],term_name)
-               # get indices and let term select and compute all require geomtries
-               pos_indices = np.arange(atom_count, atom_count + len(top.molecules[mol].atoms),1)
-               atom_count += len(top.molecules[mol].atoms)
-            try:
-               energy += getattr(potential,term.potential)(term,traj[pos_indices])
-            except IndexError:
-               pass
-    return(energy)
+
+    for mol, n_mol in top.composition:
+       if mol not in excluded:
+          atom_indices = [ index for index, mol_name in enumerate(traj.molecule_list) if mol_name[0] in mol ]
+          term_names = [a for a in dir(top.molecules[mol]) if not a.startswith('__') and not callable(getattr(top.molecules[mol],a)) and 
+                        a not in ['excl', 'excl_14_list', 'excl_list', 'mol_graph', 'name', 'atoms', 'constraints']]
+          
+          for term_name in term_names:
+              energy = 0
+              terms = getattr(top.molecules[mol],term_name)
+              for term in terms:
+                  n_terms = len(atom_indices)/max(map(int,term.centers))
+                  energy += sum([ getattr(potentials,term.potential)(term, traj, atom_indices, [int(j)*i-1 for j in term.centers]) for i in np.arange(1,n_mol+1)])
+               
+              energies.append((energy,term_name)) 
+    return(energies)
            
 def lookup_interaction_parameters(top, atom_A, atom_B, key):
 
@@ -117,7 +120,7 @@ def nonbonded_potential(dist_matrix, top, softness, eps, verbose):
               if dist > sigma * softness:
                  LJ_energy   = LJ_energy   + getattr(potentials,pot_form)(coefs, dist,top.defaults['LJ'])
                  COUL_energy = COUL_energy + getattr(potentials,pot_form_COUL)(charges, dist, eps)
-                 print(item)
+ #                print(item)
               else:
                  if verbose:
                     print('overalp')

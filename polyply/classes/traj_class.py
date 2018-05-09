@@ -15,6 +15,8 @@ class trajectory:
           self.atom_info  = []
           self.n_atoms    = {}
           self.dist_matrix = []
+          self.molecule_list = []
+          self.atom_list = []
 
       def add_atom(self, mol_name, mol_index, mol_atom_index,position,atom_index, top):
  #         print(mol_name)
@@ -41,15 +43,13 @@ class trajectory:
           big_atoms = False    
 
           if top != None:
-            molecule_list = [ ]
-            atom_list = []
-        
-            for molname, amount in top.composition:
+                 
+              for molname, amount in top.composition:
                 for i in np.arange(0,amount,1):
                     for atom in top.molecules[molname].atoms:
-                        molecule_list.append((molname,i))
+                        temp_traj.molecule_list.append((molname,i))
                         #print(int(atom.centers[0])-1)
-                        atom_list.append(int(atom.centers[0]))
+                        temp_traj.atom_list.append(int(atom.centers[0]))
         
           for line in lines[2:-1]:
              res_index = int(line.replace('\n', '')[0:5].strip())
@@ -81,9 +81,9 @@ class trajectory:
              # if a topology is supplied, the types and resnames are matched to the topology
              if top != None:
                 try:
-                     mol_name   = molecule_list[atom_index-1][0]
-                     mol_index  = molecule_list[atom_index-1][1]
-                     mol_atom_index = atom_list[atom_index-1]
+                     mol_name   = temp_traj.molecule_list[atom_index-1][0]
+                     mol_index  = temp_traj.molecule_list[atom_index-1][1]
+                     mol_atom_index = temp_traj.atom_list[atom_index-1]
                      temp_traj.add_atom(mol_name, mol_index, mol_atom_index, point,atom_index,top)
                 except IndexError:
                      print("FATAL ERROR")
