@@ -80,19 +80,16 @@ def constraints(new_point, list_of_constraints):
 
     return(all(status))
 
-def take_step(vectors, step_length, item):
-    index = random.randint(0, len(vectors) - 1)
-    new_item = item + vectors[index] * step_length
-    return(new_item, index)
-
 def Hamiltonion(top, traj, display, softness, eps,sol):
     
     bonded_energies= bonded_potential(traj, top, [sol])
     vdw, coulomb = nonbonded_potential(traj.dist_matrix, top, softness, eps, display)
-    dispaly=True
+   
     if display:
        for item in bonded_energies:
            print(item)
+       print('vdw':,vwd)
+       print('electrostatic',coulomb)
 
     return(vdw + coulomb)
 
@@ -100,13 +97,96 @@ def Hamiltonion(top, traj, display, softness, eps,sol):
 
 ##############################################################################################################################
 #
-#                                             The pseudo Monte-Carlo Method
+#                                             The Pseudopolis Monte-Carlo Method
 #
 ##############################################################################################################################
 
 
+def attempt(traj, top, step_length, vectors):
 
-def metropolis_monte_carlo(top, name, traj, start,temp, max_steps, verbose, list_of_constraints, sol, cut_off, eps, softness):
+    last_point = traj.positions[-1]
+    index = random.randint(0, len(vectors) - 1)
+    new_point = last_point + vectors[index] * step_length
+    traj.positions.append(new_point)
+    traj.remove_overlaps(name)
+    new_energy = Hamiltonion(traj,top)
+
+    return(new_energy, traj)
+           
+def take_step():
+
+    step_length = determine_step_length()
+    vectors = constraint_vectors()    
+
+    while True:
+
+         new_energy, new_traj = attempt(traj, top, step_length, vectors)
+   
+         if type(step_count/min_steps) == int:
+            return(new_energy, new_traj)
+
+         elif accaptable(new_energy, prev_energy):
+            return(new_energy, new_traj)
+
+         elif subcount < max_steps:
+              if verbose:
+                 print(total_E)
+                 print('rejected')
+
+               vector_bundel = vector_bundel[]
+               rejected = rejected + 1
+               subcount = subcount + 1
+
+
+   if len(env_traj) != 0:
+       sol_traj_temp = remove_overlap(new_coord, env_traj[sol], 0.43*0.80, sol)                    
+       new_traj.update({sol: sol_traj_temp})
+       [ new_traj.update({key:values}) for key, values in env_traj.items() if key != sol ]
+ 
+       dist_mat = construct_dist_mat(new_traj, cut_off, start=True)
+
+
+
+    return(new_item, index)
+
+
+def pseudo_step():
+
+    while True:
+          vector_bundel = norm_sphere()
+          new_coord, index, new_E = take_step(vector_bundel, step_length, last_point)
+
+          if accaptable(new_E, temp, prev_E):
+             if verbose:
+                print('accapted')
+             prev_E = total_E
+             last_point = new_coord
+             count = count + 1
+             break
+
+          elif subcount < max_steps:
+               if verbose:
+                  print(total_E)
+                  print('rejected')         
+               
+               vector_bundel = vector_bundel[]
+               rejected = rejected + 1
+               subcount = subcount + 1
+
+             else:
+               print('+++++++++++++++++++++ FATAL ERROR ++++++++++++++++++++++++++++\n')
+               print('Exceeded maximum number of steps in the monte-carlo module.')
+               print('If you know what you do set -maxsteps to -1')
+               return(traj)
+          else:
+             if verbose:
+                print('rejected')         
+             rejected = rejected + 1
+                   vector_bundel = np.delete(vector_bundel, index, axis=0)
+
+
+
+def pseudopolis_monte_carlo(top, name, traj, start,temp, max_steps, verbose, list_of_constraints, sol, cut_off, eps, softness):
  
 ###### 1. Check if it is a restart 
          #    -> set the number of iterations n_repeat
@@ -135,60 +215,19 @@ def metropolis_monte_carlo(top, name, traj, start,temp, max_steps, verbose, list
 ###### 3. Compute the intial energy
 
     prev_E = Hamiltonion(top, traj, verbose, softness, eps,sol)
-  
-
+    
 ###### 4. loop over n_repeats
 
     rejected=0
-    exit()
-    print('\n+++++++++++++++ STARTING MONTE CARLO MODULE ++++++++++++++\n')
+     
+    print('\n+++++++++++++++ STARTING PSEUDOPOLIS-MONTE CARLO MODULE ++++++++++++++\n')
     while count < n_repeat:
-          print('~~~~~~~~~~~~~~~~',count,'~~~~~~~~~~~~~~')
-          step_length, ref_coord, bonded = determine_step_length(ff, count, traj[name][0], name, start, offset)
-          last_point = ref_coord
-          subcount=0     
-          while True:
-                vector_bundel = norm_sphere()
-                new_coord, index = take_step(vector_bundel, step_length, last_point)
-                new_traj = {name:[np.append(traj[name],np.array([new_coord])).reshape(-1,3)]}
-                 
-                if len(env_traj) != 0:
-                   sol_traj_temp = remove_overlap(new_coord, env_traj[sol], 0.43*0.80, sol)                    
-                   new_traj.update({sol: sol_traj_temp})
-                   [ new_traj.update({key:values}) for key, values in env_traj.items() if key != sol ]
-          
-                dist_mat = construct_dist_mat(new_traj, cut_off, start=True)
-              
-                if constraints(new_coord, list_of_constraints):
-                   total_E  = Hamiltonion(ff, new_traj, dist_mat, verbose, eps, cut_off, form, softness)
-
-                   if accaptable(total_E, temp, prev_E):
-                     if verbose:
-                        print('accapted')
-                        print(total_E)
-                     prev_E = total_E
-                     traj = new_traj
-                     last_point = new_coord
-                     count = count + 1
-                     break
-
-                   elif subcount < max_steps:
-                     if verbose:
-                        print(total_E)
-                        print('rejected')         
-                     rejected = rejected + 1
-                     subcount = subcount + 1
-                     vector_bundel = np.delete(vector_bundel, index, axis=0)
-                   else:
-                     print('+++++++++++++++++++++ FATAL ERROR ++++++++++++++++++++++++++++\n')
-                     print('Exceeded maximum number of steps in the monte-carlo module.')
-                     print('If you know what you do set -maxsteps to -1')
-                     return(traj)
-                else:
-                   if verbose:
-                      print('rejected')         
-                   rejected = rejected + 1
-                   vector_bundel = np.delete(vector_bundel, index, axis=0)
+ 
+    
+    print('~~~~~~~~~~~~~~~~',count,'~~~~~~~~~~~~~~')
+    step_length, ref_coord, bonded = determine_step_length(ff, count, traj[name][0], name, start, offset)
+    last_point = ref_coord
+    subcount=0     
 
     print('++++++++++++++++ RESULTS FORM MONTE CARLO MODULE ++++++++++++++\n')
     print('Total Energy:', Hamiltonion(ff, traj, dist_mat, True, eps, cut_off, form, softness))
@@ -196,6 +235,10 @@ def metropolis_monte_carlo(top, name, traj, start,temp, max_steps, verbose, list
     print('Number of rejected MC steps:', rejected)       
     return(traj)
 
+
+################################################################################################################
+#                                 you're leaving the pseudopolis MC 
+################################################################################################################
 
 def build_system(top_options, env_options, mc_options, outfile, magic_numbers):
     # some magic numbers which should go to input level at some point
@@ -213,7 +256,7 @@ def build_system(top_options, env_options, mc_options, outfile, magic_numbers):
        traj = trajectory(name)  
        traj.add_molecule(name, positions=np.array([0,0,0]), top=top)
    
-    traj = metropolis_monte_carlo(top, name, traj, start, temp, max_steps, verbose, [{'type':None}],  None,  cut_off, eps, softness)
+    traj = pseudopolis_monte_carlo(top, name, traj, start, temp, max_steps, verbose, [{'type':None}],  None,  cut_off, eps, softness)
   
     write_gro_file(traj,outfile,ff, box)
     return(None)   
