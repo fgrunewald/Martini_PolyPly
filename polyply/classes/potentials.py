@@ -34,24 +34,24 @@ def norm_sphere():
 # Bonded Potentials
 #####################################
 
-def select_positions(traj, atom_indices, centers):
-    indices = [ atom_indices[i] for i in centers  ]
+def select_positions(traj,  centers):
+    indices = [ atom_indices[i]  for i in centers  ]
     return([np.array(traj.positions[j]) for j in indices])
 
-def SimpleHarmonic(term, traj, atom_indices, centers):
-    positions = select_positions(traj, atom_indices, centers)
+def SimpleHarmonic(term, traj, centers):
+    positions = select_positions(traj, centers)
     dist = np.linalg.norm(positions[0] - positions[1])
     energy = 0.5 * float(term.parameters[1]) * (dist-float(term.parameters[0]))**2.0
     return(energy)
 
-def SimpleHarmonicSquared(term, traj, atom_indices, centers):
+def SimpleHarmonicSquared(term, traj, centers):
     positions = select_positions(traj, atom_indices, centers)
     dist = positions[0] - positions[1]
     energy = 0.5 * float(term.parameters[1]) * (dist**2.0-float(term.parameters[0])**2.0)**2.0
     return(energy)   
 
-def HarmonicAngle(term, traj, atom_indices, centers):
-    positions = select_positions(traj, atom_indices, centers)
+def HarmonicAngle(term, traj,  centers):
+    positions = select_positions(traj, centers)
     ang = angle(positions[0],positions[1],positions[2])
     print(ang )
     energy = 0.5 * float(term.parameters[1]) * (np.radians(ang)-np.radians(float(term.parameters[0])))**2.0

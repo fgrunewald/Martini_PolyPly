@@ -24,25 +24,22 @@ global kBa
 kb = 1.38964852 * 10**(-23.0) *10**-3.0 # kJ/K
 
 
-def write_gro_file(data, name, ff, box):
-    n = sum([ len(coords) for resname, list_of_coords in data.items() for coords in list_of_coords ])
-    out_file = open(name, 'w')
-    out_file.write('Monte Carlo generated PEO'+'\n')
+def write_gro_file(top, traj,name,file_name):
+    n = len(traj.atom_info)
+    out_file = open(file_name, 'w')
+    out_file.write('Monte Carlo generated'+name+ '\n')
     out_file.write('{:>3s}{:<8d}{}'.format('',n,'\n'))
     count = 0
     resnum = 1
-  
-    for resname, mols in data.items():
-       for coords in mols:
-         resnum = resnum + 1
-         for index, line in enumerate(coords):
-             atomtype = ff[resname]['atoms'][index]['atom']
-             count = count + 1
-             out_file.write('{:>5d}{:<5s}{:>5s}{:5d}{:8.3F}{:8.3F}{:8.3F}{}'.format(resnum, resname, atomtype, count, line[0], line[1], line[2],'\n'))
-    out_file.write('{:>2s}{:<.5F} {:<.5F} {:<.5F}'.format('',float(box[0]), float(box[1]), float(box[2])))
-    out_file.close()
-    return(None)
+    #print(traj.atom_info[-1])
+    for pos, info in zip(traj.positions,traj.atom_info):
+        #print( top.molecules[name].atoms[info[3]-1].parameters[2])
+        res_index = int(top.molecules[name].atoms[info[3]-1].parameters[1])
+        res_name = top.molecules[name].atoms[info[3]-1].parameters[2]
+        out_file.write('{:>5d}{:<5s}{:>5s}{:5d}{:8.3F}{:8.3F}{:8.3F}{}'.format(res_index,res_name,info[2],info[-1],pos[0],pos[1],pos[2],'\n'))
 
+    out_file.write('{:>2s}{:<.5F} {:<.5F} {:<.5F}'.format('',float(traj.box[0]), float(traj.box[1]), float(traj.box[2])))
+    out_file.close()
 
 def bonded_potential(traj,top,excluded=[None]):
     energies = []
@@ -50,7 +47,6 @@ def bonded_potential(traj,top,excluded=[None]):
 
     for mol, n_mol in top.composition:
        if mol not in excluded:
-          atom_indices = [ index for index, mol_name in enumerate(traj.molecule_list) if mol_name[0] in mol ]
           term_names = [a for a in dir(top.molecules[mol]) if not a.startswith('__') and not callable(getattr(top.molecules[mol],a)) and 
                         a not in ['excl', 'excl_14_list', 'excl_list', 'mol_graph', 'name', 'atoms', 'constraints']]
           
@@ -58,9 +54,11 @@ def bonded_potential(traj,top,excluded=[None]):
               energy = 0
               terms = getattr(top.molecules[mol],term_name)
               for term in terms:
-                  n_terms = len(atom_indices)/max(map(int,term.centers))
-                  energy += sum([ getattr(potentials,term.potential)(term, traj, atom_indices, [int(j)*i-1 for j in term.centers]) for i in np.arange(1,n_mol+1)])
-               
+                   try:
+                      print([ getattr(potentials,term.potential)(term, traj, [int(j)*i-1 for j in term.centers]) for i in np.arange(1,n_mol+1)])
+                      energy += sum([ getattr(potentials,term.potential)(term, traj, [int(j)*i-1 for j in term.centers]) for i in np.arange(1,n_mol+1)])
+                  except IndexError:
+                      pass
               energies.append((energy,term_name)) 
     return(energies)
            
@@ -89,16 +87,17 @@ def are_bonded_exception(atom_A, atom_B, molecule, top, key):
     # Note that lists i.e. molecule.bonds are 0 indexed while 
     # the exclusions are indexed starting with 1 as they 
     # are derived from the bond centers which start at 1
-#    print(getattr(top.molecules[molecule],key))
-    try:
-        return(any([ atom_B == atom for atom in getattr(top.molecules[molecule],key)[str(atom_A)] ]))
-    except KeyError:
-        return(False)
+
+   # try:
+        #print('--',atom_B , getattr(top.molecules[molecule],key)[str(atom_A)] )
+        return(any([ atom_B   == atom for atom in getattr(top.molecules[molecule],key)[str(atom_A)] ]))
+ #   except KeyError:
+  #      return(False)
 
 def nonbonded_potential(dist_matrix, top, softness, eps, verbose):
     LJ_energy = 0
     COUL_energy=0
- 
+    verbose=True
     if verbose:
        print("using a softness of",softness)
 
@@ -123,34 +122,35 @@ def nonbonded_potential(dist_matrix, top, softness, eps, verbose):
  #                print(item)
               else:
                  if verbose:
-                    print('overalp')
+                    print(mol_name_A)
+                    print('overalp - category I')
                  return(math.inf, math.inf)
 
            elif are_bonded_exception(atom_index_A, atom_index_B, mol_name_A, top,'excl_list'):
                 LJ_energy = LJ_energy + 0
                 COUL_energy = COUL_energy + 0
 
-          # elif are_bonded_exception(atom_index_A, atom_index_B, mol_name_A, top,'excl_14_list'):
-          #      try:
-          #         coefs, sigma, pot_form = lookup_interaction_parameters(top, atom_type_A, atom_type_B, 'nonbond_14_pairs')
-          #      except AttributeError:
-          #         if verbose:
-          #            print('No 1-4 interactions found')
+           elif are_bonded_exception(atom_index_A, atom_index_B, mol_name_A, top,'excl_14_list'):
+                try:
+                   coefs, sigma, pot_form = lookup_interaction_parameters(top, atom_type_A, atom_type_B, 'nonbond_14_pairs')
+                except AttributeError:
+                   if verbose:
+                      print('No 1-4 interactions found')
 
-           #     if dist > sigma * softness: 
-           #        LJ_energy = LJ_energy + getattr(potentials,pot_form)(coefs, dist,top.defaults['LJ'])
-           #        COUL_energy = COUL_energy + getattr(potentials,pot_form_COUL)(charges, dist, eps)
-           #     else:
-           #        if verbose:
-           #           print('A-self-overlap-B')
-           #           print(dist)
-           #        return(math.inf, math.inf)
+                if dist > sigma * softness: 
+                   LJ_energy = LJ_energy + getattr(potentials,pot_form)(coefs, dist,top.defaults['LJ'])
+                   COUL_energy = COUL_energy + getattr(potentials,pot_form_COUL)(charges, dist, eps)
+                else:
+                   if verbose:
+                      print('A-self-overlap-B')
+                      print(dist)
+                   return(math.inf, math.inf)
         else: 
 
            if dist > sigma * softness:
               LJ_energy   = LJ_energy   + getattr(potentials,pot_form)(coefs, dist, top.defaults['LJ'])
               COUL_energy = COUL_energy + getattr(potentials,pot_form_COUL)(charges, dist, eps)
-              print(item)
+              #print(item)
            else:
               if verbose:
                  print(item)

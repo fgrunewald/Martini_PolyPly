@@ -208,19 +208,6 @@ class molecule(top_base):
              setattr(self,'bonds',new_bonds)
              return
 
-#      def convert_constraints(self):
-#          new_bonds = []
-#          try:
-#             new_bonds = [ term_instance(term.centers, '1', [term.paramters , 9000 ], 'SimpleHarmonic')  for term in self.constraints ]
-#          except AttributeError:
-#             return
-#          try:
-#             self.bonds += new_bonds
-#             return
-#          except AttributeError:
-#             setattr(self,'bonds',new_bonds)
-#             return
-
       @classmethod
       def from_gromacs_lines(cls, lines, topology_format,end):
           keywords = ['atoms','bonds','angles','dihedrals','constraints','virtualsides'] + [end]
