@@ -41,25 +41,50 @@ def write_gro_file(top, traj,name,file_name):
     out_file.write('{:>2s}{:<.5F} {:<.5F} {:<.5F}'.format('',float(traj.box[0]), float(traj.box[1]), float(traj.box[2])))
     out_file.close()
 
+def get_positions(traj, first_atom, last_atom,centers):
+    positions = [ traj.positions[i] for i in np.arange(first_atom,last_atom,1) if i < len(traj.positions) ]
+    try:
+      atom_pos = [ positions[int(i)] for i in centers]
+      return (atom_pos, True)
+    except IndexError:
+      return([],False)
+
 def bonded_potential(traj,top,excluded=[None]):
-    energies = []
+    energies = {}
     atom_count = 0
 
     for mol, n_mol in top.composition:
        if mol not in excluded:
+       
           term_names = [a for a in dir(top.molecules[mol]) if not a.startswith('__') and not callable(getattr(top.molecules[mol],a)) and 
                         a not in ['excl', 'excl_14_list', 'excl_list', 'mol_graph', 'name', 'atoms', 'constraints']]
-          
-          for term_name in term_names:
-              energy = 0
-              terms = getattr(top.molecules[mol],term_name)
-              for term in terms:
-                   try:
-                      print([ getattr(potentials,term.potential)(term, traj, [int(j)*i-1 for j in term.centers]) for i in np.arange(1,n_mol+1)])
-                      energy += sum([ getattr(potentials,term.potential)(term, traj, [int(j)*i-1 for j in term.centers]) for i in np.arange(1,n_mol+1)])
-                  except IndexError:
-                      pass
-              energies.append((energy,term_name)) 
+
+          for nth_mol in np.arange(0,n_mol,1):
+             
+              first_atom = atom_count 
+              last_atom  = atom_count + len(top.molecules[mol].atoms)
+              atom_count = atom_count + len(top.molecules[mol].atoms)
+              for term_name in term_names:
+                  energy = 0
+                  terms = getattr(top.molecules[mol],term_name)
+                  
+                  for term in terms:
+                      
+                      positions, proceed = get_positions(traj, first_atom, last_atom,getattr(term,'centers'))
+                      
+                      if proceed:
+                         energy += getattr(potentials,getattr(term,'potential'))(term,positions)
+                         print(energy)
+                
+                  try:
+                     term_energy = energy + energies[term_name]
+                  except KeyError:
+                     term_energy = energy
+                
+                  energies.update({term_name:term_energy})           
+       else:
+           atom_count = atom_count +  len(top.molecules[mol].atoms) * n_mol    
+           print(atom_count)
     return(energies)
            
 def lookup_interaction_parameters(top, atom_A, atom_B, key):

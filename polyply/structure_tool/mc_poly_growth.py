@@ -37,17 +37,22 @@ def find_central_starting_point(coordinates):
     return(starting_point)
 
 def accaptable(E, temp, prev_E):
-    if E == math.inf:
-       return(False)
-    if E < prev_E:
-       return(True)
+    dE = E - prev_E
+    if dE < 20.0:
+       return True
     else:
-       N = np.random.normal(0,1,(1,1))
-       F = np.exp(- (E-prev_E)/(kb*temp))
-       if N < F:
-          return(True)
-       else:
-          return(False)
+       return False
+#    if E == math.inf:
+#       return(False)
+#    if E < prev_E:
+#       return(True)
+#    else:
+#       N = np.random.normal(0,1,(1,1))
+#       F = np.exp(- (E-prev_E)/(kb*temp))
+#       if N < F:
+#          return(True)
+#       else:
+#          return(False)
 
 def is_overlap(new_point, traj, tol, bonds, current):
     bonds = [ index - 1 for pair in bonds for index in pair['pairs'] if index != current + 1 ]
@@ -82,16 +87,17 @@ def constraints(new_point, list_of_constraints):
 
 def Hamiltonion(top, traj, display, softness, eps,sol):
     display = True   
+ 
     bonded_energies= bonded_potential(traj, top, [sol])
     vdw, coulomb = nonbonded_potential(traj.dist_matrix, top, softness, eps, display)
-    print(bonded_energies)
+ 
     if display:
        for item in bonded_energies:
-           print(item)
+           print(item, bonded_energies[item])
        print('vdw:',vdw)
        print('electrostatic',coulomb)
    
-    bond = sum([ i[0] for i in bonded_energies  ])
+    bond = sum([ bonded_energies[i] for i in bonded_energies ])
     return( bond + vdw + coulomb)
 
 def minimize(new_traj, name):
