@@ -3,7 +3,7 @@
 PEO         1
 ;
 [ atoms ]
-1  PEO    1   PEO   O1  1   0.000  45
+1  EO    1   PEO   COC  1   0.000  45
 [ bonds ]
 ; back bone bonds
 1  2   1   0.322 7000
