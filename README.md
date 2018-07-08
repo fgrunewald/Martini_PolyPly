@@ -1,5 +1,4 @@
-# Martini_PolyPly
-# beta-version
+# Martini_PolyPly (beta-version)
 
 ## Functionality 
 PolyPly can be used to **generate GROMACS itp files** of polymers from a monomer itp-file and **generate coordinates of polymer molecules** from a complete topology file. In principle the program can be used with any type of force-field (FF) as long as the files are in GROMACS format. It has mainly been developed and tested for [MARTINI polymers](http://www.cgmartini.nl/index.php/force-field-parameters/polymers). **Make sure to always verify your results and give appropriate credit to the developers of the force-field, molecule parameters and this program.** If you use this program in your research, please cite reference 1. The current (beta) release has been tested for the following molecules: 
