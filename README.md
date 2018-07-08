@@ -1,15 +1,23 @@
 # Martini_PolyPly
-# NOT UP TO DATE !!!
-# Please wait for release!
+# beta-version
 
 ## Functionality 
-PolyPly can be used to **generate GROMACS itp files** of polymers from a monomer itp file and **produce polymer molecules** from topology files. In principle the program can be used with any type of force-field (FF) as long as the files are in GROMACS format. It has mainly been developed and tested for [MARTINI polymers](http://www.cgmartini.nl/index.php/force-field-parameters/polymers). At the moment it only supports a limited number of GROMACS bonded interactions, which limits it's applicability to polymer with these bonded interactions. As time progresses they will be updated and completed. The tool can also be used to **generate intial structure files for more or less complex systems**. At the moment it supports growing polymers on DOPE lipids to form for example PEGylated bilayers and into solvated systems of any kind. Read carefully the usage section, since the tool uses strict file formats. 
+PolyPly can be used to **generate GROMACS itp files** of polymers from a monomer itp-file and **generate coordinates of polymer molecules** from a complete topology file. In principle the program can be used with any type of force-field (FF) as long as the files are in GROMACS format. It has mainly been developed and tested for [MARTINI polymers](http://www.cgmartini.nl/index.php/force-field-parameters/polymers). **Make sure to always verify your results and give appropriate credit to the developers of the force-field, molecule parameters and this program.** If you use this program in your research, please cite reference 1. The current (beta) release has been tested for the following molecules: 
 
-## 1. Itp file generation
-To generate a polymer itp file the tool offers two options. Either polymers from the library (mostly MARTINI) can be generated or one can generate polymers from custom monomer-itp files. 
+| Molecule         | Force-Field | itp-generation | structure-generation | reference |
+|------------------|-------------|----------------|----------------------|-----------|
+| PEO              | MARTINI 2   | yes            | yes                  | 1         |
+| PEO              | MARTINI 3*  | yes            | yes                  | 1         |
+| PEO              | 2016H66     | yes            | no                   | 2         |
+| PS               | MARTINI 2   | yes            | yes                  | 3         |
+| PSS              | MARTINI 2   | yes            | yes                  | 4         |
+| PDADMA           | MARTINI 2   | yes            | yes                  | 4        |
+| P3HT             | MARTINI 2   | yes            | no                   | 5         |
+| CxEy             | MARTINI 2   | yes            | yes                  | 1         |
+| PEGylated lipids | MARTINI 2   | yes            | yes                  | 1         |
 
-#### a - from library
-To generate a polymer, which is part of the library simply execute the following command:
+### Itp-file generation from library
+To generate a polymer itp-file this program offers two options. Either polymers from the library (mostly MARTINI) can be generated or one can generate polymers from custom monomer itp-files. To generate a polymer, which is part of the library simply execute the following command:
 ```
 polyply -polymer [name of polymer] -n_mon [repeat units] -o [outfile] -name [outname of polymer]
 ```
@@ -17,30 +25,10 @@ The 'n_mon' option sets the number of repeat units (i.e. n monomers) and the nam
 ```
 polyply -lib
 ```
-Feel free to propose new monomer itp files to be included in the monomer directory.
-#### b - generating block-copolymers
-The tool can also be used to generate a block-copolymers of a custom number of blocks. This can be done by supplying multiple names via the polymer directive and multiple numbers via the n_repeat diretive. For example to generate a block-copolymer of 100 repeat units of PS and 100 repeat units of PEO the input would be:
-```
-polyply -polymer PS PEO -n_mon 100 100 -o PS-b-PEO.itp -linker links.itp -name PS-b-PEO
-```
-The above command generates a block-copolymer itp for PS and PEO each block with a length of 100 monomers. The linkage between atom 100 and 101, has to be specified in an external file here called 'links.itp'. The format is the same as for a normal itp. The only difference is that there is no '[ moleculetype ]' and '[ atoms ]' directive. It only contains the bonded parameters corresponding to the link. Of course one needs to make sure the atom numbering is correct. In the case where we just want a single bond to link the PS and PEO block the linker.itp could look like this:
-```
-[ bonds ]
-; atom1  atom2    ref     fc
-   100   101     0.33    7000
-```
-#### c - custom polymers itps 
-PolyPly also takes custom monomer itp files, as long as they use the standard GROMACS itp file format. The itp-file has to contain all bonded parameters of one repeat unit including those with the following repeat units, if there are any. Always make sure that the output contains everything you would expect. Some example monomer.itp files can be found in the monomer_itps directory. The only difference to the library command is, that the itp file name is supplied via the -itp option as shown in the following scheme:
-```
-polyply -itp [name of polymer itp file] -n_mon [repeat units] -o [name of outfile] -name [name of polymer]
-```
-Note by supplying multiple files also custom block-copolymer can be generated. 
+Note that the polymer name is composed of three components: an abbreviation, the force-field and the version of the force-field and/or model. The three parts are separated by a period. For example to get PEO MARTINI 2 use “PEO.martini.2” as name of the polymer. Feel free to propose new monomer itp files to be included in the monomer directory. More information on generating itp-files for block-copolymers, adding end-groups or custom itp-fiels can be found in the wiki pages. 
 
-#### d - adding endgroups 
-The program also contains an option to add endgroups to the itp-file. The itp of the endgroup has to be supplied via the '-endgroup' option. Note that you can specify two files. The first will be the endgroup at the beginning of the itp file and the second will be set at the end. If you only want to specify a special group at the end provide an empty file in the first place. 
-
-## 2. Initial Strucutre generation
-PolyPly also offers the possibility to grow polymers into existing systems. To indicate that a structure needs to be generated supply the -env flag with one of the system classifications defined as follows:
+### Initial structure generation
+PolyPly also offers the possibility to grow polymers into existing systems or generate a single polymer chain. To indicate that a structure needs to be generated supply the -env flag with one of the system classifications defined as follows:
 
 option  | result
 --------| ------------------------------------------------------------------------------------------
@@ -48,12 +36,30 @@ vac     | single chain in vacuum
 sol     | single chain in solution supplied via '-sys' option
 bilayer | a PEGylated lipid is grown on a random DOPE lipid in a bilayer supplied by -sys option
 
-Furthermore a full GROMACS topolgy file with all neccessary itp files need to be provided via the s option, as you would do for a grompp command. Note that the name of the polymer needs to be provided via the '-name' option and has to be the exact same name as in the topology file. The topology file needs to contain all environment molecules plus the polymer. Furthermore the atom definitions are read from the gro-file. Thus you'll need to provide a '.gro' file with all matching atom names. The program cannot do magic!
+Furthermore a full GROMACS topology file with all necessary itp-files needs to be provided via the -s option, as you would do for a grompp command. Note that the name of the polymer needs to be provided via the '-name' option and has to be the exact same name as in the topology file. The topology file needs to contain all environment molecules plus the polymer. Furthermore the atom definitions are read from the gro-file. Thus you'll need to provide a '.gro' file with all matching atom names. The program cannot do magic, but we work hard on improving this feature to make it more easy to use. 
 ```
 polyply -env [ vac, bilayer, sol] -p [topfile] -o [outfile] -name [name of polymer] -sys [system structure file]
 ```
+## References 
+1. F. Grunewald, G. Rossi, A.H. De Vries, S.J. Marrink, L. Monticelli. A Transferable MARTINI Model of Polyethylene Oxide. JPCB, 2018, online. doi:10.1021/acs.jpcb.8b04760 
+2. C. Senac, W. Urbach, E. Kurtisovski, P. H. Hünenberger, B. A. Horta, N. Taulier, P. F. Fuchs. Simulating bilayers of nonionic surfactants with the GROMOS-compatible 2016H66 force field. Langmuir 2017, 33(39), 10225-10238. doi:10.1021/acs.langmuir.7b01348
+3. G. Rossi, L. Monticelli, S. R. Puisto, I. Vattulainen, T. Ala-Nissila. Coarse-graining polymers with the MARTINI force-field: polystyrene as a benchmark case. Soft Matter, 2011, 7(2), pp.698-708. doi:10.1039/C0SM00481B
+4. M. Vögele, C. Holm, J. Smiatek. Coarse-grained simulations of polyelectrolyte complexes: MARTINI models for poly (styrene sulfonate) and poly (diallyldimethylammonium). The Journal of chemical physics. 2015 Dec 28;143(24):243151. doi:10.1063/1.4937805
+5. R. Alessandri, J. J. Uusitalo, A. H. de Vries, R. W. A. Havenith, S. J. Marrink. Bulk heterojunction morphologies with atomistic resolution from coarse-grain solvent evaporation simulations. JACS. 2017 ;139(10):3697-705. doi:/jacs.6b11717
+
 ## Authors
 
-## License
+## License & Legal Notes
+
+This software is distributed under the GNU General Public License v3.0 (G.P.L 3), which permits
+commercial and non-commercial usage free of charge, modification and redistribution of the software
+and/or parts of the code under applicable conditions outlined in license. The license text is distributed
+with the software. Any copy right or license infringements resulting from improper usage and/or
+modification of the code are punishable under applicable country law. In accordance with the license no
+warranty is granted with respect to correctness of the outputs. If you or your company suffer material or
+immaterial losses due to incorrect results, the authors assume no financial liability for those or other
+losses resulting from the program’s usage. Any user is him/her-self responsible to appropriately give
+credit to all publications and individual’s, who contributed to the program and/or developed force-field
+parameters distributed with the program.
 
 This project is licensed under the GNU general public license - see the [LICENSE](LICENSE) file for details.
