@@ -26,6 +26,17 @@ polyply -lib
 ```
 Note that the polymer name is composed of three components: an abbreviation, the force-field and the version of the force-field and/or model. The three parts are separated by a period. For example to get PEO MARTINI 2 use “PEO.martini.2” as name of the polymer. Feel free to propose new monomer itp files to be included in the monomer directory. More information on generating itp-files for block-copolymers, adding end-groups or custom itp-fiels can be found in the wiki pages. 
 
+### Installation
+PolyPly can be installed from GitHub (https://github.com/fgrunewald/Martini_PolyPly) directly by downloading the repository and within the downloaded repository executing the command:
+```
+pip install ./
+```
+Alternatively when using pip, PolyPly can be installed directly via the following command: 
+```
+pip install git+https://github.com/fgrunewald/Martini_PolyPly.git#polyply
+```
+Since for instance the itp-files but also the formats are subject to more or less frequent changes, it is recommended to install PolyPly via with the -e option to pip. In this way any updates can directly be fatched from GitHub using the git update command. Alternatively new changes can be installed by using the -upgrade flag to pip.
+
 ### Initial structure generation
 PolyPly also offers the possibility to grow polymers into existing systems or generate a single polymer chain. To indicate that a structure needs to be generated supply the -env flag with one of the system classifications defined as follows:
 
