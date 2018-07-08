@@ -1,7 +1,7 @@
 # Martini_PolyPly (beta-version)
 
 ## Functionality 
-PolyPly can be used to **generate GROMACS itp files** of polymers from a monomer itp-file and **generate coordinates of polymer molecules** from a complete topology file. In principle the program can be used with any type of force-field (FF) as long as the files are in GROMACS format. It has mainly been developed and tested for [MARTINI polymers](http://www.cgmartini.nl/index.php/force-field-parameters/polymers). **Make sure to always verify your results and give appropriate credit to the developers of the force-field, molecule parameters and this program.** If you use this program in your research, please cite reference 1. The current (beta) release has been tested for the following molecules: 
+PolyPly can be used to **generate GROMACS itp files** of polymers from a monomer itp-file and **generate coordinates of polymer molecules** from a complete topology file. In principle the program can be used with any type of force-field (FF) as long as the files are in GROMACS format. It has mainly been developed and tested for [MARTINI polymers](http://www.cgmartini.nl/index.php/force-field-parameters/polymers). Make sure to always **verify the results** and **give appropriate credit** to the developers of the force-field, molecule parameters and this program. If you use this program in your research, please cite reference 1. The current (beta) release has been tested for the following molecules: 
 
 | Molecule         | Force-Field | itp-generation | structure-generation | reference |
 |------------------|-------------|----------------|----------------------|-----------|
@@ -16,7 +16,7 @@ PolyPly can be used to **generate GROMACS itp files** of polymers from a monomer
 | PEGylated lipids | MARTINI 2   | yes            | yes                  | 1         |
 
 ### Installation
-PolyPly can be installed from GitHub (https://github.com/fgrunewald/Martini_PolyPly) directly by downloading the repository and within the downloaded repository executing the command:
+PolyPly can be installed from GitHub directly by downloading the repository and within the downloaded repository executing the command:
 ```
 pip install ./
 ```
@@ -38,15 +38,7 @@ polyply -lib
 Note that the polymer name is composed of three components: an abbreviation, the force-field and the version of the force-field and/or model. The three parts are separated by a period. For example to get PEO MARTINI 2 use “PEO.martini.2” as name of the polymer. Feel free to propose new monomer itp files to be included in the monomer directory. More information on generating itp-files for block-copolymers, adding end-groups or custom itp-fiels can be found in the wiki pages. 
 
 ### Initial structure generation
-PolyPly also offers the possibility to grow polymers into existing systems or generate a single polymer chain. To indicate that a structure needs to be generated supply the -env flag with one of the system classifications defined as follows:
-
-option  | result
---------| ------------------------------------------------------------------------------------------
-vac     | single chain in vacuum
-sol     | single chain in solution supplied via '-sys' option
-bilayer | a PEGylated lipid is grown on a random DOPE lipid in a bilayer supplied by -sys option
-
-Furthermore a full GROMACS topology file with all necessary itp-files needs to be provided via the -s option, as you would do for a grompp command. Note that the name of the polymer needs to be provided via the '-name' option and has to be the exact same name as in the topology file. The topology file needs to contain all environment molecules plus the polymer. Furthermore the atom definitions are read from the gro-file. Thus you'll need to provide a '.gro' file with all matching atom names. The program cannot do magic, but we work hard on improving this feature to make it more easy to use. 
+PolyPly also offers the possibility to grow polymers into existing systems or generate a single polymer chain. To indicate that a structure needs to be generated use the -env file with the appropriate selection and supply a topology file via the -p option. If you want the polymer to be grown onto a bilayer or in a solvent use the -sys option to supply a box or the bilayer. More details are outlined on the wiki-page. 
 ```
 polyply -env [ vac, bilayer, sol] -p [topfile] -o [outfile] -name [name of polymer] -sys [system structure file]
 ```
@@ -61,15 +53,4 @@ polyply -env [ vac, bilayer, sol] -p [topfile] -o [outfile] -name [name of polym
 
 ## License & Legal Notes
 
-This software is distributed under the GNU General Public License v3.0 (G.P.L 3), which permits
-commercial and non-commercial usage free of charge, modification and redistribution of the software
-and/or parts of the code under applicable conditions outlined in license. The license text is distributed
-with the software. Any copy right or license infringements resulting from improper usage and/or
-modification of the code are punishable under applicable country law. In accordance with the license no
-warranty is granted with respect to correctness of the outputs. If you or your company suffer material or
-immaterial losses due to incorrect results, the authors assume no financial liability for those or other
-losses resulting from the program’s usage. Any user is him/her-self responsible to appropriately give
-credit to all publications and individual’s, who contributed to the program and/or developed force-field
-parameters distributed with the program.
-
-This project is licensed under the GNU general public license - see the [LICENSE](LICENSE) file for details.
+This software is distributed under the GNU General Public License v3.0 (G.P.L 3), which permits commercial and non-commercial usage free of charge, modification and redistribution of the software and/or parts of the code under applicable conditions outlined in the license. The [LICENSE](license text) is distributed with the software. Any copy right or license infringements resulting from improper usage and/or modification of the code are punishable under applicable country law. In accordance with the license no warranty is granted with respect to correctness of the outputs. If you or your company suffer material or immaterial losses due to incorrect results, the authors assume no financial liability for those or other losses resulting from the program’s usage. Any user is him/her-self responsible to appropriately give credit to all publications and individual’s, who contributed to the program and/or developed force-field parameters distributed with the program.
