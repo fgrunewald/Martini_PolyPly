@@ -15,7 +15,7 @@ PolyPly can be used to **generate GROMACS itp files** of polymers from a monomer
 | PP               | MARTINI 2   | yes            | yes                  | 5         |
 | P3HT             | MARTINI 2   | yes            | no                   | 6         |
 | PEGylated lipids | MARTINI 2   | yes            | yes                  | 1         |
-
+* MARTINI 3 is currently still in the test phase and not all properties are correct; for production it is recommended to use the MARTINI 2 model
 ### Installation
 PolyPly can be installed from GitHub directly by downloading the repository and within the downloaded repository executing the command:
 ```
