@@ -35,20 +35,21 @@ parser.add_argument('-epsilon', metavar = 'dielectric constant', dest = 'eps' , 
 
 args = parser.parse_args()
 
-def resolve_name(names, path,ff):
+def resolve_name(names, path):
     paths = []
     for name in names:
-        basename = '{}.{}.itp'.format(name, ff)
+        polym, ff, version = name.split('.')
+        basename = '{}.{}.{}.itp'.format(polym, ff,version)
         full_name = os.path.join(path, 'monomer_itps',  basename)
         paths += [ full_name ]
     return(paths)
 
 def show_files(path):
-    files = [ f for f in os.listdir(path) if len(f.split('.')) == 3] # if os.path.isfile(f)]
-    print('\nPolymer       ','ForceField')
-    print('----------------------------')
+    files = [ f for f in os.listdir(path) if len(f.split('.')) == 4] 
+    print('\nPolymer       ','Force-Field',' Version')
+    print('---------------------------------------------------')
     for f in files:
-        print('{:<15s}{:<15s}'.format(f.split('.')[0], f.split('.')[1]))
+        print('{:<15s}{:<15s}{:<15s}'.format(f.split('.')[0], f.split('.')[1],  f.split('.')[2]))
   
 def main():
  
@@ -56,7 +57,8 @@ def main():
       itp_tool(args.itpfiles, args.linkfile ,args.mon, args.outfile, args.name, args.endgroup)
 
    elif not args.r_itp_name == None:
-      itp_files = resolve_name(args.r_itp_name, DATA_PATH, 'martini')
+      itp_files = resolve_name(args.r_itp_name, DATA_PATH)
+      print(args.endgroup)
       itp_tool(itp_files, args.linkfile ,args.mon, args.outfile, args.name, args.endgroup)
 
    elif not args.env == None:
