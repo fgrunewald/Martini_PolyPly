@@ -10,9 +10,10 @@ PolyPly can be used to **generate GROMACS itp files** of polymers from a monomer
 | PEO              | 2016H66     | yes            | no                   | 2         |
 | PS               | MARTINI 2   | yes            | yes                  | 3         |
 | PSS              | MARTINI 2   | yes            | yes                  | 4         |
-| PDADMA           | MARTINI 2   | yes            | yes                  | 4        |
-| P3HT             | MARTINI 2   | yes            | no                   | 5         |
-| CxEy             | MARTINI 2   | yes            | yes                  | 1         |
+| PDADMA           | MARTINI 2   | yes            | yes                  | 4         |
+| PE               | MARTINI 2   | yes            | yes                  | 5         |
+| PP               | MARTINI 2   | yes            | yes                  | 5         |
+| P3HT             | MARTINI 2   | yes            | no                   | 6         |
 | PEGylated lipids | MARTINI 2   | yes            | yes                  | 1         |
 
 ### Installation
@@ -47,7 +48,8 @@ polyply -env [ vac, bilayer, sol] -p [topfile] -o [outfile] -name [name of polym
 2. C. Senac, W. Urbach, E. Kurtisovski, P. H. Hünenberger, B. A. Horta, N. Taulier, P. F. Fuchs. Simulating bilayers of nonionic surfactants with the GROMOS-compatible 2016H66 force field. Langmuir 2017, 33(39), 10225-10238. doi:10.1021/acs.langmuir.7b01348
 3. G. Rossi, L. Monticelli, S. R. Puisto, I. Vattulainen, T. Ala-Nissila. Coarse-graining polymers with the MARTINI force-field: polystyrene as a benchmark case. Soft Matter, 2011, 7(2), pp.698-708. doi:10.1039/C0SM00481B
 4. M. Vögele, C. Holm, J. Smiatek. Coarse-grained simulations of polyelectrolyte complexes: MARTINI models for poly (styrene sulfonate) and poly (diallyldimethylammonium). The Journal of chemical physics. 2015 Dec 28;143(24):243151. doi:10.1063/1.4937805
-5. R. Alessandri, J. J. Uusitalo, A. H. de Vries, R. W. A. Havenith, S. J. Marrink. Bulk heterojunction morphologies with atomistic resolution from coarse-grain solvent evaporation simulations. JACS. 2017 ;139(10):3697-705. doi:/jacs.6b11717
+5. E. Panizon, D. Bochicchio, L. Monticelli, G. Rossi MARTINI coarse-grained models of polyethylene and polypropylene. JPCB, 2015 Jun 9;119(25):8209-16. doi: 10.1021/acs.jpcb.5b03611
+6. R. Alessandri, J. J. Uusitalo, A. H. de Vries, R. W. A. Havenith, S. J. Marrink. Bulk heterojunction morphologies with atomistic resolution from coarse-grain solvent evaporation simulations. JACS. 2017 ;139(10):3697-705. doi:/jacs.6b11717
 
 ## Authors
 
