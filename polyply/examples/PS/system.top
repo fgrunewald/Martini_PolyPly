@@ -1,0 +1,9 @@
+#include "../martini.itp"
+#include "../PS.itp"
+#include "../BENZ.itp"
+
+[ system ]
+test
+[ molecules ]
+PS 1
+BENZ 668 

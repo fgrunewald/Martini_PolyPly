@@ -1,0 +1,14 @@
+#include "martini.itp"
+
+[ system ]
+; name
+INSANE! Membrane UpperLeaflet>DPPC:DOPE=20.0:1.0 LowerLeaflet>DPPC:DOPE=20.0:1.0
+
+
+[ molecules ]
+; name  number
+DPPC            23
+DOPE             1
+DPPC            23
+DOPE             1
+W             1691

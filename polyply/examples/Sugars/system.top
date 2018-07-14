@@ -1,0 +1,10 @@
+#include "martini.itp"
+#include "sugars.itp"
+
+[ System ]
+; Name
+PEO 27 in W
+
+[ molecules ]
+; compound mols
+MHT 1

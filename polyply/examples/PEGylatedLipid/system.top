@@ -1,0 +1,16 @@
+#include "martini.itp"
+#include "W.itp"
+#include "5_PEL.itp"
+#include "DOPE.itp"
+#include "DPPC.itp"
+
+[ System ]
+; Name
+PEO 27 in W
+
+[ molecules ]
+; compound mols
+DPPC           126
+DOPE             1
+PEL              1
+W              4425

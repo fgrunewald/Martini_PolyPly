@@ -1,0 +1,7 @@
+#include "../martini.itp"
+#include "PEO_OH.itp"
+
+[ system ]
+test
+[ molecules ]
+PEO 1
