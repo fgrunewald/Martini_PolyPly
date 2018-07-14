@@ -1,0 +1,17 @@
+[ moleculetype ]
+; name nexcl.
+PE         1
+;
+[ atoms ]
+1  C1    1   PE   CH2  1   0.000  72
+
+[ bonds ]
+; 
+1  2   1   0.46 2000
+;
+[ angles ]
+;    
+1       2       3      1       180.00        82
+;
+[ dihedrals ]
+1  2  3  4     11  -19.666 0.509 1.120 -0.04408 -0.02016 
