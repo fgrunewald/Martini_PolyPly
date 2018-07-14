@@ -3,7 +3,11 @@
 PEO         1
 ;
 [ atoms ]
+<<<<<<< HEAD:polyply/monomer_itps/PEO.martini.2.itp
 1  EO    1   EO   PEO  1   0.000  45
+=======
+1  EO    1   PEO   COC  1   0.000  45
+>>>>>>> 5dcedb2746ba3b1d42950f166295818d9415f1d3:polyply/monomer_itps/PEO.martini.itp
 [ bonds ]
 ; back bone bonds
 1  2   1   0.322 7000
