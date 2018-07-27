@@ -7,11 +7,10 @@ PolyPly can be used to **generate GROMACS itp files** of polymers from a monomer
 |------------------|-------------|----------------|----------------------|-----------|
 | PEO              | MARTINI 2   | yes            | yes                  | 1         |
 | PEO              | MARTINI 3*  | yes            | yes                  | 1         |
-| PEO              | 2016H66     | yes            | no                   | 2         |
 | PS               | MARTINI 2   | yes            | yes                  | 3         |
 | PSS              | MARTINI 2   | yes            | yes                  | 4         |
 | PDADMA           | MARTINI 2   | yes            | yes                  | 4         |
-| PE               | MARTINI 2   | yes            | yes                  | 5         |
+| PE               | MARTINI 2   | yes            | no                   | 5         |
 | PP               | MARTINI 2   | yes            | yes                  | 5         |
 | P3HT             | MARTINI 2   | yes            | no                   | 6         |
 | PEGylated lipids | MARTINI 2   | yes            | yes                  | 1         |
