@@ -14,7 +14,7 @@ def angle(A, B, C):
     v2 = B - C
     return(degrees(arccos(np.clip(dot(u_vect(v1), u_vect(v2)), -1.0, 1.0))))
 
-def dih(A, B, C, D):
+def dih_degrees(A, B, C, D):
     r1 = A - B
     r2 = B - C
     r3 = C - D
@@ -37,6 +37,7 @@ def norm_sphere():
 
 def SimpleHarmonic(term, positions):
     dist = np.linalg.norm(positions[0] - positions[1])
+ #   print(dist)
     energy = 0.5 * float(term.parameters[1]) * (dist-float(term.parameters[0]))**2.0
     return(energy)
 
@@ -53,11 +54,15 @@ def HarmonicAngle(term, positions):
 def HarmonSqCosAng(term, positions):
     pass
 
-def HarmonDih(term, positions):
-    pass
+def GROMACS_Dih_1(term, positions):
+    ang = dih_degrees(positions[0],positions[1],positions[2],positions[3])
+    energy = float(term.parameters[1]) * (1 + np.cos(np.radians(float(term.parameters[2])*ang-float(term.parameters[0]))))
+    return(energy)
 
-def ReB(term, positions):
-    pass
+def ReB(term, positions):  
+    ang = np.radians(angle(positions[0],positions[1],positions[2]))
+    energy = 0.5 * float(term.parameters[1]) * ((np.cos(ang)-np.cos(np.radians(float(term.parameters[0]))))**2.0)/np.sin(ang)**2.0
+    return(energy)
 
 def CBT(term, positions):
     pass

@@ -74,7 +74,7 @@ def bonded_potential(traj,top,excluded=[None]):
                       
                       if proceed:
                          energy += getattr(potentials,getattr(term,'potential'))(term,positions)
-                         print(energy)
+                         #print(energy)
                 
                   try:
                      term_energy = energy + energies[term_name]
@@ -84,7 +84,7 @@ def bonded_potential(traj,top,excluded=[None]):
                   energies.update({term_name:term_energy})           
        else:
            atom_count = atom_count +  len(top.molecules[mol].atoms) * n_mol    
-           print(atom_count)
+           #print(atom_count)
     return(energies)
            
 def lookup_interaction_parameters(top, atom_A, atom_B, key):
