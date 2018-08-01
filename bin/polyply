@@ -32,7 +32,7 @@ parser.add_argument('-lib'     , action='store_true'  , help = 'show itp library
 parser.add_argument('-cut_off' , metavar = 'cut off'           , dest = 'cut_off' , type = float , help = 'cut-off for non-bonded interactions (nm)', default=1.1)
 parser.add_argument('-softness', metavar = 'softness'          , dest = 'softness' , type = float , help = ' if r_AB < softness * sigma a move is rejected', default=0.75)
 parser.add_argument('-epsilon', metavar = 'dielectric constant', dest = 'eps' , type = float , help = 'dielectric constant to be used for electrostatics', default=15)
-parser.add_argument('-start', type=int, help='add to this atom in trajectory')
+parser.add_argument('-start', help='add to this atom in trajectory',default=None)
 
 args = parser.parse_args()
 

@@ -113,7 +113,10 @@ def are_bonded_exception(atom_A, atom_B, molecule, top, key):
     # the exclusions are indexed starting with 1 as they 
     # are derived from the bond centers which start at 1
 
+    # one particle molecules need to be excepted somehow
+
    # try:
+        #print(top.molecules[molecule].name)
         #print('--',atom_B , getattr(top.molecules[molecule],key)[str(atom_A)] )
         return(any([ atom_B   == atom for atom in getattr(top.molecules[molecule],key)[str(atom_A)] ]))
  #   except KeyError:

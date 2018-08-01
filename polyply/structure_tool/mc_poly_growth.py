@@ -120,13 +120,13 @@ def look_up_reference_pos(traj, top, n_atoms_placed, name):
     attached_atoms_indices = top.molecules[name].neighborhood(n_atoms_placed+1, 1)
   #  print('molecule:',[pos for pos, mol in zip(traj.positions, traj.atom_info) if mol[0] == name])
  #   print('placing atom:',n_atoms_placed+1)
- #   print('attached atoms',attached_atoms_indices)  
+    print('attached atoms',attached_atoms_indices)  
     # next we select all those that already have been placed, note that the traj is zero indexed while the bond-list is not
     ref_atom_index = [ atom for atom in attached_atoms_indices if atom <= n_atoms_placed ][0] 
- #   print(ref_atom_index) 
+    print(ref_atom_index) 
  #   print([pos for pos, mol in zip(traj.positions, traj.atom_info) if mol[0] == name and mol[3] == ref_atom_index])
     # finally we select the reference position as theatom which is part of the last molecule in the trajectory
-    ref_position = [  pos for pos, mol in zip(traj.positions, traj.atom_info) if mol[0] == name and mol[3] == ref_atom_index  ][-1]
+    ref_position = [  pos for pos, mol in zip(traj.positions, traj.atom_info) if mol[0] == name and mol[3] == ref_atom_index ][-1]
     return ref_position
 
 def determine_step_length(name, top, traj):
@@ -140,7 +140,15 @@ def determine_step_length(name, top, traj):
     ref_position = look_up_reference_pos(traj, top, n_atoms_placed, name)
 
     # the current atom is the number of placed atoms incremented by 1; note we place all atoms consecutively
-    step_length =  float(top.molecules[name].bonds[n_atoms_placed+1].parameters[0])
+    try:
+      step_length =  float(top.molecules[name].bonds[n_atoms_placed-1].parameters[0])
+    except IndexError:
+      print('ERORRRRRRRRRRRRRRRRRRRRRRRRR')
+      print('n_atoms_mol',n_atoms_mol)
+      print(n_atoms_placed)
+      for item in top.molecules[name].bonds:
+          print(item.centers)
+      exit()
     print('n_atoms_placed:',n_atoms_placed)
     return(step_length, ref_position, n_atoms_placed+1)
 
@@ -177,8 +185,7 @@ def take_pseudo_step(traj, top, maxsteps, name, sol_name, verbose, softness, eps
          print('~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~')
          new_energy, new_traj = attempt(traj, top, step_length, ref_position, vectors, name, mol_index, mol_atom_index, sol_name, softness, eps, cut_off)
       
-
- #        print(new_traj.positions)
+         print(new_traj.box)
 #         print(traj.positions)
          print('~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~')
 
@@ -226,13 +233,15 @@ def pseudopolis_monte_carlo(top, traj, start, name,  temp, max_steps, verbose, l
 
     else:
        print("Will start from scratch! Hold tight!")
-       traj.add_atom(name, n_mol, 0,np.array([0,0,0]),len(traj.positions), top)
+       traj.add_atom(name, n_mol, 1,np.array([0,0,0]),len(traj.positions), top)
+       traj.box = np.array([float(10),float(10),float(10)])
        count = 1
 
 ###### 2. Construct the inital distance matrix of the entire box       
   
     print(len(traj.positions))
-    traj.distance_matrix(cut_off,top)
+    if len(traj.positions) > 1:
+       traj.distance_matrix(cut_off,top)
     print(len(traj.positions))
     if verbose:
        print('computed ',len(traj.dist_matrix),'distance pairs.')
@@ -282,7 +291,7 @@ def build_system(top_options, env_options, mc_options, outfile, magic_numbers):
        traj = trajectory.from_gro_file(sysfile,top)
     else:
        traj = trajectory(name)  
-    start='center'
+   # start='center'
     n_min_steps=0
     traj = pseudopolis_monte_carlo(top, traj, start, name,  temp, max_steps, verbose, [], sol, cut_off, eps, softness, n_min_steps)
   

@@ -237,6 +237,8 @@ class topology(top_base):
           self.defaults = {}
 
       def add_nonmol_params(self, lines, topology_format):
+       #   print(lines)
+      #    print('~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~')
           term_name = lines[0][0]
           setattr(self,term_name,{})
           for line in lines[1:-1]:
@@ -301,13 +303,16 @@ class topology(top_base):
           ### End from backwards.py 
           #############################################
 
-          top_sections = '[EOF, defaults, molecules, nonbond_params, moleculetype, bondtypes, constrainttypes, angletypes, dihedraltypes, pairtypes ]'
+          top_sections = 'EOF defaults molecules nonbond_params moleculetype bondtypes constrainttypes angletypes dihedraltypes pairtypes'.split()
+        
+          # we have to get rid of the partial string matching because EO is also considered an EOF
+
           lines = [ line for line in reciter(topol_file_name) if len(line) != 0]
           sys_index = topology.get_indices(lines, ['system'])[0][0]
           sys_name = lines[sys_index+1]
           top = topology(sys_name)
           indices = topology.get_indices(lines, top_sections)
-          
+          #print(lines)
           for i, index in enumerate(indices):
               # we now load the topology accoding to the section in the GROMACS format     
           
@@ -323,6 +328,8 @@ class topology(top_base):
                    top.defaults.update({'LJ':lines[index[0]+1][1],'COUL':lines[index[0]+1][0]})
 
               elif index[1] != 'EOF' and index[1] != 'system':
+                   #print(lines[index[0]:indices[i+1][0]])
+                   print(index,indices[i+1])
                    top.add_nonmol_params(lines[index[0]:indices[i+1][0]],topology_format)
              
               else:

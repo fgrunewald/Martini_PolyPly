@@ -37,11 +37,11 @@ class trajectory:
             self.distance_matrix(cut_off,top)
 
          bad_mol_indices = []
-
+        
          for dist, info_A, info_B in self.dist_matrix:
-           
+          
              coefs, sigma, pot = polyply.structure_tool.force_field_tools.lookup_interaction_parameters(top, info_A[2], info_B[2], 'nonbond_params')
-
+        
              if not polyply.structure_tool.force_field_tools.are_bonded_exception(info_A[3], info_B[3], info_A[0], top,'excl_list') and info_A[1] != info_B[1]:
                if info_A[0] != info_B[0] and dist < softness * sigma:
 #                print(info_A[0],info_B[0])
@@ -49,8 +49,9 @@ class trajectory:
                    bad_mol_indices.append(info_A[1])
                 if info_B[0] != name:
                    bad_mol_indices.append(info_B[1])
- 
-         self.delete_molecules(bad_mol_indices) 
+
+         if len(bad_mol_indices) != 0:
+            self.delete_molecules(bad_mol_indices) 
 
       def delete_molecules(self, bad_mol_indices):
           atom_indices = [ info[4] for info in self.atom_info if info[1] not in bad_mol_indices ]
@@ -127,6 +128,7 @@ class trajectory:
           return(temp_traj) 
 
       def distance_matrix(self,cut_off, top):
+         
           traj_B=[]
           info_B=[]
           traj_B[:] = [ atom for atom in self.positions[:] ]
@@ -136,13 +138,15 @@ class trajectory:
           # This somewhat absurd loop structure is required to avoid calculating the distance pairs squared! 
           # One element is enough
 
-          for atom_A, info_A in tqdm(zip(self.positions,self.atom_info)):
+          for atom_A, info_A in zip(self.positions,self.atom_info):
               traj_B[:] = [ atom for atom in traj_B[1:] ]
               info_B[:] = [ atom for atom in info_B[1:] ]
               ref_array = np.asarray(traj_B).reshape(-1,3) 
-
-              distances = capped_distance_array(atom_A.reshape(-1,3),ref_array, cut_off, self.box)
-              dist_list = [ (dist,info_A, info_B[key[1]]) for key, dist in zip(distances[0],distances[1]) if dist < cut_off and dist != 0.0] 
+              if len(ref_array) - len(traj_B) != 0:
+                 distances = capped_distance_array(atom_A.reshape(-1,3),ref_array, cut_off, self.box)
+                 dist_list = [ (dist,info_A, info_B[key[1]]) for key, dist in zip(distances[0],distances[1]) if dist < cut_off and dist != 0.0] 
+              else:
+                 dist_list = []
               self.dist_matrix =  self.dist_matrix + dist_list      
 
 
