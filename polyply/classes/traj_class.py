@@ -32,7 +32,7 @@ class trajectory:
 
 
       def remove_overlap(self,top, name, sol_names, cut_off, softness):
-         print('probing for overlaps')
+         #print('probing for overlaps')
          if len(self.dist_matrix) == 0:
             self.distance_matrix(cut_off,top)
 

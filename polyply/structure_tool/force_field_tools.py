@@ -31,7 +31,8 @@ def write_gro_file(top, traj,name,file_name):
     out_file.write('{:>3s}{:<8d}{}'.format('',n,'\n'))
     count = 0
     resnum = 1
-    #print(traj.atom_info[-1])
+    print(len(traj.atom_info))
+    print(len(traj.positions))
     for pos, info in zip(traj.positions,traj.atom_info):
         #print( top.molecules[name].atoms[info[3]-1].parameters[2])
         res_index = int(top.molecules[name].atoms[info[3]-1].parameters[1])
@@ -42,9 +43,9 @@ def write_gro_file(top, traj,name,file_name):
     out_file.close()
 
 def get_positions(traj, first_atom, last_atom,centers):
-    positions = [ traj.positions[i] for i in np.arange(first_atom,last_atom,1) if i < len(traj.positions) ]
+    positions = [ traj.positions[i-1] for i in np.arange(first_atom,last_atom,1) if i < len(traj.positions) ]
     try:
-      atom_pos = [ positions[int(i)] for i in centers]
+      atom_pos = [ positions[int(i)-1] for i in centers]
       return (atom_pos, True)
     except IndexError:
       return([],False)
@@ -69,12 +70,12 @@ def bonded_potential(traj,top,excluded=[None]):
                   terms = getattr(top.molecules[mol],term_name)
                   
                   for term in terms:
-                      
-                      positions, proceed = get_positions(traj, first_atom, last_atom,getattr(term,'centers'))
-                      
+                      positions, proceed = get_positions(traj, first_atom, last_atom,getattr(term,'centers'))                     
+                      #print(term.centers, proceed)
+
                       if proceed:
                          energy += getattr(potentials,getattr(term,'potential'))(term,positions)
-                         #print(energy)
+                         #print(term.centers)
                 
                   try:
                      term_energy = energy + energies[term_name]
@@ -125,7 +126,7 @@ def are_bonded_exception(atom_A, atom_B, molecule, top, key):
 def nonbonded_potential(dist_matrix, top, softness, eps, verbose):
     LJ_energy = 0
     COUL_energy=0
-    verbose=True
+    verbose=False
     if verbose:
        print("using a softness of",softness)
 

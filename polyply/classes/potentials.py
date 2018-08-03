@@ -59,6 +59,11 @@ def GROMACS_Dih_1(term, positions):
     energy = float(term.parameters[1]) * (1 + np.cos(np.radians(float(term.parameters[2])*ang-float(term.parameters[0]))))
     return(energy)
 
+def GROMACS_ImDih_2(term, positions):
+    ang = dih_degrees(positions[0],positions[1],positions[2],positions[3])
+    energy = 0.5 * float(term.parameters[1]) * (np.radians(ang-float(term.parameters[0])))**2.0
+    return(energy)
+
 def ReB(term, positions):  
     ang = np.radians(angle(positions[0],positions[1],positions[2]))
     energy = 0.5 * float(term.parameters[1]) * ((np.cos(ang)-np.cos(np.radians(float(term.parameters[0]))))**2.0)/np.sin(ang)**2.0

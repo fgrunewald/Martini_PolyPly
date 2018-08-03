@@ -39,22 +39,22 @@ def find_central_starting_point(coordinates):
 def accaptable(E, temp, prev_E):
     dE = E - prev_E
 
-    #print('===================================>',prev_E)
-    if dE < 500.0:
+    print('===================================>',dE)
+    if dE < prev_E:
        return True
-    else:
-       return False
+#    else:
+#       return False
 #    if E == math.inf:
 #       return(False)
 #    if E < prev_E:
 #       return(True)
-#    else:
-#       N = np.random.normal(0,1,(1,1))
-#       F = np.exp(- (E-prev_E)/(kb*temp))
-#       if N < F:
-#          return(True)
-#       else:
-#          return(False)
+    else:
+       N = np.random.normal(0,1,(1,1))
+       F = np.exp(-dE/(kb*temp*10**-3.0))
+       if N < F:
+          return(True)
+       else:
+          return(False)
 
 def is_overlap(new_point, traj, tol, bonds, current):
     bonds = [ index - 1 for pair in bonds for index in pair['pairs'] if index != current + 1 ]
@@ -102,8 +102,53 @@ def Hamiltonion(top, traj, display, softness, eps,sol):
     bond = sum([ bonded_energies[i] for i in bonded_energies ])
     return( bond + vdw + coulomb)
 
-def minimize(new_traj, name):
-    pass
+def minimize_traj(top, traj, softness, eps, sol, all_coords=False):
+
+    opt_traj                = trajectory('opt')
+    opt_traj.atom_info[:]   = traj.atom_info
+    opt_traj.box            = traj.box  
+ 
+    if not all_coords:
+       x0 = np.array(traj.positions[-1])
+    else:
+       x0 = np.array(traj.positions[:])
+    
+
+    def opt_f(pos):
+                  
+         if not all_coords:         
+            opt_traj.positions[:] = traj.positions[0:-1]
+  #          print('before',opt_traj.positions)
+            opt_traj.positions += [pos]
+   #         print(opt_traj.positions)
+         else:
+            opt_traj.positions[:] = list(pos.reshape(-1,3))
+
+         energy = Hamiltonion(top, opt_traj, False, softness, eps,sol)
+         return(energy) 
+
+    opt_results = scipy.optimize.minimize(opt_f,x0,method='L-BFGS-B')
+
+    if not all_coords:
+       opt_traj.positions[:] = traj.positions[0:-1]
+       opt_traj.positions += [opt_results['x'].reshape(3)]
+       #print(opt_traj.positions)
+    else:    
+       opt_traj.positions[:] = [ item for item in opt_results['x'].reshape(-1,3) ][:]
+
+ #   print(type(opt_traj.positions[0]))
+ #   print(type(traj.positions[0]))
+
+    verbose=True
+
+    if verbose:
+       print(opt_results['success'])
+       print(opt_results['fun'])
+
+    energy = opt_results['fun']
+
+    return(energy, opt_traj.positions)
+
 
 ##############################################################################################################################
 #
@@ -189,9 +234,9 @@ def take_pseudo_step(traj, top, maxsteps, name, sol_name, verbose, softness, eps
  #        print('~~~~~~~~~~~~~~~~~~~~attempt',subcount,'~~~~~~~~~~~~~~~~~~~~~~~~~~~')
          new_energy, new_traj = attempt(traj, top, step_length, ref_position, vectors, name, mol_index, mol_atom_index, sol_name, softness, eps, cut_off)
   #       print('~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~')
-#
-  #       if step_count//n_min_steps - step_count == 0:
-  #          return(new_energy, new_traj, rejected, True)
+       
+         if step_count%n_min_steps == 0:
+            return(new_energy, new_traj, rejected, True)
 
          if accaptable(new_energy,temp, prev_energy):
             return(new_energy, new_traj, rejected, False)
@@ -213,6 +258,9 @@ def take_pseudo_step(traj, top, maxsteps, name, sol_name, verbose, softness, eps
 
 def pseudopolis_monte_carlo(top, traj, start, name,  temp, max_steps, verbose, list_of_constraints, sol, cut_off, eps, softness,n_min_steps):
  
+    n_min_steps = 1
+
+
 ###### 1. Check if it is a restart 
  
   
@@ -254,7 +302,7 @@ def pseudopolis_monte_carlo(top, traj, start, name,  temp, max_steps, verbose, l
     prev_energy = Hamiltonion(top, traj, verbose, softness, eps,sol)
     
 ###### 4. loop over n_repeats
-    n_min_steps = n_repeat + 1
+    #n_min_steps = n_repeat + 1
     rejected=0
     print('\n+++++++++++++++ STARTING PSEUDOPOLIS-MONTE CARLO MODULE ++++++++++++++\n')
     while count < n_repeat:
@@ -262,16 +310,23 @@ def pseudopolis_monte_carlo(top, traj, start, name,  temp, max_steps, verbose, l
           energy, new_traj, new_rejected, minimize = take_pseudo_step(traj, top, max_steps, name, sol,verbose, softness, eps,sol,n_mol,n_min_steps,cut_off,count,prev_energy,temp,rejected,max_steps)   
           print('~~~~~~~~~~~~~',count,'~~~~~~~~~~~~~~~~')
           if minimize:
-             traj, energy = minimize(new_traj, name)
+             energy, new_pos = minimize_traj(top, new_traj, softness, eps,sol,True)
+             traj.positions[:] = new_pos[:]
+             traj.atom_info[:] = new_traj.atom_info[:]
+             prev_energy = energy
           else:
              traj = new_traj
-            
+             prev_energy = energy
+
           rejected = rejected + new_rejected
           count = count + 1
 
+    energy, new_pos = minimize_traj(top, new_traj, softness, eps,sol,True)
+    traj.positions[:] = new_pos[:]
+ 
     print('++++++++++++++++ RESULTS FORM MONTE CARLO MODULE ++++++++++++++\n')
-    print('Total Energy:', Hamiltonion(top, new_traj, verbose, softness, eps,sol))
-    print('Number of rejected MC steps:', rejected)       
+    print('Total Energy:', Hamiltonion(top, traj, verbose, softness, eps,sol))
+    #print('Number of rejected MC steps:', rejected)       
     return(traj)
 
 

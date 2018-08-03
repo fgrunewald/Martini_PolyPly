@@ -173,6 +173,14 @@ class molecule(top_base):
           G = nx.Graph()
           edges = [ (int(entry.centers[0]), int(entry.centers[1])) for entry in self.bonds]
           G.add_edges_from(edges)
+          if not nx.is_connected(G): 
+             print("You fed me an ill ordered topology: I'll proceed and die. x_x")
+             exit()
+          print(G.edges)
+          print(G.nodes)
+          mol_tree = nx.dfs_tree(G,1)
+          print(mol_tree.edges())
+          print("$$$$$$$$$$$$$")
           return(G)
 
       def neighborhood(self, node, n):
