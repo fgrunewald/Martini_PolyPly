@@ -124,6 +124,7 @@ def are_bonded_exception(atom_A, atom_B, molecule, top, key):
   #      return(False)
 
 def nonbonded_potential(dist_matrix, top, softness, eps, verbose):
+    print(dist_matrix)
     LJ_energy = 0
     COUL_energy=0
     verbose=False

@@ -88,8 +88,9 @@ def constraints(new_point, list_of_constraints):
     return(all(status))
 
 def Hamiltonion(top, traj, display, softness, eps,sol):
-   # display = True   
-    display = False 
+    display = True   
+    #display = False 
+     
     bonded_energies= bonded_potential(traj, top, [sol])
     vdw, coulomb = nonbonded_potential(traj.dist_matrix, top, softness, eps, display)
  
@@ -258,7 +259,7 @@ def take_pseudo_step(traj, top, maxsteps, name, sol_name, verbose, softness, eps
 
 def pseudopolis_monte_carlo(top, traj, start, name,  temp, max_steps, verbose, list_of_constraints, sol, cut_off, eps, softness,n_min_steps):
  
-    n_min_steps = 1
+    n_min_steps = 10
 
 
 ###### 1. Check if it is a restart 
@@ -321,8 +322,8 @@ def pseudopolis_monte_carlo(top, traj, start, name,  temp, max_steps, verbose, l
           rejected = rejected + new_rejected
           count = count + 1
 
-    energy, new_pos = minimize_traj(top, new_traj, softness, eps,sol,True)
-    traj.positions[:] = new_pos[:]
+ #   energy, new_pos = minimize_traj(top, new_traj, softness, eps,sol,True)
+  #  traj.positions[:] = new_pos[:]
  
     print('++++++++++++++++ RESULTS FORM MONTE CARLO MODULE ++++++++++++++\n')
     print('Total Energy:', Hamiltonion(top, traj, verbose, softness, eps,sol))

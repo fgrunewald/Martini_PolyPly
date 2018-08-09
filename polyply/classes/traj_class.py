@@ -131,24 +131,37 @@ class trajectory:
          
           traj_B=[]
           info_B=[]
-          traj_B[:] = [ atom for atom in self.positions[:] ]
-          info_B[:] = [ atom for atom in self.atom_info[:] ]
+          traj_B[:] = [ atom.astype(float) for atom in self.positions[:] ]
+          info_B[:] = self.atom_info[:] 
+      
 
           self.dist_matrix=[]
           # This somewhat absurd loop structure is required to avoid calculating the distance pairs squared! 
           # One element is enough
-
+      
           for atom_A, info_A in zip(self.positions,self.atom_info):
-              traj_B[:] = [ atom for atom in traj_B[1:] ]
-              info_B[:] = [ atom for atom in info_B[1:] ]
-              ref_array = np.asarray(traj_B).reshape(-1,3) 
-              if len(ref_array) - len(traj_B) != 0:
-                 distances = capped_distance_array(atom_A.reshape(-1,3),ref_array, cut_off, self.box)
-                 dist_list = [ (dist,info_A, info_B[key[1]]) for key, dist in zip(distances[0],distances[1]) if dist < cut_off and dist != 0.0] 
+      
+              traj_B[:] = traj_B[1:]
+              info_B[:] = info_B[1:] 
+              ref_array = np.asarray(traj_B,dtype=float).reshape(-1,3)
+                   
+  
+              if len(traj_B) != 0 :
+                 atom_A = atom_A.astype(float)
+                 print('>>>>>>>>>>>>>>>>>>>>>>>>>>>START<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<')
+                 print('ref-atom-A',atom_A.shape)
+                 print('ref-array',ref_array)
+                 self.box = np.array([5.0,5.0,5.0])
+                 distances = capped_distance_array(atom_A.reshape(-1,3),ref_array.reshape(-1,3), cut_off, self.box)
+                 print('distances',distances)
+                 dist_list = [ (dist,info_A, info_B[key[1]]) for key, dist in zip(distances[0],distances[1]) if dist < cut_off and dist != 0.0]
+                 print('>>>>>>>>>>>>>>>>>>>>>>>>>>>END<<<<<<<<<<<<<<<<<<<<<<<<<<<<<') 
               else:
                  dist_list = []
+              #print(dist_list)
               self.dist_matrix =  self.dist_matrix + dist_list      
 
+          print('final dist list', self.dist_matrix)
 
       def add_atom_dist_matrix(self, new_atom, cut_off, mol_name, mol_index, atom_type, mol_atom_index):
           ref_tree = scipy.spatial.ckdtree.cKDTree(new_atom.reshape(1,3))
