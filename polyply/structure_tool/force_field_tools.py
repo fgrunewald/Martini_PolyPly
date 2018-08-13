@@ -124,10 +124,11 @@ def are_bonded_exception(atom_A, atom_B, molecule, top, key):
   #      return(False)
 
 def nonbonded_potential(dist_matrix, top, softness, eps, verbose):
-    print(dist_matrix)
+
     LJ_energy = 0
     COUL_energy=0
     verbose=False
+
     if verbose:
        print("using a softness of",softness)
 
@@ -144,17 +145,11 @@ def nonbonded_potential(dist_matrix, top, softness, eps, verbose):
         pot_form_COUL = 'Coul'
        
         if mol_name_A == mol_name_B and mol_index_A == mol_index_B:
+       
            if not are_bonded_exception(atom_index_A, atom_index_B, mol_name_A, top,'excl_list'):
 
-              if dist > sigma * softness:
-                 LJ_energy   = LJ_energy   + getattr(potentials,pot_form)(coefs, dist,top.defaults['LJ'])
-                 COUL_energy = COUL_energy + getattr(potentials,pot_form_COUL)(charges, dist, eps)
- #                print(item)
-              else:
-                 if verbose:
-                    print(mol_name_A)
-                    print('overalp - category I')
-                 return(math.inf, math.inf)
+                LJ_energy   = LJ_energy   + getattr(potentials,pot_form)(coefs, dist,top.defaults['LJ'])
+                COUL_energy = COUL_energy + getattr(potentials,pot_form_COUL)(charges, dist, eps)
 
            elif are_bonded_exception(atom_index_A, atom_index_B, mol_name_A, top,'excl_list'):
                 LJ_energy = LJ_energy + 0
@@ -162,30 +157,17 @@ def nonbonded_potential(dist_matrix, top, softness, eps, verbose):
 
            elif are_bonded_exception(atom_index_A, atom_index_B, mol_name_A, top,'excl_14_list'):
                 try:
-                   coefs, sigma, pot_form = lookup_interaction_parameters(top, atom_type_A, atom_type_B, 'nonbond_14_pairs')
+                   coefs, sigma, pot_form = lookup_interaction_parameters(top, atom_type_A, atom_type_B, 
+                   'nonbond_14_pairs')
                 except AttributeError:
                    if verbose:
                       print('No 1-4 interactions found')
 
-                if dist > sigma * softness: 
-                   LJ_energy = LJ_energy + getattr(potentials,pot_form)(coefs, dist,top.defaults['LJ'])
-                   COUL_energy = COUL_energy + getattr(potentials,pot_form_COUL)(charges, dist, eps)
-                else:
-                   if verbose:
-                      print('A-self-overlap-B')
-                      print(dist)
-                   return(math.inf, math.inf)
+                LJ_energy = LJ_energy + getattr(potentials,pot_form)(coefs, dist,top.defaults['LJ'])
+                COUL_energy = COUL_energy + getattr(potentials,pot_form_COUL)(charges, dist, eps)
         else: 
 
-           if dist > sigma * softness:
-              LJ_energy   = LJ_energy   + getattr(potentials,pot_form)(coefs, dist, top.defaults['LJ'])
-              COUL_energy = COUL_energy + getattr(potentials,pot_form_COUL)(charges, dist, eps)
-              #print(item)
-           else:
-              if verbose:
-                 print(item)
-                 print('A-self-overlap-C')
-                 print(dist)
-              return(math.inf, math.inf)  
+             LJ_energy   = LJ_energy   + getattr(potentials,pot_form)(coefs, dist, top.defaults['LJ'])
+             COUL_energy = COUL_energy + getattr(potentials,pot_form_COUL)(charges, dist, eps) 
         
     return(LJ_energy, COUL_energy)

@@ -37,9 +37,13 @@ def find_central_starting_point(coordinates):
     return(starting_point)
 
 def accaptable(E, temp, prev_E):
-    dE = E - prev_E
+    if E != math.inf:
+       dE = E - prev_E
+    else:
+       return(False)
 
-    print('===================================>',dE)
+    print('===================================>',E)
+
     if dE < prev_E:
        return True
 #    else:
@@ -56,15 +60,33 @@ def accaptable(E, temp, prev_E):
        else:
           return(False)
 
-def is_overlap(new_point, traj, tol, bonds, current):
-    bonds = [ index - 1 for pair in bonds for index in pair['pairs'] if index != current + 1 ]
-    for index, coords in enumerate(traj):
-      if index not in bonds:
-        for point in coords:
-           if norm(point - new_point) < tol:
-              return(True)
-    return(False)
+def is_overlap(top, traj, softness, name_A, name_B):
 
+    for item in traj.dist_matrix:
+
+        mol_name_A, mol_index_A, atom_type_A, atom_index_A, atom_index_total = item[1]
+        mol_name_B, mol_index_B, atom_type_B, atom_index_B, atom_index_total = item[2]
+ 
+        dist = item[0]
+
+        coefs, sigma, pot_form = lookup_interaction_parameters(top, atom_type_A, atom_type_B, 'nonbond_params')
+
+        if mol_name_A == name_A and mol_name_B == name_B:
+
+           if not are_bonded_exception(atom_index_A, atom_index_B, mol_name_A, top,'excl_list'):
+ 
+              if dist < softness * sigma:
+                 return(True)
+
+        elif mol_name_A == name_B and mol_name_B == name_A:
+
+           if not are_bonded_exception(atom_index_A, atom_index_B, mol_name_A, top,'excl_list'):
+ 
+              if dist < softness * sigma:
+                 return(True)
+ 
+    return(False)                                   
+        
 
 def constraints(new_point, list_of_constraints):
     status = []
@@ -88,8 +110,8 @@ def constraints(new_point, list_of_constraints):
     return(all(status))
 
 def Hamiltonion(top, traj, display, softness, eps,sol):
-    display = True   
-    #display = False 
+   # display = True   
+    display = False 
      
     bonded_energies= bonded_potential(traj, top, [sol])
     vdw, coulomb = nonbonded_potential(traj.dist_matrix, top, softness, eps, display)
@@ -121,22 +143,25 @@ def minimize_traj(top, traj, softness, eps, sol, all_coords=False):
             opt_traj.positions[:] = traj.positions[0:-1]
   #          print('before',opt_traj.positions)
             opt_traj.positions += [pos]
+            opt_traj.distance_matrix(3.1,top)
    #         print(opt_traj.positions)
          else:
             opt_traj.positions[:] = list(pos.reshape(-1,3))
+            opt_traj.distance_matrix(3.1,top)
 
          energy = Hamiltonion(top, opt_traj, False, softness, eps,sol)
          return(energy) 
 
-    opt_results = scipy.optimize.minimize(opt_f,x0,method='L-BFGS-B')
+    opt_results = scipy.optimize.minimize(opt_f,x0,method='L-BFGS-B',options={'ftol':1,'maxiter':500})
 
     if not all_coords:
        opt_traj.positions[:] = traj.positions[0:-1]
        opt_traj.positions += [opt_results['x'].reshape(3)]
+     #  opt_traj.distance_matrix(3.1,top)
        #print(opt_traj.positions)
     else:    
        opt_traj.positions[:] = [ item for item in opt_results['x'].reshape(-1,3) ][:]
-
+    #   opt_traj.distance_matrix(3.1,top)
  #   print(type(opt_traj.positions[0]))
  #   print(type(traj.positions[0]))
 
@@ -218,53 +243,64 @@ def attempt(traj, top, step_length, ref_position, vectors, name, mol_index, mol_
     new_traj.distance_matrix(cut_off,top)
     new_traj.remove_overlap(top, name, sol_name, cut_off, softness)
 
-    # the energy of this cleaned trajectory is computed
-    new_energy = Hamiltonion(top, new_traj, False, softness, eps,sol_name)
-
-    return(new_energy, new_traj)
+    return(new_traj)
            
 def take_pseudo_step(traj, top, maxsteps, name, sol_name, verbose, softness, eps,sol, mol_index, n_min_steps, cut_off,step_count,prev_energy,temp,rejected,max_steps):
 
     step_length, ref_position, mol_atom_index = determine_step_length(name, top, traj)
     vectors = constraint_vectors(constraints)    
     subcount = 0
-    print(vectors.shape)
+#    print(vectors.shape)
 
     while True:
 
- #        print('~~~~~~~~~~~~~~~~~~~~attempt',subcount,'~~~~~~~~~~~~~~~~~~~~~~~~~~~')
-         new_energy, new_traj = attempt(traj, top, step_length, ref_position, vectors, name, mol_index, mol_atom_index, sol_name, softness, eps, cut_off)
-  #       print('~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~')
-       
-         if step_count%n_min_steps == 0:
-            return(new_energy, new_traj, rejected, True)
+#          print('~~~~~~~~~~~~~~~~~~~~attempt',subcount,'~~~~~~~~~~~~~~~~~~~~~~~~~~~')
 
-         if accaptable(new_energy,temp, prev_energy):
-            return(new_energy, new_traj, rejected, False)
+          # first we make an attempt and get a new traj 
+          new_traj = attempt(traj, top, step_length, ref_position, vectors, name, mol_index, 
+                              mol_atom_index, sol_name, softness, eps, cut_off)
 
-         elif subcount < max_steps:
-              if verbose:
+          # next we check if that new trajectory has any overlaps with itself
+          overlap = is_overlap(top, new_traj, softness, name, name) 
+
+          if not overlap:
+            
+             # the energy of this cleaned trajectory is computed
+             new_energy = Hamiltonion(top, new_traj, False, softness, eps,sol_name)
+           
+             # finally we accept or reject the step else we continue
+             if accaptable(new_energy,temp, prev_energy):
+                return(new_energy, new_traj, rejected, False)
+
+             elif verbose:
                  print(new_energy)
                  print('rejected')
-                 print(len(traj.positions))
-              rejected = rejected + 1
-              subcount = subcount + 1
-              vectors = vectors[1:]
-              
-         else:
-              print('+++++++++++++++++++++ FATAL ERROR ++++++++++++++++++++++++++++\n')
-              print('Exceeded maximum number of steps in the monte-carlo module.')
-              print('If you know what you do set -maxsteps to -1')
-              exit()
+               # print(len(traj.positions))
+       
+          elif verbose:
+               print('overlap trying again')
 
-def pseudopolis_monte_carlo(top, traj, start, name,  temp, max_steps, verbose, list_of_constraints, sol, cut_off, eps, softness,n_min_steps):
+          # in case the step is rejected we don't return and check if we exceeded 
+          # the maximum number of steps before making another attempt
+
+          if subcount < max_steps:
+             rejected = rejected + 1
+             subcount = subcount + 1
+             vectors = vectors[1:]
+             
+          else:
+             print('+++++++++++++++++++++ FATAL ERROR ++++++++++++++++++++++++++++\n')
+             print('Exceeded maximum number of steps in the monte-carlo module.')
+             print('If you know what you do set -maxsteps to -1')
+             exit()
+
+def pseudopolis_monte_carlo(top, traj, start, name, temp, max_steps, verbose, list_of_constraints, 
+                            sol, cut_off, eps, softness,n_min_steps):
  
-    n_min_steps = 10
-
+    n_min_steps = 1
 
 ###### 1. Check if it is a restart 
- 
-  
+   
     n_repeat = len(top.molecules[name].atoms)
     n_mol = sum([entry[1] for entry in  top.composition if entry[0] == name])-1
 
@@ -274,6 +310,7 @@ def pseudopolis_monte_carlo(top, traj, start, name,  temp, max_steps, verbose, l
        n_atoms_mol = len([ info[0]  for info in  traj.atom_info if info[0] == name])
        count = n_atoms_mol - (n_atoms_mol // len(top.molecules[name].atoms)) * len(top.molecules[name].atoms) 
        print(count)
+ 
     # no it is a new start; but we have solvent so we start from the center of the box
     elif start == 'center':
        print("Will start from center of box!")
@@ -284,16 +321,17 @@ def pseudopolis_monte_carlo(top, traj, start, name,  temp, max_steps, verbose, l
 
     else:
        print("Will start from scratch! Hold tight!")
-       traj.add_atom(name, n_mol, 1,np.array([0,0,0]),len(traj.positions), top)
+       traj.add_atom(name, n_mol, 1,np.array([5.0,5.0,5.0]),len(traj.positions), top)
        traj.box = np.array([float(10),float(10),float(10)])
        count = 1
 
 ###### 2. Construct the inital distance matrix of the entire box       
   
-    print(len(traj.positions))
+  #  print(len(traj.positions))
     if len(traj.positions) > 1:
        traj.distance_matrix(cut_off,top)
-    print(len(traj.positions))
+ 
+ #   print(len(traj.positions))
     if verbose:
        print('computed ',len(traj.dist_matrix),'distance pairs.')
 
@@ -308,22 +346,27 @@ def pseudopolis_monte_carlo(top, traj, start, name,  temp, max_steps, verbose, l
     print('\n+++++++++++++++ STARTING PSEUDOPOLIS-MONTE CARLO MODULE ++++++++++++++\n')
     while count < n_repeat:
  
-          energy, new_traj, new_rejected, minimize = take_pseudo_step(traj, top, max_steps, name, sol,verbose, softness, eps,sol,n_mol,n_min_steps,cut_off,count,prev_energy,temp,rejected,max_steps)   
+          energy, new_traj, new_rejected, minimize = take_pseudo_step(traj, top, max_steps, name, sol,verbose,                                                                      softness, eps,sol,n_mol,n_min_steps,                                                                          cut_off,count,prev_energy,temp,rejected,                                                                      max_steps)   
           print('~~~~~~~~~~~~~',count,'~~~~~~~~~~~~~~~~')
-          if minimize:
+
+          if count%n_min_steps == 0:
              energy, new_pos = minimize_traj(top, new_traj, softness, eps,sol,True)
              traj.positions[:] = new_pos[:]
              traj.atom_info[:] = new_traj.atom_info[:]
              prev_energy = energy
+      
           else:
+         
              traj = new_traj
              prev_energy = energy
 
           rejected = rejected + new_rejected
           count = count + 1
 
- #   energy, new_pos = minimize_traj(top, new_traj, softness, eps,sol,True)
-  #  traj.positions[:] = new_pos[:]
+    write_gro_file(top,traj,name,'before_min.gro')
+
+    energy, new_pos = minimize_traj(top, new_traj, softness, eps,sol,True)
+    traj.positions[:] = new_pos[:]
  
     print('++++++++++++++++ RESULTS FORM MONTE CARLO MODULE ++++++++++++++\n')
     print('Total Energy:', Hamiltonion(top, traj, verbose, softness, eps,sol))
@@ -349,7 +392,7 @@ def build_system(top_options, env_options, mc_options, outfile, magic_numbers):
        traj = trajectory.from_gro_file(sysfile,top)
     else:
        traj = trajectory(name)  
-   # start='center'
+
     n_min_steps=0
     traj = pseudopolis_monte_carlo(top, traj, start, name,  temp, max_steps, verbose, [], sol, cut_off, eps, softness, n_min_steps)
   
