@@ -18,6 +18,7 @@ from polyply.classes.traj_class import *
 from polyply.classes.topology_class import *
 from polyply.classes.traj_class import *
 from polyply.classes.potentials import *
+from tqdm import tqdm
 
 #######################################################################################################
 #
@@ -42,7 +43,7 @@ def accaptable(E, temp, prev_E):
     else:
        return(False)
 
-    print('===================================>',E)
+#    print('===================================>',E)
 
     if dE < prev_E:
        return True
@@ -136,6 +137,7 @@ def minimize_traj(top, traj, softness, eps, sol, all_coords=False):
     else:
        x0 = np.array(traj.positions[:])
     
+    opt_traj.distance_matrix(3.1,top)
 
     def opt_f(pos):
                   
@@ -143,16 +145,17 @@ def minimize_traj(top, traj, softness, eps, sol, all_coords=False):
             opt_traj.positions[:] = traj.positions[0:-1]
   #          print('before',opt_traj.positions)
             opt_traj.positions += [pos]
-            opt_traj.distance_matrix(3.1,top)
+      #      opt_traj.distance_matrix(3.1,top)
    #         print(opt_traj.positions)
          else:
             opt_traj.positions[:] = list(pos.reshape(-1,3))
             opt_traj.distance_matrix(3.1,top)
+            print('go here')
 
          energy = Hamiltonion(top, opt_traj, False, softness, eps,sol)
          return(energy) 
 
-    opt_results = scipy.optimize.minimize(opt_f,x0,method='L-BFGS-B',options={'ftol':1,'maxiter':500})
+    opt_results = scipy.optimize.minimize(opt_f,x0,method='L-BFGS-B',options={'ftol':100,'maxiter':10})
 
     if not all_coords:
        opt_traj.positions[:] = traj.positions[0:-1]
@@ -297,7 +300,7 @@ def take_pseudo_step(traj, top, maxsteps, name, sol_name, verbose, softness, eps
 def pseudopolis_monte_carlo(top, traj, start, name, temp, max_steps, verbose, list_of_constraints, 
                             sol, cut_off, eps, softness,n_min_steps):
  
-    n_min_steps = 1
+    n_min_steps = 20
 
 ###### 1. Check if it is a restart 
    
@@ -344,10 +347,11 @@ def pseudopolis_monte_carlo(top, traj, start, name, temp, max_steps, verbose, li
     #n_min_steps = n_repeat + 1
     rejected=0
     print('\n+++++++++++++++ STARTING PSEUDOPOLIS-MONTE CARLO MODULE ++++++++++++++\n')
+    pbar = tqdm(total = n_repeat)
     while count < n_repeat:
  
           energy, new_traj, new_rejected, minimize = take_pseudo_step(traj, top, max_steps, name, sol,verbose,                                                                      softness, eps,sol,n_mol,n_min_steps,                                                                          cut_off,count,prev_energy,temp,rejected,                                                                      max_steps)   
-          print('~~~~~~~~~~~~~',count,'~~~~~~~~~~~~~~~~')
+        #  print('~~~~~~~~~~~~~',count,'~~~~~~~~~~~~~~~~')
 
           if count%n_min_steps == 0:
              energy, new_pos = minimize_traj(top, new_traj, softness, eps,sol,True)
@@ -362,11 +366,12 @@ def pseudopolis_monte_carlo(top, traj, start, name, temp, max_steps, verbose, li
 
           rejected = rejected + new_rejected
           count = count + 1
+          pbar.update(1)
+    pbar.close()
+  #  write_gro_file(top,traj,name,'before_min.gro')
 
-    write_gro_file(top,traj,name,'before_min.gro')
-
-    energy, new_pos = minimize_traj(top, new_traj, softness, eps,sol,True)
-    traj.positions[:] = new_pos[:]
+#    energy, new_pos = minimize_traj(top, new_traj, softness, eps,sol,True)
+ #   traj.positions[:] = new_pos[:]
  
     print('++++++++++++++++ RESULTS FORM MONTE CARLO MODULE ++++++++++++++\n')
     print('Total Energy:', Hamiltonion(top, traj, verbose, softness, eps,sol))
@@ -386,6 +391,8 @@ def build_system(top_options, env_options, mc_options, outfile, magic_numbers):
     sol, sysfile, start = env_options 
    
     top_format = topology_format('gromacs','topology_format.txt')
+    #print('stuff',top_format.format['nonbond_params'].centers)
+    
     top = topology.from_gromacs_topfile(topfile,top_format)
 
     if sysfile != None:

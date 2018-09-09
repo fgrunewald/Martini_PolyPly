@@ -35,73 +35,84 @@ def change_type(line,py_type):
 
 
 class term_format:
+
       '''
       Term format is a general class for handeling the format of terms. 
+      Each term can have serveral function attributes which are stored
+      in this class as well. 
       '''
-      def __init__(self, key, idf=0):
-            self.key        = key
-            self.identifier = idf
+
+      def __init__(self, term_name, ftl=0):
+           
+            # the name of the term (e.g. dihedrals, angles, bonds)
+            self.term_name  = term_name
+           
+            # field where the function type is located
+            self.identifier = ftl
+           
+            # fields where the atom numbers are located
             self.centers = {}
+           
+            # fields where the parameters are located except 
+            # function type 
             self.params = {}
+           
+            # the potential which applies to this function type
             self.potential = {}
+           
+            # the function types which are available 
             self.term_types = []
 
-      def add_term_type(self, term_type, funct_pos, centers, params, potential):
-            self.identifier = funct_pos
-            self.centers.update({term_type:centers})
-            self.params.update({term_type:params})
-            self.term_types.append(term_type)
-            self.potential.update({term_type:potential})
+      def add_term_type(self, function, function_pos, potential, centers, params):
+            self.identifier = function_pos
+            self.centers.update({function:centers})
+            self.params.update({function:params})
+            self.term_types.append(function)
+            self.potential.update({function:potential})
 
 class topology_format:
       '''    
       This class can be used to store the entire topology informations of an MD program.
       It reads a simple text file with six commands defining the structure of the topology.
- 
-      [ section ] indicates what we are dealing with (i.e. bonds, angles, dihedrals, nonbonded paramters etc.)
 
-      @function  tells us on what field if at all a function type is specified
-      @params    gives the fields assciated to information that are not atom centers
-      @centers   gives the fields corresponding to atom centers
-      @potential defines what the potential function is we are dealing with (e.g. harmonic, LJ, cosine, periodic etc. )
-      @add indicates the end of a function section
-
+      The format file takes a ; as comment character. 
+      
+      You can use the following fields to feed the format class:
+      term-name   function-location  function-type   potential     atom-centers    parameters  
+      
       Each section can have serveral functions. 
 
       '''
       def __init__(self, name, filename):
           self.md_code = name
           self.format = {}
-
+        
           with open(filename) as f:
-               lines = f.readlines()
-               term_name = 'start'
-               function = None
-               keyword = None
-               for line in lines:
-                   if any([ word in '[ [ ]' for word in line.split()]):
-                      term_name = line.replace('\n', '').split()[1]
-                      term = term_format(term_name)
+             lines = f.readlines()
+         
+             for line in lines:
+                 line = ''.join(strip_comments(line))
+                 line = line.split('&')
+         
+                 if line != ['']:
+                    print(line)
+                    
+                    try:
+                        term = self.format[line[0]]
+                    except KeyError:
+                        term = term_format(line[0])
+                    
+                    function = line[2]
+                    if line[1] != 'dum':
+                       function_pos = int(line[1])
+                    else:
+                       function_pos = line[1]
+                    potential = line[3]
+                    centers = list(map(int,list(line[4])))
+                    params  = list(map(int,list(line[5])))
+                    term.add_term_type(function, function_pos, potential, centers, params)
+                    self.format.update({line[0]:term})
 
-                   elif any([ word in '@function' for word in line.split()]):
-                      try:
-                         function = int(strip_comments(line)[1])
-                      except ValueError:
-                         function = strip_comments(line)[1]
-
-                   elif any([ word in '@params' for word in line.split()]):
-                      params = change_type(strip_comments(line)[1:], int)
-
-                   elif any([ word in '@centers' for word in line.split()]):
-                      centers = change_type(strip_comments(line)[1:], int)
-
-                   elif any([ word in '@potential' for word in line.split()]):
-                      potential = strip_comments(line)[1]
-                      pot_type = strip_comments(line)[2]
-
-                   elif any([ word in '@add' for word in line.split()]):
-                      term.add_term_type(pot_type, function, centers, params, potential)
-                      self.format.update({term.key:term})
 
       def defs(self, name):
           return(self.format[name].key, self.format[name].term_types, self.format[name].centers, self.format[name].params)
@@ -134,6 +145,8 @@ class term_instance:
              term_type = line[term_format.identifier]
           except TypeError:
              term_type = term_format.identifier
+
+          #print(line)
 
           centers = tuple([line[int(element)] for element in term_format.centers[term_type]])
           params = [line[int(element)] for element in term_format.params[term_type]]
