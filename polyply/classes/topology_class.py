@@ -6,6 +6,12 @@
 
 import networkx as nx
 
+
+#################
+# File parseing
+#################
+
+
 def strip_comments(line):
      line = line.replace('\n', ' ').split()
      clean_line = []
@@ -29,6 +35,75 @@ def change_type(line,py_type):
     return([ py_type(word) for word in line])
 
 
+class read_top_file:
+      '''
+      This class stores potential input parsers for different MD programs. 
+      At the moment only gromacs topologies can be parsed.
+      '''
+      @classmethod
+      def gromacs(cls,topol_file_name):
+     
+         import os
+         import re
+     
+         #############################################
+         ### Start from backwards.py by T. Wassener
+         #############################################
+     
+         includePattern = re.compile('#include "(.*)"')
+     
+         # Gromacs force field directory
+         gmxlib = os.environ.get("GMXLIB")
+         if not gmxlib:
+               gmxdat = os.environ.get("GMXDATA")
+               if gmxdat:
+                   gmxlib = os.path.join(gmxdat,"gromacs","top")
+               else:
+                   gmxlib="."
+         
+         def reciter(filename):
+           # Set the directory of the filename so we know where to expect #included files
+           dir = os.path.dirname(filename)
+         
+           # Iterate over the lines
+           lines = open(filename).readlines()   # we need to keep track on when a file ends
+           lines += ['EOF']                     # this is a small modefication   
+           for line in lines:
+         
+               # Check for an #include statement; yield the line if there is none
+               if line.strip().startswith("#include"):
+         
+                   # Extract the #include filename             
+                   matches = re.findall(includePattern,line)
+         
+                   if matches:
+                       fr = matches[0]
+         
+                       if not os.path.exists(fr):
+                           fr = os.path.join(dir,matches[0])
+         
+                       if not os.path.exists(fr):
+                           fr = os.path.join(gmxlib,matches[0])
+         
+                       if not os.path.exists(fr):
+                           yield "; " + line + " ; File not found\n"
+                       else:
+                           for j in reciter(fr):
+                               yield j
+               else:
+                   yield strip_comments(line) # small modification to get rid of comments
+         
+                    
+         #############################################
+         ### End from backwards.py 
+         #############################################
+
+         
+         lines = [ line for line in reciter(topol_file_name) if len(line) != 0]
+
+         return lines
+
+  
 ##################
 #     FORMAT
 ##################      
@@ -181,6 +256,16 @@ class molecule(top_base):
           except AttributeError:
              setattr(self,name,[])
              getattr(self,name).append(term_instance.from_line(line, name, term_format))   
+
+      def add_residue(self, resname, program='gromacs', resdir='def'):
+          
+          lines = read_itp(resdir, program)
+          program_parser = 'from_' + program + 'lines'         
+          residue = self.getattr(self,program_paser)(lines)
+          
+             
+
+
  
       def construct_mol_graph(self):
           G = nx.Graph()
@@ -269,66 +354,12 @@ class topology(top_base):
       @classmethod
       def from_gromacs_topfile(cls, topol_file_name, topology_format):
 
-          import os
-          import re
-
-          #############################################
-          ### Start from backwards.py by T. Wassener
-          #############################################
-
-          includePattern = re.compile('#include "(.*)"')
-
-          # Gromacs force field directory
-          gmxlib = os.environ.get("GMXLIB")
-          if not gmxlib:
-                gmxdat = os.environ.get("GMXDATA")
-                if gmxdat:
-                    gmxlib = os.path.join(gmxdat,"gromacs","top")
-                else:
-                    gmxlib="."
-         
-          def reciter(filename):
-            # Set the directory of the filename so we know where to expect #included files
-            dir = os.path.dirname(filename)
-         
-            # Iterate over the lines
-            lines = open(filename).readlines()   # we need to keep track on when a file ends
-            lines += ['EOF']                     # this is a small modefication   
-            for line in lines:
-         
-                # Check for an #include statement; yield the line if there is none
-                if line.strip().startswith("#include"):
-         
-                    # Extract the #include filename             
-                    matches = re.findall(includePattern,line)
-         
-                    if matches:
-                        fr = matches[0]
-         
-                        if not os.path.exists(fr):
-                            fr = os.path.join(dir,matches[0])
-         
-                        if not os.path.exists(fr):
-                            fr = os.path.join(gmxlib,matches[0])
-         
-                        if not os.path.exists(fr):
-                            yield "; " + line + " ; File not found\n"
-                        else:
-                            for j in reciter(fr):
-                                yield j
-                else:
-                    yield strip_comments(line) # small modification to get rid of comments
-      
-                     
-          #############################################
-          ### End from backwards.py 
-          #############################################
 
           top_sections = 'EOF defaults molecules nonbond_params moleculetype bondtypes constrainttypes angletypes dihedraltypes pairtypes'.split()
-        
-          # we have to get rid of the partial string matching because EO is also considered an EOF
+         
+          print(topol_file_name)
+          lines = read_top_file.gromacs(topol_file_name)
 
-          lines = [ line for line in reciter(topol_file_name) if len(line) != 0]
           sys_index = topology.get_indices(lines, ['system'])[0][0]
           sys_name = lines[sys_index+1]
           top = topology(sys_name)
