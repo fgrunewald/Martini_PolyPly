@@ -292,7 +292,7 @@ def are_14(atom_A, atom_B, molecule, ff):
     return(any([ set((atom_A, atom_B)) == set(ref['pairs']) for ref in ff[molecule]['pairs']]))
 
 def coulomb(ca, cb, dist,eps):
-    return(138.935458/(eps)*(ca*cb)/dist**2.0)
+    return(138.935458/(eps)*(ca*cb)/dist)
 
 def LJ(A, B, r, form):
     if form == 'C6C12':

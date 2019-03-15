@@ -7,11 +7,10 @@ PolyPly can be used to **generate GROMACS itp files** of polymers from a monomer
 |------------------|-------------|----------------|----------------------|-----------|
 | PEO              | MARTINI 2   | yes            | yes                  | 1         |
 | PEO              | MARTINI 3*  | yes            | yes                  | 1         |
-| PEO              | 2016H66     | yes            | no                   | 2         |
 | PS               | MARTINI 2   | yes            | yes                  | 3         |
 | PSS              | MARTINI 2   | yes            | yes                  | 4         |
 | PDADMA           | MARTINI 2   | yes            | yes                  | 4         |
-| PE               | MARTINI 2   | yes            | yes                  | 5         |
+| PE               | MARTINI 2   | yes            | no                   | 5         |
 | PP               | MARTINI 2   | yes            | yes                  | 5         |
 | P3HT             | MARTINI 2   | yes            | no                   | 6         |
 | PEGylated lipids | MARTINI 2   | yes            | yes                  | 1         |
@@ -20,11 +19,11 @@ PolyPly can be used to **generate GROMACS itp files** of polymers from a monomer
 ### Installation
 PolyPly can be installed from GitHub directly by downloading the repository and within the downloaded repository executing the command:
 ```
-pip install ./
+pip3 install ./
 ```
 Alternatively when using pip, PolyPly can be installed directly via the following command: 
 ```
-pip install git+https://github.com/fgrunewald/Martini_PolyPly.git#polyply
+pip3 install git+https://github.com/fgrunewald/Martini_PolyPly.git#polyply
 ```
 Since for instance the itp-files but also the formats are subject to more or less frequent changes, it is recommended to install PolyPly via with the -e option to pip. In this way any updates can directly be fatched from GitHub using the git update command. Alternatively new changes can be installed by using the -upgrade flag to pip.
 
