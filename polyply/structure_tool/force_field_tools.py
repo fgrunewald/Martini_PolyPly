@@ -150,7 +150,7 @@ def read_itp(name):
                            
                      elif section in '[ atoms ]':
                          n, typ, resnr, res, atom, cgnr, charge, mass = strip_comments(line)
-                         atoms.append({'n': int(n), 'typ':typ ,'atom':atom, 'charge':nfl(charge)})
+                         atoms.append({'n': int(n), 'typ':typ ,'atom':atom, 'charge':nfl(charge), 'resname':res})
                      
                      elif section in '[ nonbond_params ]':
                          atom1, atom2, f, sigma, epsilon = strip_comments(line)
@@ -233,11 +233,12 @@ def write_gro_file(data, name, ff, box):
     count = 0
     resnum = 1
   
-    for resname, mols in data.items():
+    for mol_name, mols in data.items():
        for coords in mols:
          resnum = resnum + 1
          for index, line in enumerate(coords):
-             atomtype = ff[resname]['atoms'][index]['atom']
+             atomtype = ff[mol_name]['atoms'][index]['atom']
+             resname  = ff[mol_name]['atoms'][index]['resname']
              count = count + 1
              out_file.write('{:>5d}{:<5.5s}{:>5.5s}{:5d}{:8.3F}{:8.3F}{:8.3F}{}'.format(resnum, resname, atomtype, count, line[0], line[1], line[2],'\n'))
     out_file.write('{:>2s}{:<.5F} {:<.5F} {:<.5F}'.format('',float(box[0]), float(box[1]), float(box[2])))
