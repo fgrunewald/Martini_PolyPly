@@ -229,7 +229,7 @@ def write_gro_file(data, name, ff, box):
     n = sum([ len(coords) for resname, list_of_coords in data.items() for coords in list_of_coords ])
     out_file = open(name, 'w')
     out_file.write('Monte Carlo generated PEO'+'\n')
-    out_file.write('{:>3s}{:<8d}{}'.format('',n,'\n'))
+    out_file.write('{:>3.3s}{:<8d}{}'.format('',n,'\n'))
     count = 0
     resnum = 1
   
@@ -239,7 +239,7 @@ def write_gro_file(data, name, ff, box):
          for index, line in enumerate(coords):
              atomtype = ff[resname]['atoms'][index]['atom']
              count = count + 1
-             out_file.write('{:>5d}{:<5s}{:>5s}{:5d}{:8.3F}{:8.3F}{:8.3F}{}'.format(resnum, resname, atomtype, count, line[0], line[1], line[2],'\n'))
+             out_file.write('{:>5d}{:<5.5s}{:>5.5s}{:5d}{:8.3F}{:8.3F}{:8.3F}{}'.format(resnum, resname, atomtype, count, line[0], line[1], line[2],'\n'))
     out_file.write('{:>2s}{:<.5F} {:<.5F} {:<.5F}'.format('',float(box[0]), float(box[1]), float(box[2])))
     out_file.close()
     return(None)
