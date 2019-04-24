@@ -11,7 +11,7 @@ from polyply.structure_tool.geometrical_functions import *
 from polyply.structure_tool.force_field_tools import *
 
 
-def read_conf_file(filename, file_type):
+def read_conf_file(filename, file_type,mol_name=None):
     with open(filename) as f:
         lines=f.readlines()
         traj={}
@@ -28,8 +28,14 @@ def read_conf_file(filename, file_type):
                   count = count + 1
                elif 1 < count < len(lines) - 1:
                  # print(line.replace('\n', '').split())
-                  index = line.replace('\n', '')[0:5].strip() 
-                  molecule = line.replace('\n', '')[5:10].strip()
+
+                  if mol_name != None:
+                     molecule = mol_name
+                     index = 0
+                     #print(index)
+                  else:
+                     index = line.replace('\n', '')[0:5].strip() 
+                     molecule = line.replace('\n', '')[5:10].strip()
                   atom = line.replace('\n', '')[10:15].strip()
                   a_index = line.replace('\n', '')[15:20].strip()
                   x = line.replace('\n', '')[20:28].strip()
@@ -48,7 +54,7 @@ def read_conf_file(filename, file_type):
                      prev_index = index
                      prev_molecule = molecule
                      atom_count = atom_count + 1
-                  else:
+                  if index != prev_index or count == nlines - 2:
                      coords = [np.array([coordinates[i] for i in np.arange(0,atom_count)])]
                      try:
                          positions=traj[prev_molecule] + coords
@@ -69,6 +75,7 @@ def read_conf_file(filename, file_type):
                elif count == nlines - 1:
                   box = line.replace('\n', '').split()
                   count = count + 1
+#    print(traj)
     return(traj, box)
 
 
@@ -83,14 +90,22 @@ def find_central_starting_point(coordinates, sol):
     return(starting_point)
 
 def import_environment(options):
-    env_type, sol, lipid_type, sysfile = options 
-    environment_coords, box = read_conf_file(sysfile, ".gro")
+    env_type, sol, lipid_type, sysfile, restart, name = options 
+
  
     if env_type in '[ sol ]':
+         environment_coords, box = read_conf_file(sysfile, ".gro")
          start = find_central_starting_point(environment_coords, sol)
          constraints = [{'type':None}]
 
+    elif env_type in '[ restart ]':
+         environment_coords, box = read_conf_file(sysfile, ".gro",mol_name=name)
+         #print(environment_coords[name][0][restart])
+         start = environment_coords[name][0][restart]
+         constraints = [{'type':None}]
+
     elif env_type in '[ bilayer ]':
+         environment_coords, box = read_conf_file(sysfile, ".gro")
          start = environment_coords[lipid_type][0][-1]
          constraints = [{'type':'dist-x-axis', 'tol':float(box[0])/2, 'ref':start[0]}, {'type':'dist-y-axis', 'tol':float(box[1])/2, 'ref':start[1]},  
                         {'type':'dist-z-axis', 'tol':0, 'ref':start[2]}]

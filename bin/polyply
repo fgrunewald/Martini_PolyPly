@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/home/fabian/Resources/PYTHON/Sandbox/current_master/bin/python3
 
 import argparse
 import os
@@ -32,6 +32,7 @@ parser.add_argument('-lib'     , action='store_true'  , help = 'show itp library
 parser.add_argument('-cut_off' , metavar = 'cut off'           , dest = 'cut_off' , type = float , help = 'cut-off for non-bonded interactions (nm)', default=1.1)
 parser.add_argument('-softness', metavar = 'softness'          , dest = 'softness' , type = float , help = ' if r_AB < softness * sigma a move is rejected', default=0.75)
 parser.add_argument('-epsilon', metavar = 'dielectric constant', dest = 'eps' , type = float , help = 'dielectric constant to be used for electrostatics', default=15)
+parser.add_argument('-start'  , metavar = 'start-atom'         , dest = 'start' , type = int , help = 'starting atom for restart', default=0)
 
 args = parser.parse_args()
 
@@ -63,7 +64,7 @@ def main():
 
    elif not args.env == None:
       magic_numbers = (args.cut_off, args.softness, args.eps , args.v)
-      env_options = (args.env, args.solvent, args.lipid, args.sys)
+      env_options = (args.env, args.solvent, args.lipid, args.sys, args.start)
       top_options = (args.topfile)
       mc_options =  (args.temp, args.maxsteps, args.v, args.name)
       build_system(top_options, env_options, mc_options, args.outfile, magic_numbers)

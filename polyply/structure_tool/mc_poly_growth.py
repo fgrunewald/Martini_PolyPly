@@ -209,7 +209,7 @@ def metropolis_monte_carlo(ff, name, start, temp, n_repeat, max_steps, verbose, 
                 new_coord, index = take_step(vector_bundel, step_length, last_point)
                 new_traj = {name:[np.append(traj[name],np.array([new_coord])).reshape(-1,3)]}
                  
-                if len(env_traj) != 0:
+                if sol == 'water' :
                    sol_traj_temp = remove_overlap(new_coord, env_traj[sol], 0.43*0.80, sol)                    
                    new_traj.update({sol: sol_traj_temp})
                    [ new_traj.update({key:values}) for key, values in env_traj.items() if key != sol ]
@@ -261,7 +261,7 @@ def build_system(top_options, env_options, mc_options, outfile, magic_numbers):
     cut_off, softness, eps,  verbose = magic_numbers
     topfile = top_options
     temp, max_steps, verbose, name = mc_options
-    env_type, sol, lipid_type, sysfile = env_options 
+    env_type, sol, lipid_type, sysfile, restart_index = env_options 
     ff, system = read_top(topfile)
  
     try:
@@ -279,11 +279,18 @@ def build_system(top_options, env_options, mc_options, outfile, magic_numbers):
        n_mon = int(len(ff[name]['atoms'])) 
        traj = metropolis_monte_carlo(ff, name, start, temp, n_mon, max_steps, verbose, env_traj, [{'type':None}], None, 0, None,  cut_off, eps, form, softness)
 
-    elif env_type in '[ sol, bilayer ]':
+    elif env_type in '[ sol, bilayer, restart ]':
+       #print(name)
+       env_options = env_options + tuple([name])
+       #print(env_options)
        env_traj, constraints, head, box = import_environment(env_options)
 
        if env_type == 'bilayer':
-          offset = len(env_traj[lipid_type][0])   
+          offset = len(env_traj[lipid_type][0]) 
+       elif env_type == 'restart':
+          offset = len(env_traj[name][0])
+          print("offset",offset)
+          #head = env_traj[name][-1]
        else:
           offset = 0
        
