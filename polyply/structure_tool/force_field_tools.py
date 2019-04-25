@@ -149,7 +149,7 @@ def read_itp(name):
                           nonbond_params.update({(atom, atom): {'sigma':nfl(sigma), 'epsilon':nfl(epsilon)}})
                            
                      elif section in '[ atoms ]':
-                         n, typ, resnr, res, atom, cgnr, charge, mass = strip_comments(line)
+                         n, typ, resnr, res, atom, cgnr, charge = strip_comments(line)[:7]
                          atoms.append({'n': int(n), 'typ':typ ,'atom':atom, 'charge':nfl(charge), 'resname':res})
                      
                      elif section in '[ nonbond_params ]':
