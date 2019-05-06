@@ -64,7 +64,10 @@ def main():
 
    elif not args.env == None:
       magic_numbers = (args.cut_off, args.softness, args.eps , args.v)
-      env_options = (args.env, args.solvent, args.lipid, args.sys, args.start)
+      if args.env != restart:
+         env_options = (args.env, args.solvent, args.lipid, args.sys, 0)
+      else:
+         env_options = (args.env, args.solvent, args.lipid, args.sys, args.start)
       top_options = (args.topfile)
       mc_options =  (args.temp, args.maxsteps, args.v, args.name)
       build_system(top_options, env_options, mc_options, args.outfile, magic_numbers)
