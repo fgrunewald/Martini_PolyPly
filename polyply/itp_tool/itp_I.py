@@ -276,7 +276,7 @@ def itp_tool(itpfiles, linkfile, n_mon, outname, name, term_info):
     if linkfile != None:
        new_itp = add_links(new_itp, linkfile)
 
-    if linkfile != None:
+    if term_info != None:
        new_itp = terminate(new_itp, term_info[1], offset+1)
  
     [ out_itp.update({key: value}) for key, value in new_itp.items() if len(value) != 0 ]
