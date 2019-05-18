@@ -276,10 +276,8 @@ def itp_tool(itpfiles, linkfile, n_mon, outname, name, term_info):
     if linkfile != None:
        new_itp = add_links(new_itp, linkfile)
 
-#    try:
-    new_itp = terminate(new_itp, term_info[1], offset+1)
- #   except (IndexError,TypeError):
-   #     print('WARNING: No second terminal found. Are you sure you want to leave the polymer unterminated?')
+    if linkfile != None:
+       new_itp = terminate(new_itp, term_info[1], offset+1)
  
     [ out_itp.update({key: value}) for key, value in new_itp.items() if len(value) != 0 ]
     write_itp(out_itp, outname)
