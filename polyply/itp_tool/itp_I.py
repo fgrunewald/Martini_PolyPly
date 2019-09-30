@@ -8,7 +8,7 @@ import numpy as np
 # For adding a new term simply add it to the dictionary centers and key indexs to the dictionaries below together with the name between [].
 
 centers = {   'moleculetype': [],
-              'atoms': [0,5], 
+              'atoms': [0,5],
               ('bonds', 1) : [0,1],
               ('bonds', 2) : [0,1],
               ('angles', 1) : [0,1,2],
@@ -22,12 +22,14 @@ centers = {   'moleculetype': [],
               ('dihedrals', 2):[0,1,2,3],
               ('pairs',1):[0,1],
               'exclusions': [0, 1],
-              ('virtual_sitesn',2): [0,2,3,4]}
+              ('virtual_sitesn',2): [0,2,3,4],
+              ('virtual_sites3',4):[0,1,2,3],
+              ('virtual_sites3',1):[0,1,2,3]}
 settings ={
               'moleculetype':[0,1],
               'atoms':[1,2,3,4,6,7],
               ('bonds', 1) :[2,3,4],
-              ('bonds', 2) : [2,3,4], 
+              ('bonds', 2) : [2,3,4],
               ('angles',1):[3,4,5],
               ('angles',2):[3,4,5],
               ('angles',10):[3, 4, 5],
@@ -39,14 +41,18 @@ settings ={
               ('dihedrals',9):[4,5,6,7],
               ('pairs', 1):[2],
               'exclusions':[],
-              ('virtual_sitesn',2):[1]}
+              ('virtual_sitesn',2):[1],
+              ('virtual_sites3',4):[4,5,6,7],
+              ('virtual_sites3',1):[4,5,6]}
 
-function ={ 'bonds':2, 
+function ={ 'bonds':2,
              'angles':3,
              'constraints':2,
              'dihedrals':4,
              'pairs':2,
-             'virtual_sitesn':1}
+             'virtual_sitesn':1,
+             'virtual_sites3':4}
+
 
 block_bonds={'PS' :{ 'PEO': '1 8000',
                      'P3HT': '1 8000',
@@ -58,27 +64,28 @@ block_bonds={'PS' :{ 'PEO': '1 8000',
                       'P3HT': '1 8000',
                        'PS' : '1 8000'}}
 
-term_names=['moleculetype','atoms', 'bonds', 'angles', 'dihedrals', 'constraints', 'exclusions', 'virtual_sitesn']
+term_names=['moleculetype','atoms', 'bonds', 'angles', 'dihedrals', 'constraints', 'exclusions', 'virtual_sitesn','virtual_sites3']
 
 # We could store the different format as a subdictionary and select based on the relevant function number in 
 # the itp file. This would require modifcation of the write_itp function. 
 # Use cases are : - dihedrals, - exclusions, virtual-sides and 
-
 format_outfile={
-                ('bonds',1): '{:<5d} {:<5d} {:<2s} {:<8s} {:<8s}{}', 
+                ('bonds',1): '{:<5d} {:<5d} {:<2s} {:<8s} {:<8s}{}',
                 ('angles',1): '{:<5d} {:<5d} {:<5d} {:<2s} {:<8s} {:<8s}{}',
-                ('bonds',2): '{:<5d} {:<5d} {:<2s} {:<8s} {:<8s}{}', 
+                ('bonds',2): '{:<5d} {:<5d} {:<2s} {:<8s} {:<8s}{}',
                 ('angles',2): '{:<5d} {:<5d} {:<5d} {:<2s} {:<8s} {:<8s}{}',
                 ('angles',10): '{:<5d} {:<5d} {:<5d} {:<2s} {:<8s} {:<8s}{}',
-                ('dihedrals',1): '{:<5d} {:<5d} {:<5d} {:<5d} {:<2s} {:<10s} {:<10s} {:<10s}{}', 
+                ('dihedrals',1): '{:<5d} {:<5d} {:<5d} {:<5d} {:<2s} {:<10s} {:<10s} {:<10s}{}',
                 ('dihedrals',2):'{:<5d} {:<5d} {:<5d} {:<5d} {:<2s} {:<10s} {:<10s} {}',
                 ('dihedrals',11):'{:<5d} {:<5d} {:<5d} {:<5d} {:<2s} {:<10s} {:<10s}  {:<10s} {:<10s} {:<10s} {:<10s} {}',
-                ('dihedrals',9): '{:<5d} {:<5d} {:<5d} {:<5d} {:<2s} {:<10s} {:<10s} {:<10s}{}', 
+                ('dihedrals',9): '{:<5d} {:<5d} {:<5d} {:<5d} {:<2s} {:<10s} {:<10s} {:<10s}{}',
                 'atoms': '{:<5d} {:<5s} {:<1s} {:<5s} {:<3s} {:<1d} {:<8s} {:<3s}{}',
                 ('constraints',1): '{:<5d} {:<5d} {:<2s}{:<8s}{}','[': '{:<1s}{:<10s}{:<1s}{}',
-                'moleculetype':'{:<5s} {:<1s}{}', 
+                'moleculetype':'{:<5s} {:<1s}{}',
                 'exclusions': '{:<5d} {:<5d} {}',
                 ('virtual_sitesn',2):'{:<5d} {:<1s} {:<5d} {:<5d} {:<5d} {}',
+                ('virtual_sites3',1):'{:<5d} {:<5d} {:<5d} {:<5d} {:<1s} {:<10s} {:<10s}{}',
+                ('virtual_sites3',4):'{:<5d} {:<5d} {:<5d} {:<5d} {:<1s} {:<10s} {:<10s} {:<10s}{}',
                 ('pairs',1):'{:<5d} {:<5d} {:<2s} {}'}
 
 #=======================================================================================================================================================================
@@ -138,7 +145,7 @@ def repeat_section(section, key, n_trans, n_atoms, offset, max_atoms):
        return(new_section)
 
 def read_itp(name):
-    itp = collections.OrderedDict({'moleculetype':[], 'atoms':[], 'bonds':[], 'angles':[], 'dihedrals':[], 'constraints':[], 'pairs':[], 'virtual_sitesn':[], 'exclusions':[]})
+    itp = collections.OrderedDict({'moleculetype':[], 'atoms':[], 'bonds':[], 'angles':[], 'dihedrals':[], 'constraints':[], 'pairs':[],'virtual_sites3':[] ,'virtual_sitesn':[], 'exclusions':[]})
     with open(name) as f:
          lines = f.readlines()
          for line in lines:
@@ -179,7 +186,7 @@ def write_itp(text, outname):
             line.append('\n')
             out_file.write(str(format_outfile[key]).format(*line))
 
-    for key in ['bonds', 'angles', 'dihedrals', 'constraints','pairs','virtual_sitesn']:
+    for key in ['bonds', 'angles', 'dihedrals', 'constraints','pairs','virtual_sitesn','virtual_sites3']:
         if key in text:
            out_file.write('{:<1s}{:^18s}{:>1s}{}'.format('[',key,']','\n'))
            for line in text[key]:
@@ -240,7 +247,7 @@ def terminate(itp, end_group_file, offset):
 
 def itp_tool(itpfiles, linkfile, n_mon, outname, name, term_info): 
     block_count = 0 
-    new_itp =collections.OrderedDict({'moleculetype':[], 'atoms':[], 'bonds':[], 'angles':[], 'dihedrals':[], 'constraints':[],'pairs':[] ,'virtual_sitesn':[], 'exclusions':[]} )
+    new_itp =collections.OrderedDict({'moleculetype':[], 'atoms':[], 'bonds':[], 'angles':[], 'dihedrals':[], 'constraints':[],'pairs':[] ,'virtual_sites3':[],'virtual_sitesn':[], 'exclusions':[]} )
     offset = 0
     n_atoms=0
 
