@@ -256,11 +256,14 @@ def itp_tool(itpfiles, linkfile, n_mon, outname, name, term_info):
     new_itp.update({'moleculetype':[[name, nexcl]]})
     max_atoms = []
  
-    for name, n_trans in zip(itpfiles, n_mon):
+   for name, n_trans in zip(itpfiles, n_mon):
         mon_itp = read_itp(name)
         n_atoms = len(mon_itp["atoms"])
-        max_atoms.append(n_atoms * n_trans + sum(max_atoms))
- #   print(max_atoms[0])
+        try:
+           max_atoms.append(n_atoms * n_trans + max_atoms[-1])
+        except IndexError:
+           max_atoms.append(n_atoms * n_trans)
+
     if term_info != None:
        print(term_info)
        new_itp = terminate(new_itp, term_info[0], 0)
