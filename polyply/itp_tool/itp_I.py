@@ -10,7 +10,9 @@ import numpy as np
 centers = {   'moleculetype': [],
               'atoms': [0,5],
               ('bonds', 1) : [0,1],
+              ('bonds', 6) : [0,1],
               ('bonds', 2) : [0,1],
+              ('position_restraints',1):[0],
               ('angles', 1) : [0,1,2],
               ('angles', 2) : [0,1,2],
               ('angles', 10): [0,1,2],
@@ -27,9 +29,11 @@ centers = {   'moleculetype': [],
               ('virtual_sites3',1):[0,1,2,3]}
 settings ={
               'moleculetype':[0,1],
-              'atoms':[1,2,3,4,6,7],
+              'atoms':[1,2,3,4,6],
               ('bonds', 1) :[2,3,4],
               ('bonds', 2) : [2,3,4],
+              ('bonds', 6) : [2,3,4],
+              ('position_restraints',1):[1,2,3,4],
               ('angles',1):[3,4,5],
               ('angles',2):[3,4,5],
               ('angles',10):[3, 4, 5],
@@ -51,7 +55,8 @@ function ={ 'bonds':2,
              'dihedrals':4,
              'pairs':2,
              'virtual_sitesn':1,
-             'virtual_sites3':4}
+             'virtual_sites3':4,
+             'position_restraints':1}
 
 
 block_bonds={'PS' :{ 'PEO': '1 8000',
@@ -64,7 +69,7 @@ block_bonds={'PS' :{ 'PEO': '1 8000',
                       'P3HT': '1 8000',
                        'PS' : '1 8000'}}
 
-term_names=['moleculetype','atoms', 'bonds', 'angles', 'dihedrals', 'constraints', 'exclusions', 'virtual_sitesn','virtual_sites3']
+term_names=['moleculetype','atoms', 'bonds','position_restraints' ,'angles', 'dihedrals', 'constraints', 'exclusions', 'virtual_sitesn','virtual_sites3']
 
 # We could store the different format as a subdictionary and select based on the relevant function number in 
 # the itp file. This would require modifcation of the write_itp function. 
@@ -73,13 +78,15 @@ format_outfile={
                 ('bonds',1): '{:<5d} {:<5d} {:<2s} {:<8s} {:<8s}{}',
                 ('angles',1): '{:<5d} {:<5d} {:<5d} {:<2s} {:<8s} {:<8s}{}',
                 ('bonds',2): '{:<5d} {:<5d} {:<2s} {:<8s} {:<8s}{}',
+                ('bonds',6): '{:<5d} {:<5d} {:<2s} {:<8s} {:<8s}{}',
+                ('position_restraints',1): '{:<5d} {:<2s} {:<8s} {:<8s} {:<8s}{}',
                 ('angles',2): '{:<5d} {:<5d} {:<5d} {:<2s} {:<8s} {:<8s}{}',
                 ('angles',10): '{:<5d} {:<5d} {:<5d} {:<2s} {:<8s} {:<8s}{}',
                 ('dihedrals',1): '{:<5d} {:<5d} {:<5d} {:<5d} {:<2s} {:<10s} {:<10s} {:<10s}{}',
                 ('dihedrals',2):'{:<5d} {:<5d} {:<5d} {:<5d} {:<2s} {:<10s} {:<10s} {}',
                 ('dihedrals',11):'{:<5d} {:<5d} {:<5d} {:<5d} {:<2s} {:<10s} {:<10s}  {:<10s} {:<10s} {:<10s} {:<10s} {}',
                 ('dihedrals',9): '{:<5d} {:<5d} {:<5d} {:<5d} {:<2s} {:<10s} {:<10s} {:<10s}{}',
-                'atoms': '{:<5d} {:<5s} {:<1s} {:<5s} {:<3s} {:<1d} {:<8s} {:<3s}{}',
+                'atoms': '{:<5d} {:<5s} {:<1s} {:<5s} {:<3s} {:<1d} {:<8s} {}',
                 ('constraints',1): '{:<5d} {:<5d} {:<2s}{:<8s}{}','[': '{:<1s}{:<10s}{:<1s}{}',
                 'moleculetype':'{:<5s} {:<1s}{}',
                 'exclusions': '{:<5d} {:<5d} {}',
@@ -99,6 +106,11 @@ def move(center, count, n_atoms, offset):
     return(int(center) + n_atoms * count + offset)
 
 def term_topology(key, term):
+    # This takes care of define statements
+    #print(term[0][0].split())
+    if "#" in term[0][0].split():
+        return (term, "define")
+ 
     if all([key != item for item in ['atoms', 'moleculetype', 'exclusions']]):
        return(centers[(key, int(term[function[key]]))], settings[(key, int(term[function[key]]))])
     else:
@@ -110,11 +122,17 @@ def repeat_term(term, key, n_trans, n_atoms, offset, max_atom):
      center_indices, setting_indices = term_topology(key, term)
      #print(max_atom)
      #print(n_atoms)
+     if setting_indices == "define":
+        #print(center_indices) 
+        return [[-1, center_indices]]
+
      while count < n_trans: 
           try:
               new_term = []
               [ new_term.append([x ,term[x]]) for x in setting_indices] 
               [ new_term.append([x, move(term[x], count, n_atoms, offset)]) for x in center_indices ]
+              #print(new_term)
+              #exit()
               new_term = line_up(new_term)
           except IndexError:
               print("\n+++++++++++++++++++ Fatal Error +++++++++++++++++++++++")
@@ -124,6 +142,7 @@ def repeat_term(term, key, n_trans, n_atoms, offset, max_atom):
               exit()
           if key in '[ atoms ]':
              if new_term[center_indices[1]] > max_atom:
+                print(new_term) 
                 print("\n++++++++++++++++ Fatal Error ++++++++++++++++++++++++")
                 print("The largest charge group index exceeds the number")
                 print("of atoms in the repeat unit. You cannot have more")
@@ -136,16 +155,78 @@ def repeat_term(term, key, n_trans, n_atoms, offset, max_atom):
 
      return(new_terms)
 
+
+# We need a special sorting algorithm to not sort around #defs
+
+def check_interval(ndx,ifdef,endif):
+    
+    for idx, jdx in zip(ifdef,endif):
+        if all([ndx >= idx  , ndx <= jdx]):
+           return True
+    return False   
+    
+
+def sort_section(section):
+    
+    sorted_section=[]
+    ifdef=[]
+    endif=[]
+    
+    if len(section) != 0:
+       for i, term in enumerate(section):
+           try:
+               #print(term[1][0])
+               if  term[1][0] in ["#ifdef","#ifndef"] :
+                   ifdef.append(i)
+                 #  if term[1][0]  == "ifndef":
+                 #     print("go here")
+               elif "#endif" == term[1][0]:
+                   endif.append(i)
+            
+           except TypeError:
+               continue 
+    #print(ifdef,endif)
+
+
+    if len(ifdef) == 0 and len(section) != 0:
+       #print("go") 
+       #print(sorted(section)) 
+       return sorted(section)
+
+    else:
+       #print("go here") 
+
+       temp_sorted=[]
+       for idx, term in enumerate(section):
+           if not check_interval(idx, ifdef, endif):
+              temp_sorted.append(term)
+       sorted_section += sorted(temp_sorted)
+       
+       temp_sorted=[]
+       for idx,jdx in zip(ifdef,endif):
+           #print(idx,jdx)
+           #print(section[idx])
+           temp_sorted.append(section[idx])
+           #print("ifdef",section[idx+1:jdx])
+           temp_sorted += sorted(section[idx+1:jdx])
+           temp_sorted.append(section[jdx])
+           sorted_section += temp_sorted
+           #print(sorted)
+
+       return sorted_section
+
 def repeat_section(section, key, n_trans, n_atoms, offset, max_atoms):
        new_section = []
        for term in section:
            new_terms = repeat_term(term, key, n_trans, n_atoms, offset, max_atoms)
            [new_section.append(new_term) for new_term in new_terms]
-       new_section=sorted(new_section)
+       #print(new_section)
+       new_section=sort_section(new_section)
+       #print(new_section)
        return(new_section)
 
 def read_itp(name):
-    itp = collections.OrderedDict({'moleculetype':[], 'atoms':[], 'bonds':[], 'angles':[], 'dihedrals':[], 'constraints':[], 'pairs':[],'virtual_sites3':[] ,'virtual_sitesn':[], 'exclusions':[]})
+    itp = collections.OrderedDict({'moleculetype':[], 'atoms':[], 'bonds':[], 'angles':[], 'dihedrals':[], 'constraints':[],'position_restraints':[] ,'pairs':[],'virtual_sites3':[] ,'virtual_sitesn':[], 'exclusions':[]})
     with open(name) as f:
          lines = f.readlines()
          for line in lines:
@@ -173,12 +254,13 @@ def read_itp(name):
                        exit()
     out_itp = collections.OrderedDict({})
     [ out_itp.update(collections.OrderedDict({key: value})) for key, value in itp.items() if len(value) != 0 ]
- #   print(out_itp['atoms'])
+    #print(out_itp['bonds'])
     return(out_itp)
 
        
 def write_itp(text, outname):
     out_file = open(outname, 'w')
+    #print(text['bonds'])
     for key in ['moleculetype', 'atoms']:
       if key in text:
         out_file.write('{:<1s}{:^18s}{:>1s}{}'.format('[',key,']','\n'))
@@ -186,18 +268,26 @@ def write_itp(text, outname):
             line.append('\n')
             out_file.write(str(format_outfile[key]).format(*line))
 
-    for key in ['bonds', 'angles', 'dihedrals', 'constraints','pairs','virtual_sitesn','virtual_sites3']:
+    for key in ['bonds', 'angles', 'dihedrals', 'constraints','pairs','virtual_sitesn','virtual_sites3','position_restraints']:
         if key in text:
            out_file.write('{:<1s}{:^18s}{:>1s}{}'.format('[',key,']','\n'))
            for line in text[key]:
-               line.append('\n')
-               out_file.write(str(format_outfile[(key, int(line[function[key]]))]).format(*line))
+         #      print(line)
+               if line[0] == -1:
+                  #print(line[1]) 
+                  out_file.write(" ".join(line[1])+" \n")
+               else: 
+                  line.append('\n')
+                  out_file.write(str(format_outfile[(key, int(line[function[key]]))]).format(*line))
     
     if 'exclusions' in text:
         out_file.write('{:<1s}{:^18s}{:>1s}{}'.format('[', 'exclusions',']','\n'))
         for line in text['exclusions']:
-            line.append('\n')
-            out_file.write(str(format_outfile['exclusions']).format(*line))
+            if line[0] == -1:
+               out_file.write(" ".join(line[1])+" \n")
+            else: 
+               line.append('\n')
+               out_file.write(str(format_outfile['exclusions']).format(*line))
 
 
 
@@ -247,7 +337,7 @@ def terminate(itp, end_group_file, offset):
 
 def itp_tool(itpfiles, linkfile, n_mon, outname, name, term_info): 
     block_count = 0 
-    new_itp =collections.OrderedDict({'moleculetype':[], 'atoms':[], 'bonds':[], 'angles':[], 'dihedrals':[], 'constraints':[],'pairs':[] ,'virtual_sites3':[],'virtual_sitesn':[], 'exclusions':[]} )
+    new_itp =collections.OrderedDict({'moleculetype':[], 'atoms':[], 'bonds':[], 'angles':[], 'dihedrals':[], 'constraints':[],'position_restraints':[] ,'pairs':[] ,'virtual_sites3':[],'virtual_sitesn':[], 'exclusions':[]} )
     offset = 0
     n_atoms=0
 
@@ -256,16 +346,19 @@ def itp_tool(itpfiles, linkfile, n_mon, outname, name, term_info):
     new_itp.update({'moleculetype':[[name, nexcl]]})
     max_atoms = []
  
-   for name, n_trans in zip(itpfiles, n_mon):
+    for name, n_trans in zip(itpfiles, n_mon):
         mon_itp = read_itp(name)
         n_atoms = len(mon_itp["atoms"])
         try:
            max_atoms.append(n_atoms * n_trans + max_atoms[-1])
         except IndexError:
            max_atoms.append(n_atoms * n_trans)
-
+        
+ #   print(max_atoms[0])
     if term_info != None:
-       print(term_info)
+       print("WARNING: The use of end-groups is to be deprecated.", '\n',
+                        "Instead feed the end-group as monomer and", '\n',
+                        "add corresponding link file.")
        new_itp = terminate(new_itp, term_info[0], 0)
        offset  = len(new_itp['atoms'])
        max_atoms = [ n + len(new_itp['atoms']) for n in max_atoms ]  
@@ -276,9 +369,10 @@ def itp_tool(itpfiles, linkfile, n_mon, outname, name, term_info):
            n_atoms = len(mon_itp["atoms"])
            for key, section in mon_itp.items():                           
                if key != 'moleculetype':
+                  #print( max_atoms[count]) 
                   add = new_itp[key] + repeat_section(section, key, n_trans, n_atoms, offset, max_atoms[count])
                   new_itp.update(collections.OrderedDict({key: add}))
-                #print(offset)
+           #print(offset)
            offset += n_atoms * n_trans            
            count = count + 1
     out_itp = collections.OrderedDict({})
