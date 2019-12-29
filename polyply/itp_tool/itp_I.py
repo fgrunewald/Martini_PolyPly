@@ -24,12 +24,12 @@ centers = {   'moleculetype': [],
               ('dihedrals', 2):[0,1,2,3],
               ('pairs',1):[0,1],
               'exclusions': [0, 1],
-              ('virtual_sitesn',2): [0,2,3,4],
+              ('virtual_sitesn',2): [":"],
               ('virtual_sites3',4):[0,1,2,3],
               ('virtual_sites3',1):[0,1,2,3]}
 settings ={
               'moleculetype':[0,1],
-              'atoms':[1,2,3,4,6],
+              'atoms':[1,2,3,4,6,7],
               ('bonds', 1) :[2,3,4],
               ('bonds', 2) : [2,3,4],
               ('bonds', 6) : [2,3,4],
@@ -45,7 +45,7 @@ settings ={
               ('dihedrals',9):[4,5,6,7],
               ('pairs', 1):[2],
               'exclusions':[],
-              ('virtual_sitesn',2):[1],
+              ('virtual_sitesn',2):[],
               ('virtual_sites3',4):[4,5,6,7],
               ('virtual_sites3',1):[4,5,6]}
 
@@ -86,7 +86,7 @@ format_outfile={
                 ('dihedrals',2):'{:<5d} {:<5d} {:<5d} {:<5d} {:<2s} {:<10s} {:<10s} {}',
                 ('dihedrals',11):'{:<5d} {:<5d} {:<5d} {:<5d} {:<2s} {:<10s} {:<10s}  {:<10s} {:<10s} {:<10s} {:<10s} {}',
                 ('dihedrals',9): '{:<5d} {:<5d} {:<5d} {:<5d} {:<2s} {:<10s} {:<10s} {:<10s}{}',
-                'atoms': '{:<5d} {:<5s} {:<1s} {:<5s} {:<3s} {:<1d} {:<8s} {}',
+                'atoms': '{:<5d} {:<5s} {:<1s} {:<5s} {:<3s} {:<1d} {:<8s} {:<5s} {}',
                 ('constraints',1): '{:<5d} {:<5d} {:<2s}{:<8s}{}','[': '{:<1s}{:<10s}{:<1s}{}',
                 'moleculetype':'{:<5s} {:<1s}{}',
                 'exclusions': '{:<5d} {:<5d} {}',
@@ -111,8 +111,16 @@ def term_topology(key, term):
     if "#" in term[0][0].split():
         return (term, "define")
  
-    if all([key != item for item in ['atoms', 'moleculetype', 'exclusions']]):
+    if all([key != item for item in ['atoms', 'moleculetype', 'exclusions', 'virtual_sitesn']]):
        return(centers[(key, int(term[function[key]]))], settings[(key, int(term[function[key]]))])
+    elif key == 'virtual_sitesn':
+         #print(key)
+         fidx = int(function[key])
+         idxs = np.arange(0,len(term),1)
+         cent_idxs = idxs[idxs != fidx]
+         #print(fidx)
+         #print(cent_idxs)
+         return (cent_idxs, [fidx])
     else:
        return(centers[key], settings[key])
 
@@ -129,11 +137,12 @@ def repeat_term(term, key, n_trans, n_atoms, offset, max_atom):
      while count < n_trans: 
           try:
               new_term = []
-              [ new_term.append([x ,term[x]]) for x in setting_indices] 
+              [ new_term.append([x ,term[x]]) for x in setting_indices]  
               [ new_term.append([x, move(term[x], count, n_atoms, offset)]) for x in center_indices ]
               #print(new_term)
               #exit()
               new_term = line_up(new_term)
+              #print(new_term)
           except IndexError:
               print("\n+++++++++++++++++++ Fatal Error +++++++++++++++++++++++")
               print("Check your itp file!")
@@ -174,6 +183,7 @@ def sort_section(section):
     
     if len(section) != 0:
        for i, term in enumerate(section):
+           #print(term)
            try:
                #print(term[1][0])
                if  term[1][0] in ["#ifdef","#ifndef"] :
@@ -230,6 +240,7 @@ def read_itp(name):
     with open(name) as f:
          lines = f.readlines()
          for line in lines:
+             #print(line)
              words = line.split()
              if len(words) != 0:
                if not words[0] in ';, \n, \r\n':   
@@ -238,9 +249,22 @@ def read_itp(name):
                   if any([ word in '[ [ ]' for word in words]):
                      key = words[1]
                      #print(key)
-                  else:
+
+                  elif key != 'exclusions':
                      add =  itp[key] + [line.replace('\n', '').split()]
-                     itp.update({key:add})       
+                     itp.update({key:add})
+
+                  elif key == 'exclusions':
+                     sline = line.replace('\n', '').split()
+                     #print(line)
+                     for atom in sline[1:]:
+                         #print(sline[0])
+                         new_line = sline[0] + " " + atom
+                         #print(new_line)
+                         add =  itp[key] + [line.replace('\n', '').split()]
+                         itp.update({key:add})       
+
+
                 except (UnboundLocalError):
                        print("+++++++++++++ Error when reading the itp file ++++++++++++++++")
                        print("Check your format.")
@@ -268,9 +292,9 @@ def write_itp(text, outname):
             line.append('\n')
             out_file.write(str(format_outfile[key]).format(*line))
 
-    for key in ['bonds', 'angles', 'dihedrals', 'constraints','pairs','virtual_sitesn','virtual_sites3','position_restraints']:
+    for key in ['bonds', 'angles', 'dihedrals', 'constraints','pairs','virtual_sites3','position_restraints']:
         if key in text:
-           out_file.write('{:<1s}{:^18s}{:>1s}{}'.format('[',key,']','\n'))
+           out_file.write('{:<1s}{:^22s}{:>1s}{}'.format('[',key,']','\n'))
            for line in text[key]:
          #      print(line)
                if line[0] == -1:
@@ -280,15 +304,16 @@ def write_itp(text, outname):
                   line.append('\n')
                   out_file.write(str(format_outfile[(key, int(line[function[key]]))]).format(*line))
     
-    if 'exclusions' in text:
-        out_file.write('{:<1s}{:^18s}{:>1s}{}'.format('[', 'exclusions',']','\n'))
-        for line in text['exclusions']:
-            if line[0] == -1:
-               out_file.write(" ".join(line[1])+" \n")
-            else: 
-               line.append('\n')
-               out_file.write(str(format_outfile['exclusions']).format(*line))
-
+    for key in ['exclusions', 'virtual_sitesn']:
+        if key in text:
+            out_file.write('{:<1s}{:^18s}{:>1s}{}'.format('[', key ,']','\n'))
+            for line in text[key]:
+                if line[0] == -1:
+                   out_file.write(" ".join(line[1])+" \n")
+                else: 
+                    line.append('\n')
+                    line = [ str(e) for e in line ]
+                    out_file.write(" ".join(line))
 
 
 # The sole purpose of this function is to convert
@@ -323,7 +348,7 @@ def terminate(itp, end_group_file, offset):
           [ new_term.append([x ,term[x]]) for x in setting_indices]
           if offset != 0:
              offset_new = -len(center_indices) + offset
-             print(len(center_indices))
+             #print(len(center_indices))
              if key == 'atoms':
                 offset_new = offset_new + 1
           else:
