@@ -102,7 +102,9 @@ def strip_comments(line):
    #          print(count)
   #           print(len(line))
              word = line[count]
-             if word not in '[ ; ]':
+             #print(word)
+             if word not in '[ ; ]' and '#' not in word:
+                #print(word)
                 word = line[count]
                 clean_line += [word]
                 count = count + 1 
@@ -127,16 +129,17 @@ def read_itp(name):
          lines=f.readlines()
          for line in lines:
            line_count = line_count + 1
- #          print(line)
+           #print(line)
            if len(line.replace('\n', '').split()) == 0:
               empty = empty +  1
-           elif not line[0] in ';':
+           elif not line[0] in ';' and "#" not in line[0]:
                 try:
                      if any([ word in '[ [ ]' for word in line.split()]):
                         if section != 'random' and section != 'atomtypes' and section != 'defaults':
-                           print(section)
+                           #print(section)
                            parameters.update({molecule_type:{'nexcl':nfl(nexcl), 'atoms':atoms, 'bonds':bonds, 'angles':angles, 'constraints':constraints, 'dih':dih,'pairs':pairs,'nonbond_params':nonbond_params,'nonbond_14pairs':nonbond_14pairs}})
                         section = line.replace('\n', '').split()[1]
+                        print(section)
                      
                      elif section in '[ moleculetype ]':
                           name, nexcl = strip_comments(line)[0:2]
@@ -156,6 +159,14 @@ def read_itp(name):
                          atom1, atom2, f, sigma, epsilon = strip_comments(line)
                          nonbond_params.update({(atom1, atom2): {'sigma':nfl(sigma), 'epsilon':nfl(epsilon)}})
                          molecule_type = 'nonbond_params'
+                    
+                     elif section in '[ virtual_sitesn ]':
+                         clean_line = strip_comments(line)
+                         
+                         # this is a workaround for ignoring VS, we still can't construct them
+                         atom1 = clean_line[0]
+                         for atom2 in clean_line[1:]:
+                             bonds.append({'pairs':[int(atom1),int(atom2)], 'k0':nfl(10000), 'ref':nfl(0.43), 'f':nfl(1)})
                 
                      elif section in '[ pairtypes ]':
                          atom1, atom2, f, sigma, epsilon = strip_comments(line)
@@ -193,7 +204,7 @@ def read_itp(name):
                          A, B, f, ref = strip_comments(line)
                          constraints.append({'pairs':[A, B], 'f':nfl(f), 'ref':nfl(ref)})
                      elif section in '[ defaults ]':
-                         LJ = int(line.replace('\n', '').split()[0])
+                         LJ = int(line.replace('\n', '').split()[1])
                          if LJ == 1:
                             form='C6C12'
                          else:
@@ -255,33 +266,50 @@ def proper_dih(dih, k0, ref, n, f):
        return(0.5 * k0 * (dih - ref)**2.0 )
 
 def bond_pot(val,k0,ref,f):
+
+   
+  
     if f == 1:
-       return(0.5 * k0 * (val-ref)**2.0)
+       val = 0.5 * k0 * (val-ref)**2.0
     elif f == 2:
-       return(0.25 * k0 * (val**2.0-ref**2.0)**2.0)
+       val = 0.25 * k0 * (val**2.0-ref**2.0)**2.0
+
+    #if val == None:
+    #   print(val,k0,ref,f) 
+
+    return(val)
 
 def ang_pot(val,k0,ref,f):
     if f == 1:
        return(0.5 * k0 * (val-ref)**2.0)
     elif f == 2:
+       #print('go here') 
        return(0.5 * k0 * (cos(val)-cos(ref))**2.0)
     elif f == 10:
        return(0.5 * k0 * (cos(val)-cos(ref))**2.0/sin(val)**2.0)
 
-def legal(term, traj):
+def legal(term, traj, restart):
     status_A = all( [index <= len(traj) for index in term['pairs']])
-    return(status_A)
+    status_B = all( [index >= restart for index in term['pairs']])
+    
+    if status_A and status_B:
+       return True
+    else:
+       return False 
 
-def bonded_pot(ff, traj):
-    bond_pairs = [ norm(traj[(term['pairs'][0] - 1)] - traj[(term['pairs'][1] - 1)]) for term in ff['bonds'] if legal(term, traj)]
+def bonded_pot(ff, traj, restart):
+    #print(restart)
+    bond_pairs = [ norm(traj[(term['pairs'][0] - 1)] - traj[(term['pairs'][1] - 1)]) for term in ff['bonds'] if legal(term, traj, restart)]   
+    #print([(dist, term['k0'], term['ref'],term['f']) for term, dist in zip(ff['bonds'], bond_pairs)])
+
     return(sum([bond_pot(dist, term['k0'], term['ref'],term['f']) for term, dist in zip(ff['bonds'], bond_pairs)]))
 
-def angle_pot(ff, traj):
-    angles =  [ angle(traj[(term['pairs'][0] - 1)], traj[(term['pairs'][1] - 1)], traj[(term['pairs'][2] - 1)]) for term in ff['angles'] if legal(term, traj) ]
+def angle_pot(ff, traj, restart):
+    angles =  [ angle(traj[(term['pairs'][0] - 1)], traj[(term['pairs'][1] - 1)], traj[(term['pairs'][2] - 1)]) for term in ff['angles'] if legal(term, traj, restart) ]
     return(sum([ang_pot(np.radians(ang),term['k0'], np.radians(term['ref']),term['f']) for term, ang in zip(ff['angles'], angles)]))
 
-def dihedral_pot(ff, traj):
-    dih_ang = [dih(traj[(t['pairs'][0] - 1)], traj[(t['pairs'][1] - 1)], traj[(t['pairs'][2] - 1)], traj[(t['pairs'][3] -1)]) for t in ff['dih'] if legal(t, traj)]
+def dihedral_pot(ff, traj, restart):
+    dih_ang = [dih(traj[(t['pairs'][0] - 1)], traj[(t['pairs'][1] - 1)], traj[(t['pairs'][2] - 1)], traj[(t['pairs'][3] -1)]) for t in ff['dih'] if legal(t, traj, restart)]
     return(sum([proper_dih(ang, term['k0'], term['ref'], term['n'], term['f']) for term, ang in zip(ff['dih'], dih_ang)]))
 
 
@@ -299,7 +327,8 @@ def LJ(A, B, r, form):
     if form == 'C6C12':
        return( A/r**12.0 - B/r**6.0 )
     elif form == 'sigeps':
-       return(4.0 * B * ( (A/r)**12.0 - (A/r)**6.0) )
+       #print('go here', r, A,B) 
+       return(4.0 * A * ( (B/r)**12.0 - (B/r)**6.0) )
 
 def lookup_interaction_parameters(ff, atom_A, atom_B, LJ_form, key):
 
@@ -320,24 +349,30 @@ def lookup_interaction_parameters(ff, atom_A, atom_B, LJ_form, key):
 
       return(coef_A, coef_B, sigma)
 
-def nonbonded_potential(dist_mat, ff, softness, eps, form, verbose):
+def nonbonded_potential(dist_mat, ff, softness, eps, form, verbose, offset):
     LJ_energy = 0
     COUL_energy=0
    # verbose=True
    # print(len(dist_mat))
    
     for key, dist in dist_mat.items():
-
+        #print('go')
         atom_A, atom_B = ff[key[0]]['atoms'][key[2]]['typ'], ff[key[3]]['atoms'][key[5]]['typ']
-        charge_A, charge_B = ff[key[0]]['atoms'][key[2]]['charge'], ff[key[3]]['atoms'][key[5]]['charge']
-  
-        if key[0] == key[3] and key[1] == key[4]:
+        
+        if key[2] < offset and key[5] < offset:
+           #print('go here') 
+           continue 
 
+        charge_A, charge_B = ff[key[0]]['atoms'][key[2]]['charge'], ff[key[3]]['atoms'][key[5]]['charge']
+        
+        if key[0] == key[3] and key[1] == key[4]:
+         #  print('go')
            if not are_bonded(key[2]+1, key[5]+1, key[0], ff) and not are_14(key[2]+1, key[5]+1, key[0], ff):
               coef_A, coef_B, sigma = lookup_interaction_parameters(ff, atom_A, atom_B, form, 'nonbond_params')
 
               if dist > sigma * softness:
                  LJ_energy = LJ_energy + LJ(coef_A, coef_B, dist, form)
+               #  print( LJ(coef_A, coef_B, dist, form))
                  COUL_energy = COUL_energy + coulomb(charge_A, charge_B, dist, eps)
               else:
                  if verbose:
@@ -358,6 +393,7 @@ def nonbonded_potential(dist_mat, ff, softness, eps, form, verbose):
            coef_A, coef_B, sigma = lookup_interaction_parameters(ff, atom_A, atom_B, form, 'nonbond_params')
            if dist > sigma * softness:
                LJ_energy = LJ_energy + LJ(coef_A, coef_B, dist, form)
+               print(LJ_energy)
                COUL_energy = COUL_energy + coulomb(charge_A, charge_B, dist, eps)
 
            else:

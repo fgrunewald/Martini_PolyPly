@@ -76,16 +76,16 @@ def take_step(vectors, step_length, item):
 
 
 
-def Hamiltonion(ff, traj, dist_mat, display, eps, cut_off, form, softness):
+def Hamiltonion(ff, traj, dist_mat, display, eps, cut_off, form, softness, restart):
     bond, angle, dihedral = 0, 0, 0
     for molecule, positions in traj.items():
       for coords in positions:
-        bond  += bonded_pot(ff[molecule], coords)
-        angle += angle_pot(ff[molecule], coords)
-        dihedral += dihedral_pot(ff[molecule], coords)
+        #bond  += bonded_pot(ff[molecule], coords, restart)
+        angle += angle_pot(ff[molecule], coords, restart)
+        #dihedral += dihedral_pot(ff[molecule], coords, restart)
   
     if len(dist_mat) != 0:
-       vdw, coulomb = nonbonded_potential(dist_mat, ff, softness, eps, form, display)
+       vdw, coulomb = nonbonded_potential(dist_mat, ff, softness, eps, form, display, restart)
     else:
        vdw, coulomb = 0, 0
     if display:
@@ -146,7 +146,7 @@ def determine_step_length(ff, count, traj, name, start, offset):
  
     return(step_length, ref_coord, bonds_a)
 
-def construct_dist_mat(traj, cut_off, start=False):
+def construct_dist_mat(traj, cut_off, new_coord=None, old_traj_dists=None, start=False):
     traj_dists = {}
     if start:
      
@@ -156,26 +156,59 @@ def construct_dist_mat(traj, cut_off, start=False):
        mol_ids_B = [ index for molecule, pos_mols in traj.items() for index, pos in enumerate(pos_mols) for atom in pos ]
        traj_info_A = [ [molecule, len(pos), n ] for molecule, pos_mols in traj.items() for pos in pos_mols for n, atom in enumerate(pos) ]
        traj_info_B = [ [molecule, len(pos), n ] for molecule, pos_mols in traj.items() for pos in pos_mols for n, atom in enumerate(pos) ]
-       mol_length = traj_info_A[0][1]
-       atom_count = 0
-       mol_count = 0
+       #mol_length = traj_info_A[0][1]
+       flag=True
+       #atom_count = 0
+       #mol_count = 0
        count=0
+
        for info, atom in zip(traj_info_A[:-1], flat_traj_A[:-1]):
            flat_traj_B = np.delete(flat_traj_B,0,axis=0)
+           
            del traj_info_B[0]
            del mol_ids_B[0]
+           #print("info",info, traj_info_B)
+           if flag:
+              mol_length=traj_info_A[count][1] 
+              atom_count = 0
+ 
            traj_tree = scipy.spatial.ckdtree.cKDTree(flat_traj_B)
            ref_tree = scipy.spatial.ckdtree.cKDTree(atom.reshape(1,3))
            dist_mat = ref_tree.sparse_distance_matrix(traj_tree,cut_off)
+           #print(traj_info_B)
+           #for key, dist in dist_mat.items():
+              # print(atom_count, (traj_info_B[key[1]][2]))
            [ traj_dists.update({(info[0], mol_ids_A[count], atom_count, traj_info_B[key[1]][0], mol_ids_B[key[1]] , traj_info_B[key[1]][2]):dist}) for key, dist in dist_mat.items()] #if dist != 0]
 
            if atom_count < mol_length - 1:
               atom_count = atom_count + 1
+              flag=False
            else:
-              mol_length = traj_info_A[count+1][1]
-              atom_count = 0
+              flag=True 
+        #      mol_length = traj_info_A[count+1][1]
+         #     atom_count = 0
+
            count = count + 1
-    return(traj_dists)
+       return(traj_dists)
+
+    else:
+     
+       flat_traj_A = np.concatenate([ pos  for molecule, pos_mols in traj.items() for pos in pos_mols ])
+       mol_ids_A = [ index for molecule, pos_mols in traj.items() for index, pos in enumerate(pos_mols) for atom in pos ]
+       traj_info_A = [ [molecule, len(pos), n ] for molecule, pos_mols in traj.items() for pos in pos_mols for n, atom in enumerate(pos) ]
+       traj_tree = scipy.spatial.ckdtree.cKDTree(flat_traj_A[:-1])
+       ref_tree = scipy.spatial.ckdtree.cKDTree(new_coord.reshape(1,3))
+       dist_mat = ref_tree.sparse_distance_matrix(traj_tree,cut_off)
+
+       mol_length = traj_info_A[0][1]
+       count=0
+       for info, dist in dist_mat.items():
+           #print(info)
+           key = (traj_info_A[info[1]][0],mol_ids_A[info[1]],info[1],traj_info_A[-1][0],mol_ids_A[-1],traj_info_A[-1][2])
+           old_traj_dists.update({key:dist})
+           count = count + 1
+       
+       return old_traj_dists     
 
 def metropolis_monte_carlo(ff, name, start, temp, n_repeat, max_steps, verbose, env_traj, list_of_constraints, sol, offset, lipid, cut_off, eps, form, softness):
     
@@ -189,35 +222,42 @@ def metropolis_monte_carlo(ff, name, start, temp, n_repeat, max_steps, verbose, 
        [ traj.update({key:values}) for key, values in env_traj.items() if key != sol ]
        count = 0
 
+ #   print(traj)
     dist_mat = construct_dist_mat(traj, cut_off, start=True)
-    
+#    print(dist_mat)
     if offset == 0:
        count = 1
 
-    prev_E = Hamiltonion(ff, traj, dist_mat, verbose, eps, cut_off, form, softness)
+    prev_E = Hamiltonion(ff, traj, dist_mat, verbose, eps, cut_off, form, softness, offset)
     rejected=0
     print(prev_E)
     print('{0:+^120}'.format(' starting monte carlo structure generation '))
     pbar = tqdm(total = n_repeat)
+    basis_bundel = norm_sphere()
     while count < n_repeat:
           #print('~~~~~~~~~~~~~~~~',count,'~~~~~~~~~~~~~~')
           step_length, ref_coord, bonded = determine_step_length(ff, count, traj[name][0], name, start, offset)
           last_point = ref_coord
-          subcount=0     
+          subcount=0    
+
+          vector_bundel = np.zeros((5000,3))
+          vector_bundel[:] = basis_bundel[:]
           while True:
-                vector_bundel = norm_sphere()
+
                 new_coord, index = take_step(vector_bundel, step_length, last_point)
                 new_traj = {name:[np.append(traj[name],np.array([new_coord])).reshape(-1,3)]}
                  
-                if sol == 'water' :
-                   sol_traj_temp = remove_overlap(new_coord, env_traj[sol], 0.43*0.80, sol)                    
-                   new_traj.update({sol: sol_traj_temp})
-                   [ new_traj.update({key:values}) for key, values in env_traj.items() if key != sol ]
+            #    if sol == 'water' :
+            #       sol_traj_temp = remove_overlap(new_coord, env_traj[sol], 0.43*0.80, sol)                    
+            #       new_traj.update({sol: sol_traj_temp})
+            #       [ new_traj.update({key:values}) for key, values in env_traj.items() if key != sol ]
           
-                dist_mat = construct_dist_mat(new_traj, cut_off, start=True)
-              
+                dist_mat = construct_dist_mat(new_traj, cut_off,new_coord, dist_mat, start=False)
+ #               print(dist_mat)
+#                exit()
+
                 if constraints(new_coord, list_of_constraints):
-                   total_E  = Hamiltonion(ff, new_traj, dist_mat, verbose, eps, cut_off, form, softness)
+                   total_E  = Hamiltonion(ff, new_traj, dist_mat, verbose, eps, cut_off, form, softness,offset)
 
                    if accaptable(total_E, temp, prev_E):
                      if verbose:
@@ -250,7 +290,10 @@ def metropolis_monte_carlo(ff, name, start, temp, n_repeat, max_steps, verbose, 
     pbar.close()
     print()
     print('{0:+^120}'.format(' results from monte-carlo simulation '))
-    print('Total Energy:', Hamiltonion(ff, traj, dist_mat, True, eps, cut_off, form, softness))
+    dist_mat = construct_dist_mat(traj, cut_off,start=True)
+    #print(traj)
+    #print(dist_mat)
+    print('Total Energy:', Hamiltonion(ff, traj, dist_mat, True, eps, cut_off, form, softness, offset))
     #print('Radius of Gyration:', radius_of_gyr(traj))
     print('Number of rejected MC steps:', rejected)       
     return(traj)
