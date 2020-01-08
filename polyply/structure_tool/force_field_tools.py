@@ -66,8 +66,8 @@ def read_top(name):
            if not line[0] in ';' and not len(line.replace('\n', '').split()) == 0:
              if len(line.replace('\n', '').split()) == 0:
                 empty = empty +  1
-             if any([ word in '[ [ ]' for word in line.split()]):
-                section = line.replace('\n', '').split()[1]
+             if is_section_head(line):
+                section = line.replace('\n', '').replace(']','').replace('[','').strip()
                    #print(section)
              elif section in '[ molecules ]':
                   name, n_mol = strip_comments(line)[0:2] 
@@ -114,6 +114,15 @@ def strip_comments(line):
             break
     return(clean_line)
 
+def is_section_head(line):
+
+    for word in line.split():
+       for char in list(word):
+           if char not in '[ [ ]':
+              return False
+           else:
+              return True
+
 def read_itp(name):
     not_implemented={'bonds':[3,4,5,6,7,8,9,10],'angles':[3,4,5,6,7,8],'dihedrals':[8],'restraints':[],'virtual_sites':[1,2,3,4]}
     print('Reading',name)
@@ -134,11 +143,11 @@ def read_itp(name):
               empty = empty +  1
            elif not line[0] in ';' and "#" not in line[0]:
                 try:
-                     if any([ word in '[ [ ]' for word in line.split()]):
+                     if is_section_head(line):
                         if section != 'random' and section != 'atomtypes' and section != 'defaults':
                            #print(section)
                            parameters.update({molecule_type:{'nexcl':nfl(nexcl), 'atoms':atoms, 'bonds':bonds, 'angles':angles, 'constraints':constraints, 'dih':dih,'pairs':pairs,'nonbond_params':nonbond_params,'nonbond_14pairs':nonbond_14pairs}})
-                        section = line.replace('\n', '').split()[1]
+                        section = line.replace('\n', '').replace(']','').replace('[','').strip()
                         print(section)
                      
                      elif section in '[ moleculetype ]':
