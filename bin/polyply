@@ -33,6 +33,7 @@ parser.add_argument('-cut_off' , metavar = 'cut off'           , dest = 'cut_off
 parser.add_argument('-softness', metavar = 'softness'          , dest = 'softness' , type = float , help = ' if r_AB < softness * sigma a move is rejected', default=0.75)
 parser.add_argument('-epsilon', metavar = 'dielectric constant', dest = 'eps' , type = float , help = 'dielectric constant to be used for electrostatics', default=15)
 parser.add_argument('-start'  , metavar = 'start-atom'         , dest = 'start' , type = int , help = 'starting atom for restart', default=0)
+parser.add_argument('-branch'  , metavar = 'branch'         , dest = 'branch' , type = int , help = 'degree of branching per monomer',nargs='*')
 
 args = parser.parse_args()
 
@@ -55,12 +56,12 @@ def show_files(path):
 def main():
  
    if not args.itpfiles == None:
-      itp_tool(args.itpfiles, args.linkfile ,args.mon, args.outfile, args.name, args.endgroup)
+      itp_tool(args.itpfiles, args.linkfile ,args.mon, args.outfile, args.name, args.endgroup, args.branch)
 
    elif not args.r_itp_name == None:
       itp_files = resolve_name(args.r_itp_name, DATA_PATH)
       print(args.endgroup)
-      itp_tool(itp_files, args.linkfile ,args.mon, args.outfile, args.name, args.endgroup)
+      itp_tool(itp_files, args.linkfile ,args.mon, args.outfile, args.name, args.endgroup,args.branch)
 
    elif not args.env == None:
       magic_numbers = (args.cut_off, args.softness, args.eps , args.v)

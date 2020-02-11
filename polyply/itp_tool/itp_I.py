@@ -8,7 +8,7 @@ import numpy as np
 # For adding a new term simply add it to the dictionary centers and key indexs to the dictionaries below together with the name between [].
 
 centers = {   'moleculetype': [],
-              'atoms': [0,5],
+              'atoms': [0,2,5],
               ('bonds', 1) : [0,1],
               ('bonds', 6) : [0,1],
               ('bonds', 2) : [0,1],
@@ -29,7 +29,7 @@ centers = {   'moleculetype': [],
               ('virtual_sites3',1):[0,1,2,3]}
 settings ={
               'moleculetype':[0,1],
-              'atoms':[1,2,3,4,6,7],
+              'atoms':[1,3,4,6,7],
               ('bonds', 1) :[2,3,4],
               ('bonds', 2) : [2,3,4],
               ('bonds', 6) : [2,3,4],
@@ -86,7 +86,7 @@ format_outfile={
                 ('dihedrals',2):'{:<5d} {:<5d} {:<5d} {:<5d} {:<2s} {:<10s} {:<10s} {}',
                 ('dihedrals',11):'{:<5d} {:<5d} {:<5d} {:<5d} {:<2s} {:<10s} {:<10s}  {:<10s} {:<10s} {:<10s} {:<10s} {}',
                 ('dihedrals',9): '{:<5d} {:<5d} {:<5d} {:<5d} {:<2s} {:<10s} {:<10s} {:<10s}{}',
-                'atoms': '{:<5d} {:<5s} {:<1s} {:<5s} {:<3s} {:<1d} {:<8s} {:<5s} {}',
+                'atoms': '{:<5d} {:<5s} {:<5d} {:<5s} {:<3s} {:<1d} {:<8s} {:<5s} {}',
                 ('constraints',1): '{:<5d} {:<5d} {:<2s}{:<8s}{}','[': '{:<1s}{:<10s}{:<1s}{}',
                 'moleculetype':'{:<5s} {:<1s}{}',
                 'exclusions': '{:<5d} {:<5d} {}',
@@ -124,7 +124,7 @@ def term_topology(key, term):
     else:
        return(centers[key], settings[key])
 
-def repeat_term(term, key, n_trans, n_atoms, offset, max_atom):
+def repeat_term(term, key, n_trans, n_atoms, offset, max_atom,res_offset):
      count = 0
      new_terms = []
      center_indices, setting_indices = term_topology(key, term)
@@ -151,7 +151,7 @@ def repeat_term(term, key, n_trans, n_atoms, offset, max_atom):
               exit()
           if key in '[ atoms ]':
              if new_term[center_indices[1]] > max_atom:
-                print(new_term) 
+                #print(new_term) 
                 print("\n++++++++++++++++ Fatal Error ++++++++++++++++++++++++")
                 print("The largest charge group index exceeds the number")
                 print("of atoms in the repeat unit. You cannot have more")
@@ -161,6 +161,14 @@ def repeat_term(term, key, n_trans, n_atoms, offset, max_atom):
              new_terms.append(new_term)
   #        print(new_term)
           count = count + 1
+
+     # correction for couning the resids and the charge number
+     if key == 'atoms':
+        print("term", " n_aotms*I "," offset "," i ")
+        for i, term in enumerate(new_terms):
+            print(term[2],n_atoms*i ,res_offset, i)
+            term[2] = term[2] - n_atoms*i - offset + i + res_offset
+            #term[5] = term[5] - n_atoms*i - offset + i + 1
 
      return(new_terms)
 
@@ -225,10 +233,10 @@ def sort_section(section):
 
        return sorted_section
 
-def repeat_section(section, key, n_trans, n_atoms, offset, max_atoms):
+def repeat_section(section, key, n_trans, n_atoms, offset, max_atoms, res_offset):
        new_section = []
        for term in section:
-           new_terms = repeat_term(term, key, n_trans, n_atoms, offset, max_atoms)
+           new_terms = repeat_term(term, key, n_trans, n_atoms, offset, max_atoms,res_offset)
            [new_section.append(new_term) for new_term in new_terms]
        #print(new_section)
        new_section=sort_section(new_section)
@@ -296,9 +304,9 @@ def write_itp(text, outname):
         if key in text:
            out_file.write('{:<1s}{:^22s}{:>1s}{}'.format('[',key,']','\n'))
            for line in text[key]:
-         #      print(line)
+               #print(line)
                if line[0] == -1:
-                  #print(line[1]) 
+                  #print(key) 
                   out_file.write(" ".join(line[1])+" \n")
                else: 
                   line.append('\n')
@@ -341,8 +349,12 @@ def add_links(itp, linkfile):
 
 def terminate(itp, end_group_file, offset):
     group = read_itp(end_group_file)
+    if len(itp['atoms']) != 0:
+       last_res = itp['atoms'][-1][2] 
     for key, section in group.items():
-       for term in section:
+        for term in section:
+          #print(term)
+          #print(offset)
           new_term = []
           center_indices, setting_indices = term_topology(key, term)
           [ new_term.append([x ,term[x]]) for x in setting_indices]
@@ -350,11 +362,15 @@ def terminate(itp, end_group_file, offset):
              offset_new = -len(center_indices) + offset
              #print(len(center_indices))
              if key == 'atoms':
-                offset_new = offset_new + 1
+                offset_new = offset_new + 2
           else:
              offset_new = offset
           [ new_term.append([x, move(term[x], 0, 0, offset_new)]) for x in center_indices ]
           new_term = line_up(new_term)
+
+          if key == 'atoms' and offset != 0:
+             new_term[2] = last_res +1
+
           new_section = itp[key]
           new_section.append(new_term)
           itp.update({key: new_section})
@@ -379,14 +395,25 @@ def itp_tool(itpfiles, linkfile, n_mon, outname, name, term_info):
         except IndexError:
            max_atoms.append(n_atoms * n_trans)
         
- #   print(max_atoms[0])
+    #print(n_atoms)
     if term_info != None:
        print("WARNING: The use of end-groups is to be deprecated.", '\n',
                         "Instead feed the end-group as monomer and", '\n',
                         "add corresponding link file.")
        new_itp = terminate(new_itp, term_info[0], 0)
+
+#       if len(term_info) == 2:
+#          atoms_last = len(read_itp(term_info[1])['atoms'])
+#       else:
+#          atoms_last = 0
+
        offset  = len(new_itp['atoms'])
-       max_atoms = [ n + len(new_itp['atoms']) for n in max_atoms ]  
+#       max_atoms = [ n + len(new_itp['atoms']) + atoms_last for n in max_atoms ]  
+       max_atoms = [ n + len(new_itp['atoms']) for n in max_atoms ]
+       try:  
+          res_offset = new_itp["atoms"][-1][2]
+       except IndexError:
+          res_offset = 0
 
     count=0
     for name, n_trans in zip(itpfiles, n_mon):
@@ -394,10 +421,11 @@ def itp_tool(itpfiles, linkfile, n_mon, outname, name, term_info):
            n_atoms = len(mon_itp["atoms"])
            for key, section in mon_itp.items():                           
                if key != 'moleculetype':
-                  #print( max_atoms[count]) 
-                  add = new_itp[key] + repeat_section(section, key, n_trans, n_atoms, offset, max_atoms[count])
+                  #print(max_atoms) 
+                  add = new_itp[key] + repeat_section(section, key, n_trans, n_atoms, offset, max_atoms[count],res_offset)
                   new_itp.update(collections.OrderedDict({key: add}))
            #print(offset)
+                  res_offset = new_itp["atoms"][-1][2]
            offset += n_atoms * n_trans            
            count = count + 1
     out_itp = collections.OrderedDict({})
