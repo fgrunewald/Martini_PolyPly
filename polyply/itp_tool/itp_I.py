@@ -269,8 +269,8 @@ def read_itp(name):
                          #print(sline[0])
                          new_line = sline[0] + " " + atom
                          #print(new_line)
-                         add =  itp[key] + [line.replace('\n', '').split()]
-                         itp.update({key:add})       
+                     add =  itp[key] + [line.replace('\n', '').split()]
+                     itp.update({key:add})       
 
 
                 except (UnboundLocalError):
