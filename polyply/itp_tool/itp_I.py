@@ -164,9 +164,9 @@ def repeat_term(term, key, n_trans, n_atoms, offset, max_atom,res_offset):
 
      # correction for couning the resids and the charge number
      if key == 'atoms':
-        print("term", " n_aotms*I "," offset "," i ")
+        #print("term", " n_aotms*I "," offset "," i ")
         for i, term in enumerate(new_terms):
-            print(term[2],n_atoms*i ,res_offset, i)
+            #print(term[2],n_atoms*i ,res_offset, i)
             term[2] = term[2] - n_atoms*i - offset + i + res_offset
             #term[5] = term[5] - n_atoms*i - offset + i + 1
 
@@ -410,10 +410,11 @@ def itp_tool(itpfiles, linkfile, n_mon, outname, name, term_info):
        offset  = len(new_itp['atoms'])
 #       max_atoms = [ n + len(new_itp['atoms']) + atoms_last for n in max_atoms ]  
        max_atoms = [ n + len(new_itp['atoms']) for n in max_atoms ]
-       try:  
-          res_offset = new_itp["atoms"][-1][2]
-       except IndexError:
-          res_offset = 0
+   
+   try:  
+       res_offset = new_itp["atoms"][-1][2]
+   except IndexError:
+       res_offset = 0
 
     count=0
     for name, n_trans in zip(itpfiles, n_mon):
