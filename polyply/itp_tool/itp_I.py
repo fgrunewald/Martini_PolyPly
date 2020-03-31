@@ -411,9 +411,9 @@ def itp_tool(itpfiles, linkfile, n_mon, outname, name, term_info):
 #       max_atoms = [ n + len(new_itp['atoms']) + atoms_last for n in max_atoms ]  
        max_atoms = [ n + len(new_itp['atoms']) for n in max_atoms ]
    
-   try:  
+    try:  
        res_offset = new_itp["atoms"][-1][2]
-   except IndexError:
+    except IndexError:
        res_offset = 0
 
     count=0
