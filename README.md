@@ -1,3 +1,7 @@
+# This program moved
+Check out our new and much improved version at: [https://github.com/marrink-lab/polyply_1.0]
+
+
 # Martini_PolyPly (beta-version)
 
 ## Functionality 
